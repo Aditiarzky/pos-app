@@ -23,13 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Plus, 
-  Pencil, 
-  Trash2, 
-  MoreHorizontal, 
-  Loader2 
-} from "lucide-react";
+import { Plus, Pencil, Trash2, MoreHorizontal, Loader2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,19 +33,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import Link from "next/link";
+import { useConfirm } from "@/contexts/ConfirmDialog";
 
 export default function UsersPage() {
   const [open, setOpen] = React.useState(false);
-  const [selectedUser, setSelectedUser] = React.useState<UserResponse | null>(null);
+  const [selectedUser, setSelectedUser] = React.useState<UserResponse | null>(
+    null
+  );
 
   const { data: response, isLoading } = useUsers();
-  
-  const deleteMutation = useDeleteUser({
-    mutationConfig: {
-      onSuccess: () => toast.success("User berhasil dihapus"),
-      onError: (err) => toast.error(err.message),
-    },
-  });
+
+  const deleteMutation = useDeleteUser();
+
+  const confirm = useConfirm();
 
   const onEdit = (user: UserResponse) => {
     setSelectedUser(user);
@@ -63,9 +58,21 @@ export default function UsersPage() {
     setOpen(true);
   };
 
-  const onDelete = (id: number) => {
-    if (confirm("Apakah Anda yakin ingin menghapus user ini?")) {
-      deleteMutation.mutate(id);
+  const onDelete = async (id: number) => {
+    const confirmed = await confirm({
+      title: "Hapus User?",
+      description:
+        "User ini akan dihapus secara permanen dan tidak dapat dikembalikan.",
+      cancelText: "Batal",
+      confirmText: "Hapus",
+    });
+
+    if (confirmed) {
+      toast.promise(deleteMutation.mutateAsync(id), {
+        loading: "Menghapus user...",
+        success: "User berhasil dihapus",
+        error: "Gagal menghapus user",
+      });
     }
   };
 
@@ -80,7 +87,10 @@ export default function UsersPage() {
             Manajemen hak akses dan informasi pengguna aplikasi.
           </p>
         </div>
-        
+        <Link href="/">
+          <Button variant="outline">Kembali</Button>
+        </Link>
+
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button onClick={onAdd}>
@@ -89,12 +99,11 @@ export default function UsersPage() {
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>{selectedUser ? "Edit User" : "Tambah User Baru"}</DialogTitle>
+              <DialogTitle>
+                {selectedUser ? "Edit User" : "Tambah User Baru"}
+              </DialogTitle>
             </DialogHeader>
-            <UserForm 
-              user={selectedUser} 
-              onSuccess={() => setOpen(false)} 
-            />
+            <UserForm user={selectedUser} onSuccess={() => setOpen(false)} />
           </DialogContent>
         </Dialog>
       </div>
@@ -131,7 +140,9 @@ export default function UsersPage() {
                   <TableCell className="font-medium">{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    <Badge variant={user.role === "admin" ? "default" : "secondary"}>
+                    <Badge
+                      variant={user.role === "admin" ? "default" : "secondary"}
+                    >
                       {user.role}
                     </Badge>
                   </TableCell>
@@ -148,7 +159,7 @@ export default function UsersPage() {
                           <Pencil className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onClick={() => onDelete(user.id)}
                           disabled={deleteMutation.isPending}

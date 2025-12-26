@@ -1,3 +1,4 @@
+import Link from "next/link";
 
 export default async function Home() {
 
@@ -5,7 +6,7 @@ export default async function Home() {
     <div className="font-sans">
       List user
       <ul>
-        
+        <Link href="/users">Users</Link>
       </ul>
     </div>
   );

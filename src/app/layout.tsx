@@ -1,6 +1,8 @@
 import QueryProvider from "@/components/providers/QueryProvider";
 import { Metadata } from "next";
 import "./globals.css";
+import { ConfirmProvider } from "@/contexts/ConfirmDialog";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
   title: "Gunung Muria || Point of Sale",
@@ -16,7 +18,10 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <QueryProvider>
-          {children}
+          <ConfirmProvider>
+            {children}
+            <Toaster richColors position="bottom-right" />
+          </ConfirmProvider>
         </QueryProvider>
       </body>
     </html>
