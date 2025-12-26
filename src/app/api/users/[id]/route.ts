@@ -1,19 +1,22 @@
 // app/api/users/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { InsertUserType, users } from "@/drizzle/schema";
+import { users } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { hash } from "bcryptjs";
-import { updateUserSchema } from "@/lib/validations/user";
+import {
+  UpdateUserInputType,
+  validateUpdateUserData,
+} from "@/lib/validations/user";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const {id: rawId} = await params;
+    const { id: rawId } = await params;
     const id = parseInt(rawId);
-    
+
     if (isNaN(id)) {
       return NextResponse.json(
         { success: false, error: "Invalid user ID" },
@@ -36,13 +39,13 @@ export async function GET(
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...userWithoutPassword } = userData[0];
-    
+
     return NextResponse.json({
       success: true,
       data: userWithoutPassword,
     });
   } catch (error) {
-    console.error("fetch detail user error:", error)
+    console.error("fetch detail user error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch user" },
       { status: 500 }
@@ -52,26 +55,29 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> } 
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id: rawId } = await params;
     const id = parseInt(rawId);
 
     if (isNaN(id)) {
-      return NextResponse.json({ success: false, error: "Invalid user ID" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Invalid user ID" },
+        { status: 400 }
+      );
     }
 
     // Validasi body
     const body = await request.json();
-    const validation = updateUserSchema.safeParse(body);
+    const validation = validateUpdateUserData(body);
 
     // Jika validasi gagal, kirim error detail
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: "Validation failed", 
+        {
+          success: false,
+          error: "Validation failed",
           details: validation.error.format() || "Unknown error",
         },
         { status: 400 }
@@ -87,11 +93,14 @@ export async function PUT(
     });
 
     if (!existingUser) {
-      return NextResponse.json({ success: false, error: "User not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: "User not found" },
+        { status: 404 }
+      );
     }
 
     // Hanya update kolom yang dikirim oleh user
-    const updatePayload: Partial<InsertUserType> = {
+    const updatePayload: UpdateUserInputType = {
       ...validatedData,
       updatedAt: new Date(),
     };
@@ -99,7 +108,7 @@ export async function PUT(
     if (validatedData.password) {
       updatePayload.password = await hash(validatedData.password, 10);
     } else {
-      delete (updatePayload as Partial<InsertUserType>).password;
+      delete (updatePayload as UpdateUserInputType).password;
     }
 
     const [updatedUser] = await db
@@ -118,7 +127,10 @@ export async function PUT(
     });
   } catch (error) {
     console.error("Update user error:", error);
-    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
 
@@ -127,9 +139,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const {id: rawId} = await params;
+    const { id: rawId } = await params;
     const id = parseInt(rawId);
-    
+
     if (isNaN(id)) {
       return NextResponse.json(
         { success: false, error: "Invalid user ID" },

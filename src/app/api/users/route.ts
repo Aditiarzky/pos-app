@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { users } from "@/drizzle/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { hash } from "bcryptjs";
-import { userSchema } from "@/lib/validations/user";
+import { validateUserData } from "@/lib/validations/user";
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       .offset(offset);
 
     const total = await db.select({ count: sql<number>`count(*)` }).from(users);
-    
+
     return NextResponse.json({
       success: true,
       data: usersData,
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("fetch users error:", error)
+    console.error("fetch users error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch users" },
       { status: 500 }
@@ -43,13 +43,13 @@ export async function GET(request: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const validation = userSchema.safeParse(body);
+    const validation = validateUserData(body);
 
     if (!validation.success) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: "Validation failed", 
+        {
+          success: false,
+          error: "Validation failed",
           details: validation.error.format() || "Unknown error",
         },
         { status: 400 }

@@ -1,0 +1,33 @@
+import { InferInsertModel, InferSelectModel } from "drizzle-orm";
+import * as schema from "./schema";
+
+export type UserType = InferSelectModel<typeof schema.users>;
+export type InsertUserType = InferInsertModel<typeof schema.users>;
+export type CategoryType = InferSelectModel<typeof schema.categories>;
+export type InsertCategoryType = InferInsertModel<typeof schema.categories>;
+export type SupplierType = InferSelectModel<typeof schema.suppliers>;
+export type InsertSupplierType = InferInsertModel<typeof schema.suppliers>;
+export type ProductType = InferSelectModel<typeof schema.products>;
+export type InsertProductType = InferInsertModel<typeof schema.products>;
+export type PurchaseOrderType = InferSelectModel<typeof schema.purchaseOrders>;
+export type InsertPurchaseOrderType = InferInsertModel<
+  typeof schema.purchaseOrders
+>;
+export type PurchaseItemType = InferSelectModel<typeof schema.purchaseItems>;
+export type InsertPurchaseItemType = InferInsertModel<
+  typeof schema.purchaseItems
+>;
+export type SaleType = InferSelectModel<typeof schema.sales>;
+export type InsertSaleType = InferInsertModel<typeof schema.sales>;
+export type SaleItemType = InferSelectModel<typeof schema.saleItems>;
+export type InsertSaleItemType = InferInsertModel<typeof schema.saleItems>;
+export type SupplierReturnType = InferSelectModel<
+  typeof schema.supplierReturns
+>;
+export type InsertSupplierReturnType = InferInsertModel<
+  typeof schema.supplierReturns
+>;
+export type StockMutationType = InferSelectModel<typeof schema.stockMutations>;
+export type InsertStockMutationType = InferInsertModel<
+  typeof schema.stockMutations
+>;

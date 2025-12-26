@@ -1,10 +1,10 @@
 // services/userService.ts
 import { axiosInstance } from "@/lib/axios";
 import {
-  CreateUserInput,
-  UpdateUserInput,
-  LoginInput,
-  ChangePasswordInput,
+  CreateUserInputType,
+  UpdateUserInputType,
+  LoginInputType,
+  ChangePasswordInputType,
 } from "@/lib/validations/user";
 
 export type UserResponse = {
@@ -40,14 +40,16 @@ export const getUsers = async (params?: {
 };
 
 // Get single user
-export const getUser = async (id: number): Promise<ApiResponse<UserResponse>> => {
+export const getUser = async (
+  id: number
+): Promise<ApiResponse<UserResponse>> => {
   const response = await axiosInstance.get(`/users/${id}`);
   return response.data;
 };
 
 // Create user
 export const createUser = async (
-  data: CreateUserInput
+  data: CreateUserInputType
 ): Promise<ApiResponse<UserResponse>> => {
   const response = await axiosInstance.post("/users", data);
   return response.data;
@@ -57,7 +59,9 @@ export const createUser = async (
 export const updateUser = async ({
   id,
   ...data
-}: { id: number } & UpdateUserInput): Promise<ApiResponse<UserResponse>> => {
+}: { id: number } & UpdateUserInputType): Promise<
+  ApiResponse<UserResponse>
+> => {
   const response = await axiosInstance.put(`/users/${id}`, data);
   return response.data;
 };
@@ -69,7 +73,9 @@ export const deleteUser = async (id: number): Promise<ApiResponse<void>> => {
 };
 
 // Login
-export const login = async (data: LoginInput): Promise<ApiResponse<{ token: string; user: UserResponse }>> => {
+export const login = async (
+  data: LoginInputType
+): Promise<ApiResponse<{ token: string; user: UserResponse }>> => {
   const response = await axiosInstance.post("/auth/login", data);
   return response.data;
 };
@@ -82,7 +88,7 @@ export const getCurrentUser = async (): Promise<ApiResponse<UserResponse>> => {
 
 // Change password
 export const changePassword = async (
-  data: ChangePasswordInput
+  data: ChangePasswordInputType
 ): Promise<ApiResponse<void>> => {
   const response = await axiosInstance.put("/auth/change-password", data);
   return response.data;

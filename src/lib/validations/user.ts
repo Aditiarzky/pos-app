@@ -1,50 +1,38 @@
-// lib/validations/user.ts
 import { z } from "zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { users } from "@/drizzle/schema";
 
-// Schema untuk validasi
-export const userSchema = z.object({
-  id: z.number().optional(),
-  email: z.string().email("Email tidak valid").min(1, "Email wajib diisi"),
-  name: z.string().min(1, "Nama wajib diisi").max(100, "Nama terlalu panjang"),
-  password: z
-    .string()
+const insertSchema = createInsertSchema(users);
+
+export const createUserSchema = insertSchema.extend({
+  password: insertSchema.shape.password
     .min(6, "Password minimal 6 karakter")
-    .max(100, "Password terlalu panjang")
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      "Password harus mengandung huruf besar, huruf kecil, dan angka"
-    )
-    .optional()
-    .or(z.literal("")),
-  role: z.enum(["user", "admin"]).default("user"),
-});
-
-export const createUserSchema = userSchema.omit({ id: true }).extend({
-  password: z
-    .string()
-    .min(6, "Password minimal 6 karakter")
-    .max(100, "Password terlalu panjang")
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      "Password harus mengandung huruf besar, huruf kecil, dan angka"
+      "Password harus mengandung huruf besar, kecil, dan angka"
     ),
+  email: insertSchema.shape.email.email("Email tidak valid"),
+  name: insertSchema.shape.name.min(1, "Nama wajib diisi"),
 });
 
-export const updateUserSchema = userSchema
-  .omit({ id: true })
+export const updateUserSchema = insertSchema
+  .omit({ password: true })
   .partial()
   .extend({
     password: z
       .string()
       .min(6, "Password minimal 6 karakter")
-      .max(100, "Password terlalu panjang")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password harus mengandung huruf besar, huruf kecil, dan angka"
+        "Password harus mengandung huruf besar, kecil, dan angka"
       )
       .optional()
       .or(z.literal("")),
   });
+
+export const userFormSchema = createSelectSchema(users).extend({
+  password: z.string().optional(),
+});
 
 export const loginSchema = z.object({
   email: z.string().email("Email tidak valid"),
@@ -59,7 +47,7 @@ export const changePasswordSchema = z
       .min(6, "Password baru minimal 6 karakter")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password harus mengandung huruf besar, huruf kecil, dan angka"
+        "Password harus mengandung huruf besar, kecil, dan angka"
       ),
     confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
   })
@@ -68,12 +56,12 @@ export const changePasswordSchema = z
     path: ["confirmPassword"],
   });
 
-// Type inference
-export type UserInput = z.infer<typeof userSchema>;
-export type CreateUserInput = z.infer<typeof createUserSchema>;
-export type UpdateUserInput = z.infer<typeof updateUserSchema>;
-export type LoginInput = z.infer<typeof loginSchema>;
-export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+// Types
+export type CreateUserInputType = z.infer<typeof createUserSchema>;
+export type UpdateUserInputType = z.infer<typeof updateUserSchema>;
+export type UserFormDataType = z.infer<typeof userFormSchema>;
+export type LoginInputType = z.infer<typeof loginSchema>;
+export type ChangePasswordInputType = z.infer<typeof changePasswordSchema>;
 
 // Validation middleware
 export const validateUserData = (data: unknown) => {
