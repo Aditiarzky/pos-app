@@ -2,11 +2,11 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { 
-  createUserSchema, 
-  updateUserSchema, 
-  type CreateUserInput, 
-  type UpdateUserInput 
+import {
+  createUserSchema,
+  updateUserSchema,
+  type CreateUserInputType,
+  type UpdateUserInputType,
 } from "@/lib/validations/user";
 import { useCreateUser } from "@/hooks/users/use-create-user";
 import { useUpdateUser } from "@/hooks/users/use-update-user";
@@ -39,7 +39,7 @@ interface UserFormProps {
 export function UserForm({ user, onSuccess }: UserFormProps) {
   const isEdit = !!user;
 
-  const form = useForm<CreateUserInput | UpdateUserInput>({
+  const form = useForm<CreateUserInputType | UpdateUserInputType>({
     resolver: zodResolver(isEdit ? updateUserSchema : createUserSchema),
     defaultValues: {
       name: user?.name || "",
@@ -69,11 +69,11 @@ export function UserForm({ user, onSuccess }: UserFormProps) {
     },
   });
 
-  function onSubmit(values: CreateUserInput | UpdateUserInput) {
+  function onSubmit(values: CreateUserInputType | UpdateUserInputType) {
     if (isEdit && user) {
       updateUser.mutate({ id: user.id, ...values });
     } else {
-      createUser.mutate(values as CreateUserInput);
+      createUser.mutate(values as CreateUserInputType);
     }
   }
 
@@ -114,7 +114,12 @@ export function UserForm({ user, onSuccess }: UserFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>
-                Password {isEdit && <span className="text-xs text-muted-foreground">(Kosongkan jika tidak diubah)</span>}
+                Password{" "}
+                {isEdit && (
+                  <span className="text-xs text-muted-foreground">
+                    (Kosongkan jika tidak diubah)
+                  </span>
+                )}
               </FormLabel>
               <FormControl>
                 <Input type="password" placeholder="******" {...field} />
@@ -129,7 +134,10 @@ export function UserForm({ user, onSuccess }: UserFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Role</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value || "user"}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Pilih Role" />
@@ -146,7 +154,11 @@ export function UserForm({ user, onSuccess }: UserFormProps) {
         />
         <div className="flex justify-end gap-3 pt-4">
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Tambah User"}
+            {isLoading
+              ? "Menyimpan..."
+              : isEdit
+              ? "Simpan Perubahan"
+              : "Tambah User"}
           </Button>
         </div>
       </form>
