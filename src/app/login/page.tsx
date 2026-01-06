@@ -36,6 +36,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center">
+      <div className="flex flex-col items-center"></div>
       <Card className="w-full max-w-md p-8">
         <h1 className="text-2xl font-bold mb-6">Login</h1>
         <form onSubmit={handleSubmit} className="space-y-4">

@@ -7,16 +7,19 @@ type UseUpdateUserOptions = {
   mutationConfig?: MutationConfig<typeof updateUser>;
 };
 
-export const useUpdateUser = ({ mutationConfig }: UseUpdateUserOptions = {}) => {
+export const useUpdateUser = ({
+  mutationConfig,
+}: UseUpdateUserOptions = {}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: updateUser,
     ...mutationConfig,
     onSuccess: (data, variables, onMutateResult, context) => {
-      // Invalidate semua yang berkaitan
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: userKeys.detail(variables.id) });
+      queryClient.invalidateQueries({
+        queryKey: userKeys.detail(variables.id),
+      });
       queryClient.invalidateQueries({ queryKey: userKeys.current });
 
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);

@@ -5,8 +5,8 @@ import { AxiosError } from "axios";
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
       retry: (failureCount, error) => {
         if (
           error instanceof AxiosError &&
@@ -23,7 +23,7 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       onError: () => {
-        alert("Sebuah kesalahan terjadi"); 
+        alert("Sebuah kesalahan terjadi");
       },
     },
   },

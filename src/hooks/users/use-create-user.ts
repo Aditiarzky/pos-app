@@ -7,17 +7,16 @@ type UseCreateUserOptions = {
   mutationConfig?: MutationConfig<typeof createUser>;
 };
 
-export const useCreateUser = ({ mutationConfig }: UseCreateUserOptions = {}) => {
+export const useCreateUser = ({
+  mutationConfig,
+}: UseCreateUserOptions = {}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: createUser,
     ...mutationConfig,
     onSuccess: (data, variables, onMutateResult, context) => {
-      // Refresh list users
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
-      
-      // Jalankan onSuccess dari komponen
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });
