@@ -148,8 +148,6 @@ export const purchaseItems = p.pgTable("purchase_items", {
 
   variantId: p.integer("variant_id").references(() => productVariants.id),
 
-  unitId: p.integer("unit_id").references(() => units.id),
-
   qty: p.decimal("qty", { precision: 12, scale: 3 }).notNull(),
 
   price: p.decimal("price", { precision: 12, scale: 2 }).notNull(),
@@ -178,13 +176,11 @@ export const saleItems = p.pgTable("sale_items", {
 
   variantId: p.integer("variant_id").references(() => productVariants.id),
 
-  unitId: p.integer("unit_id").references(() => units.id),
-
   qty: p.decimal("qty", { precision: 12, scale: 3 }).notNull(),
 
   priceAtSale: p
     .decimal("price_at_sale", { precision: 12, scale: 2 })
-    .notNull(),
+    .notNull(), // harga jual saat transaksi terjadi
 
   subtotal: p.decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
 });
