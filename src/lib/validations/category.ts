@@ -3,7 +3,7 @@ import { z } from "zod";
 export const categorySchema = z.object({
   name: z
     .string()
-    .min(1, "Name is required")
+    .min(3, "Name must be at least 3 characters long")
     .max(255, "Name must be at most 255 characters long"),
 });
 

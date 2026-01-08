@@ -7,12 +7,12 @@ export const supplierSchema = z.object({
     .max(255, "Name must be at most 255 characters long"),
   address: z
     .string()
-    .min(1, "Address is required")
-    .max(255, "Address must be at most 255 characters long"),
+    .max(255, "Address must be at most 255 characters long")
+    .optional(),
   phone: z
     .string()
-    .min(1, "Phone is required")
-    .max(255, "Phone must be at most 255 characters long"),
+    .max(255, "Phone must be at most 255 characters long")
+    .optional(),
 });
 
 export type SupplierData = z.infer<typeof supplierSchema>;

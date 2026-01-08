@@ -43,16 +43,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [supplier] = await db
-      .insert(suppliers)
-      .values(validation.data)
-      .returning();
+    const [unit] = await db.insert(units).values(validation.data).returning();
 
-    return NextResponse.json({ success: true, supplier });
+    if (!unit) {
+      return NextResponse.json(
+        { success: false, error: "Unit not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: unit,
+      message: "Unit created successfully",
+    });
   } catch (error) {
-    console.error("create supplier error:", error);
+    console.error("create unit error:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to create supplier" },
+      { success: false, error: "Failed to create unit" },
       { status: 500 }
     );
   }

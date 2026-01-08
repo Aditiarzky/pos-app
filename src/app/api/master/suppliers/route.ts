@@ -48,7 +48,18 @@ export async function POST(request: NextRequest) {
       .values(validation.data)
       .returning();
 
-    return NextResponse.json({ success: true, supplier });
+    if (!supplier) {
+      return NextResponse.json(
+        { success: false, error: "Supplier not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: supplier,
+      message: "Supplier created successfully",
+    });
   } catch (error) {
     console.error("create supplier error:", error);
     return NextResponse.json(

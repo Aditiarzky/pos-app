@@ -7,11 +7,18 @@ import { NextRequest, NextResponse } from "next/server";
 // PUT
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { unitId: string } }
+  { params }: { params: Promise<{ unitId: string }> }
 ) {
   try {
-    const { unitId: rawId } = await params;
-    const unitId = parseInt(rawId);
+    const unitId = parseInt((await params).unitId);
+
+    if (isNaN(unitId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid unit ID" },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
 
     const validation = validateUnitUpdateData(body);
@@ -33,32 +40,63 @@ export async function PATCH(
       .where(eq(units.id, unitId))
       .returning();
 
-    return NextResponse.json({ success: true, unit });
+    if (!unit) {
+      return NextResponse.json(
+        { success: false, error: "Unit not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: unit,
+      message: "Unit updated successfully",
+    });
   } catch (error) {
     console.error("update unit error:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to update supplier" },
+      { success: false, error: "Failed to update unit" },
       { status: 500 }
     );
   }
 }
 
 // DELETE
-export async function DELETE({ params }: { params: { unitId: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ unitId: string }> }
+) {
   try {
-    const { unitId: rawId } = await params;
-    const unitId = parseInt(rawId);
+    const unitId = parseInt((await params).unitId);
+
+    if (isNaN(unitId)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid unit ID" },
+        { status: 400 }
+      );
+    }
 
     const [unit] = await db
       .delete(units)
       .where(eq(units.id, unitId))
       .returning();
 
-    return NextResponse.json({ success: true, unit });
+    if (!unit) {
+      return NextResponse.json(
+        { success: false, error: "Unit not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: unit,
+      message: "Unit deleted successfully",
+    });
   } catch (error) {
     console.error("delete unit error:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to delete supplier" },
+      { success: false, error: "Failed to delete unit" },
       { status: 500 }
     );
   }

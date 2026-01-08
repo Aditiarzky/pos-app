@@ -1,6 +1,6 @@
 import { categories } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { validateCategoryData } from "@/lib/validations/categoty";
+import { validateCategoryData } from "@/lib/validations/category";
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -10,10 +10,9 @@ export async function PATCH(
   { params }: { params: Promise<{ categoryId: string }> }
 ) {
   try {
-    const { categoryId: rawId } = await params;
-    const id = parseInt(rawId);
+    const categoryId = parseInt((await params).categoryId);
 
-    if (isNaN(id)) {
+    if (isNaN(categoryId)) {
       return NextResponse.json(
         { success: false, error: "Invalid category ID" },
         { status: 400 }
@@ -37,10 +36,10 @@ export async function PATCH(
     const [category] = await db
       .update(categories)
       .set(validation.data)
-      .where(eq(categories.id, id))
+      .where(eq(categories.id, categoryId))
       .returning();
 
-    return NextResponse.json({ success: true, category });
+    return NextResponse.json({ success: true, data: category });
   } catch (error) {
     console.error("update category error:", error);
     return NextResponse.json(
@@ -56,10 +55,9 @@ export async function DELETE(
   { params }: { params: Promise<{ categoryId: string }> }
 ) {
   try {
-    const { categoryId: rawId } = await params;
-    const id = parseInt(rawId);
+    const categoryId = parseInt((await params).categoryId);
 
-    if (isNaN(id)) {
+    if (isNaN(categoryId)) {
       return NextResponse.json(
         { success: false, error: "Invalid category ID" },
         { status: 400 }
@@ -69,7 +67,7 @@ export async function DELETE(
     const existingCategory = await db
       .select()
       .from(categories)
-      .where(eq(categories.id, id))
+      .where(eq(categories.id, categoryId))
       .limit(1);
 
     if (existingCategory.length === 0) {
@@ -79,10 +77,11 @@ export async function DELETE(
       );
     }
 
-    await db.delete(categories).where(eq(categories.id, id));
+    await db.delete(categories).where(eq(categories.id, categoryId));
 
     return NextResponse.json({
       success: true,
+      data: existingCategory,
       message: "Category deleted successfully",
     });
   } catch (error) {

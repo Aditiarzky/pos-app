@@ -1,6 +1,6 @@
 import { categories } from "@/drizzle/schema";
 import { db } from "@/lib/db";
-import { validateCategoryData } from "@/lib/validations/categoty";
+import { validateCategoryData } from "@/lib/validations/category";
 import { desc } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       .values(validation.data)
       .returning();
 
-    return NextResponse.json({ success: true, category });
+    return NextResponse.json({ success: true, data: category });
   } catch (error) {
     console.error("create category error:", error);
     return NextResponse.json(
