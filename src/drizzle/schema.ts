@@ -1,3 +1,4 @@
+import { sql, SQL } from "drizzle-orm";
 import * as p from "drizzle-orm/pg-core";
 
 // Enum
@@ -60,36 +61,51 @@ export const suppliers = p.pgTable("suppliers", {
   updatedAt: p.timestamp("updated_at").defaultNow(),
 });
 
-export const products = p.pgTable("products", {
-  id: p.serial("id").primaryKey(),
+export const products = p.pgTable(
+  "products",
+  {
+    id: p.serial("id").primaryKey(),
 
-  categoryId: p.integer("category_id").references(() => categories.id),
+    categoryId: p.integer("category_id").references(() => categories.id),
 
-  sku: p.varchar("sku", { length: 50 }).notNull().unique(),
-  name: p.varchar("name", { length: 150 }).notNull(),
-  image: p.text("image"),
+    sku: p.varchar("sku", { length: 50 }).notNull().unique(),
+    name: p.varchar("name", { length: 150 }).notNull(),
+    image: p.text("image"),
 
-  minStock: p.decimal("min_stock", { precision: 12, scale: 3 }).default("0"),
-  stock: p.decimal("stock", { precision: 12, scale: 3 }).default("0"),
+    minStock: p.decimal("min_stock", { precision: 12, scale: 3 }).default("0"),
+    stock: p.decimal("stock", { precision: 12, scale: 3 }).default("0"),
 
-  baseUnitId: p
-    .integer("base_unit_id")
-    .notNull()
-    .references(() => units.id),
-  // dua field ini digunakan untuk menghitung harga beli barang (hpp)
-  averageCost: p.decimal("average_cost", { precision: 12, scale: 4 }), // Field ini mencatat rata-rata harga beli dari semua stok yang saat ini ada di gudang.
-  lastPurchaseCost: p.decimal("last_purchase_cost", {
-    precision: 12,
-    scale: 4,
-  }), // harga beli terakhir atau yang paling baru dari pembelian supplier
-  // Contoh:
-  // Beli 10 pcs seharga Rp1.000. (averageCost = 1.000)
-  // Beli lagi 10 pcs seharga Rp1.200.
-  // averageCost baru = (10.000 + 12.000) / 20 = Rp1.100.
+    baseUnitId: p
+      .integer("base_unit_id")
+      .notNull()
+      .references(() => units.id),
+    // dua field ini digunakan untuk menghitung harga pokok penjualan (hpp)
+    averageCost: p.decimal("average_cost", { precision: 12, scale: 4 }), // Field ini mencatat rata-rata harga beli dari semua stok yang saat ini ada di gudang.
+    lastPurchaseCost: p.decimal("last_purchase_cost", {
+      precision: 12,
+      scale: 4,
+    }), // harga beli terakhir atau yang paling baru dari pembelian supplier
+    // Contoh:
+    // Beli 10 pcs seharga Rp1.000. (averageCost = 1.000)
+    // Beli lagi 10 pcs seharga Rp1.200.
+    // averageCost baru = (10.000 + 12.000) / 20 = Rp1.100.
 
-  createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p.timestamp("updated_at").defaultNow(),
-});
+    searchVector: p
+      .customType<{ data: string }>({
+        dataType() {
+          return "tsvector";
+        },
+      })("search_vector")
+      .generatedAlwaysAs(
+        (): SQL =>
+          sql`to_tsvector('indonesian', ${products.name} || ' ' || ${products.sku})`
+      ), //kolom ini untuk Full-Text Search
+
+    createdAt: p.timestamp("created_at").defaultNow(),
+    updatedAt: p.timestamp("updated_at").defaultNow(),
+  },
+  (t) => [p.index("products_search_idx").using("gin", t.searchVector)]
+);
 
 export const productVariants = p.pgTable("product_variants", {
   id: p.serial("id").primaryKey(),
@@ -181,6 +197,7 @@ export const saleItems = p.pgTable("sale_items", {
   priceAtSale: p
     .decimal("price_at_sale", { precision: 12, scale: 2 })
     .notNull(), // harga jual saat transaksi terjadi
+  costAtSale: p.decimal("cost_at_sale", { precision: 12, scale: 4 }).notNull(), // Menyimpan averageCost produk SAAT transaksi terjadi.
 
   subtotal: p.decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
 });
