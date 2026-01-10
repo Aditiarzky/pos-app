@@ -100,7 +100,11 @@ export async function POST(request: NextRequest) {
       .returning();
 
     return NextResponse.json(
-      { success: true, data: newProduct },
+      {
+        success: true,
+        data: newProduct,
+        message: "Product created successfully",
+      },
       { status: 201 }
     );
   } catch (error) {

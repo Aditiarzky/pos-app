@@ -137,10 +137,10 @@ export const productVariants = p.pgTable("product_variants", {
 
 export const productBarcodes = p.pgTable("product_barcodes", {
   id: p.serial("id").primaryKey(),
-  variantId: p
-    .integer("variant_id")
+  productId: p
+    .integer("product_id")
     .notNull()
-    .references(() => productVariants.id),
+    .references(() => products.id),
   barcode: p.varchar("barcode", { length: 100 }).notNull().unique(),
   createdAt: p.timestamp("created_at").defaultNow(),
   updatedAt: p.timestamp("updated_at").defaultNow(),
