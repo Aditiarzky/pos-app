@@ -32,8 +32,12 @@ export const users = p.pgTable(
     name: p.text("name").notNull(),
     password: p.text("password").notNull(),
     role: userRole("role").default("user"),
+    isActive: p.boolean("is_active").default(true),
     createdAt: p.timestamp("created_at").defaultNow(),
-    updatedAt: p.timestamp("updated_at").defaultNow(),
+    updatedAt: p
+      .timestamp("updated_at")
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
   },
   (t) => [p.uniqueIndex("users_email_key").on(t.email)]
 );
@@ -41,15 +45,23 @@ export const users = p.pgTable(
 export const categories = p.pgTable("categories", {
   id: p.serial("id").primaryKey(),
   name: p.varchar("name", { length: 100 }).notNull(),
+  isActive: p.boolean("is_active").default(true),
   createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p.timestamp("updated_at").defaultNow(),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
 });
 
 export const units = p.pgTable("units", {
   id: p.serial("id").primaryKey(),
   name: p.varchar("name", { length: 50 }).notNull(), // kg, pcs, peti, botol
+  isActive: p.boolean("is_active").default(true),
   createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p.timestamp("updated_at").defaultNow(),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
 });
 
 export const suppliers = p.pgTable("suppliers", {
@@ -57,8 +69,12 @@ export const suppliers = p.pgTable("suppliers", {
   name: p.varchar("name", { length: 120 }).notNull(),
   phone: p.varchar("phone", { length: 30 }),
   address: p.text("address"),
+  isActive: p.boolean("is_active").default(true),
   createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p.timestamp("updated_at").defaultNow(),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
 });
 
 export const products = p.pgTable(
@@ -66,7 +82,9 @@ export const products = p.pgTable(
   {
     id: p.serial("id").primaryKey(),
 
-    categoryId: p.integer("category_id").references(() => categories.id),
+    categoryId: p
+      .integer("category_id")
+      .references(() => categories.id, { onDelete: "cascade" }),
 
     sku: p.varchar("sku", { length: 50 }).notNull().unique(),
     name: p.varchar("name", { length: 150 }).notNull(),
@@ -78,7 +96,7 @@ export const products = p.pgTable(
     baseUnitId: p
       .integer("base_unit_id")
       .notNull()
-      .references(() => units.id),
+      .references(() => units.id, { onDelete: "cascade" }),
     // dua field ini digunakan untuk menghitung harga pokok penjualan (hpp)
     averageCost: p.decimal("average_cost", { precision: 12, scale: 4 }), // Field ini mencatat rata-rata harga beli dari semua stok yang saat ini ada di gudang.
     lastPurchaseCost: p.decimal("last_purchase_cost", {
@@ -102,7 +120,11 @@ export const products = p.pgTable(
       ), //kolom ini untuk Full-Text Search
 
     createdAt: p.timestamp("created_at").defaultNow(),
-    updatedAt: p.timestamp("updated_at").defaultNow(),
+    updatedAt: p
+      .timestamp("updated_at")
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+    isActive: p.boolean("is_active").default(true),
   },
   (t) => [p.index("products_search_idx").using("gin", t.searchVector)]
 );
@@ -113,7 +135,7 @@ export const productVariants = p.pgTable("product_variants", {
   productId: p
     .integer("product_id")
     .notNull()
-    .references(() => products.id),
+    .references(() => products.id, { onDelete: "cascade" }),
 
   name: p.varchar("name", { length: 100 }).notNull(),
 
@@ -122,7 +144,7 @@ export const productVariants = p.pgTable("product_variants", {
   unitId: p
     .integer("unit_id")
     .notNull()
-    .references(() => units.id),
+    .references(() => units.id, { onDelete: "cascade" }),
 
   conversionToBase: p
     .decimal("conversion_to_base", { precision: 12, scale: 4 })
@@ -132,7 +154,10 @@ export const productVariants = p.pgTable("product_variants", {
   isArchived: p.boolean("is_archived").default(false),
 
   createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p.timestamp("updated_at").defaultNow(),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
 });
 
 export const productBarcodes = p.pgTable("product_barcodes", {
@@ -140,57 +165,128 @@ export const productBarcodes = p.pgTable("product_barcodes", {
   productId: p
     .integer("product_id")
     .notNull()
-    .references(() => products.id),
+    .references(() => products.id, { onDelete: "cascade" }),
   barcode: p.varchar("barcode", { length: 100 }).notNull().unique(),
   createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p.timestamp("updated_at").defaultNow(),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
 });
 
-export const purchaseOrders = p.pgTable("purchase_orders", {
-  id: p.serial("id").primaryKey(),
-  supplierId: p.integer("supplier_id").references(() => suppliers.id),
-  total: p.decimal("total", { precision: 12, scale: 2 }),
-  createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p.timestamp("updated_at").defaultNow(),
-  userId: p.integer("user_id").references(() => users.id),
-});
+export const purchaseOrders = p.pgTable(
+  "purchase_orders",
+  {
+    id: p.serial("id").primaryKey(),
+    orderNumber: p.varchar("order_number", { length: 60 }).unique(),
+    supplierId: p
+      .integer("supplier_id")
+      .references(() => suppliers.id, { onDelete: "cascade" })
+      .notNull(),
+    total: p.decimal("total", { precision: 12, scale: 2 }),
+    isArchived: p.boolean("is_archived").default(false),
+    searchVector: p
+      .customType<{ data: string }>({
+        dataType() {
+          return "tsvector";
+        },
+      })("search_vector")
+      .generatedAlwaysAs(
+        (): SQL => sql`to_tsvector('indonesian', ${purchaseOrders.orderNumber})`
+      ),
+    createdAt: p.timestamp("created_at").defaultNow(),
+    updatedAt: p
+      .timestamp("updated_at")
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+    userId: p
+      .integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+  },
+  (t) => [p.index("purchase_orders_search_idx").using("gin", t.searchVector)]
+);
 
 export const purchaseItems = p.pgTable("purchase_items", {
   id: p.serial("id").primaryKey(),
 
-  purchaseId: p.integer("purchase_id").references(() => purchaseOrders.id),
+  purchaseId: p
+    .integer("purchase_id")
+    .references(() => purchaseOrders.id, { onDelete: "cascade" })
+    .notNull(),
 
-  productId: p.integer("product_id").references(() => products.id),
+  productId: p
+    .integer("product_id")
+    .references(() => products.id, { onDelete: "cascade" })
+    .notNull(),
 
-  variantId: p.integer("variant_id").references(() => productVariants.id),
+  variantId: p
+    .integer("variant_id")
+    .references(() => productVariants.id, { onDelete: "cascade" })
+    .notNull(),
 
   qty: p.decimal("qty", { precision: 12, scale: 3 }).notNull(),
 
   price: p.decimal("price", { precision: 12, scale: 2 }).notNull(),
+  costBefore: p.decimal("cost_before", { precision: 12, scale: 4 }).notNull(),
 
   subtotal: p.decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
 });
 
-export const sales = p.pgTable("sales", {
-  id: p.serial("id").primaryKey(),
-  invoiceNumber: p.varchar("invoice_number", { length: 60 }).notNull().unique(),
-  totalPrice: p.decimal("total_price", { precision: 12, scale: 2 }).notNull(),
-  totalPaid: p.decimal("total_paid", { precision: 12, scale: 2 }).notNull(),
-  totalReturn: p.decimal("total_return", { precision: 12, scale: 2 }).notNull(),
-  status: saleStatus("status").default("completed"),
-  createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p.timestamp("updated_at").defaultNow(),
-  userId: p.integer("user_id").references(() => users.id),
-});
+export const sales = p.pgTable(
+  "sales",
+  {
+    id: p.serial("id").primaryKey(),
+    invoiceNumber: p
+      .varchar("invoice_number", { length: 60 })
+      .notNull()
+      .unique(),
+    totalPrice: p.decimal("total_price", { precision: 12, scale: 2 }).notNull(),
+    totalPaid: p.decimal("total_paid", { precision: 12, scale: 2 }).notNull(),
+    totalReturn: p
+      .decimal("total_return", { precision: 12, scale: 2 })
+      .notNull(),
+    status: saleStatus("status").default("completed"),
+    isArchived: p.boolean("is_archived").default(false),
+    searchVector: p
+      .customType<{ data: string }>({
+        dataType() {
+          return "tsvector";
+        },
+      })("search_vector")
+      .generatedAlwaysAs(
+        (): SQL => sql`to_tsvector('indonesian', ${sales.invoiceNumber})`
+      ),
+    createdAt: p.timestamp("created_at").defaultNow(),
+    updatedAt: p
+      .timestamp("updated_at")
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+    userId: p
+      .integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+  },
+  (t) => [p.index("sales_search_idx").using("gin", t.searchVector)]
+);
 
 export const saleItems = p.pgTable("sale_items", {
   id: p.serial("id").primaryKey(),
 
-  saleId: p.integer("sale_id").references(() => sales.id),
+  saleId: p
+    .integer("sale_id")
+    .references(() => sales.id, { onDelete: "cascade" })
+    .notNull(),
 
-  productId: p.integer("product_id").references(() => products.id),
+  productId: p
+    .integer("product_id")
+    .references(() => products.id, { onDelete: "cascade" })
+    .notNull(),
 
-  variantId: p.integer("variant_id").references(() => productVariants.id),
+  variantId: p
+    .integer("variant_id")
+    .references(() => productVariants.id, { onDelete: "cascade" })
+    .notNull(),
 
   qty: p.decimal("qty", { precision: 12, scale: 3 }).notNull(),
 
@@ -202,53 +298,134 @@ export const saleItems = p.pgTable("sale_items", {
   subtotal: p.decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
 });
 
-export const supplierReturns = p.pgTable("supplier_returns", {
-  id: p.serial("id").primaryKey(),
-  supplierId: p.integer("supplier_id").references(() => suppliers.id),
-  productId: p.integer("product_id").references(() => products.id),
-  qty: p.decimal("qty", { precision: 12, scale: 3 }).notNull(),
-  reason: p.text("reason"),
-  createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p.timestamp("updated_at").defaultNow(),
-  userId: p.integer("user_id").references(() => users.id),
-});
+export const supplierReturns = p.pgTable(
+  "supplier_returns",
+  {
+    id: p.serial("id").primaryKey(),
+    supplierId: p
+      .integer("supplier_id")
+      .references(() => suppliers.id, { onDelete: "cascade" })
+      .notNull(),
+    purchaseId: p
+      .integer("purchase_id")
+      .references(() => purchaseOrders.id, { onDelete: "cascade" })
+      .notNull(),
+    productId: p
+      .integer("product_id")
+      .references(() => products.id, { onDelete: "cascade" }),
+    qty: p.decimal("qty", { precision: 12, scale: 3 }).notNull(),
+    reason: p.text("reason"),
+    searchVector: p
+      .customType<{ data: string }>({
+        dataType() {
+          return "tsvector";
+        },
+      })("search_vector")
+      .generatedAlwaysAs(
+        (): SQL =>
+          sql`to_tsvector('indonesian', coalesce(${supplierReturns.supplierId}::text, '') || ' ' || coalesce(${supplierReturns.reason}, ''))`
+      ),
+    createdAt: p.timestamp("created_at").defaultNow(),
+    updatedAt: p
+      .timestamp("updated_at")
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+    userId: p.integer("user_id").references(() => users.id),
+  },
+  (t) => [p.index("supplier_returns_search_idx").using("gin", t.searchVector)]
+);
 
-export const stockMutations = p.pgTable("stock_mutations", {
-  id: p.serial("id").primaryKey(),
+export const stockMutations = p.pgTable(
+  "stock_mutations",
+  {
+    id: p.serial("id").primaryKey(),
 
-  productId: p.integer("product_id").references(() => products.id),
+    productId: p
+      .integer("product_id")
+      .references(() => products.id, { onDelete: "cascade" })
+      .notNull(),
 
-  variantId: p.integer("variant_id").references(() => productVariants.id),
+    variantId: p
+      .integer("variant_id")
+      .references(() => productVariants.id, { onDelete: "cascade" })
+      .notNull(),
 
-  type: stockMutationType("type").notNull(),
+    type: stockMutationType("type").notNull(),
 
-  qtyBaseUnit: p
-    .decimal("qty_base_unit", { precision: 12, scale: 4 })
-    .notNull(),
+    qtyBaseUnit: p
+      .decimal("qty_base_unit", { precision: 12, scale: 4 })
+      .notNull(),
 
-  reference: p.varchar("reference", { length: 100 }),
+    reference: p.varchar("reference", { length: 100 }),
 
-  createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p.timestamp("updated_at").defaultNow(),
+    createdAt: p.timestamp("created_at").defaultNow(),
+    searchVector: p
+      .customType<{ data: string }>({
+        dataType() {
+          return "tsvector";
+        },
+      })("search_vector")
+      .generatedAlwaysAs(
+        (): SQL => sql`to_tsvector('indonesian', ${stockMutations.reference})`
+      ),
+    updatedAt: p
+      .timestamp("updated_at")
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
 
-  userId: p.integer("user_id").references(() => users.id),
-});
+    userId: p
+      .integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+  },
+  (t) => [p.index("stock_mutations_search_idx").using("gin", t.searchVector)]
+);
 
-export const customerReturns = p.pgTable("customer_returns", {
-  id: p.serial("id").primaryKey(),
+export const customerReturns = p.pgTable(
+  "customer_returns",
+  {
+    id: p.serial("id").primaryKey(),
 
-  saleId: p.integer("sale_id").references(() => sales.id), // opsional tapi disarankan
-  customerName: p.varchar("customer_name", { length: 150 }),
+    returnNumber: p.varchar("return_number", { length: 60 }).notNull().unique(),
 
-  totalRefund: p.decimal("total_refund", { precision: 12, scale: 2 }).notNull(),
+    saleId: p
+      .integer("sale_id")
+      .references(() => sales.id, { onDelete: "cascade" })
+      .notNull(),
+    customerName: p.varchar("customer_name", { length: 150 }),
 
-  compensationType: compensationType("compensation_type").notNull(),
+    totalRefund: p
+      .decimal("total_refund", { precision: 12, scale: 2 })
+      .notNull(),
 
-  createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p.timestamp("updated_at").defaultNow(),
+    compensationType: compensationType("compensation_type").notNull(),
 
-  userId: p.integer("user_id").references(() => users.id),
-});
+    isArchived: p.boolean("is_archived").default(false),
+
+    searchVector: p
+      .customType<{ data: string }>({
+        dataType() {
+          return "tsvector";
+        },
+      })("search_vector")
+      .generatedAlwaysAs(
+        (): SQL =>
+          sql`to_tsvector('indonesian', ${customerReturns.returnNumber} || ' ' || ${customerReturns.customerName})`
+      ),
+
+    createdAt: p.timestamp("created_at").defaultNow(),
+    updatedAt: p
+      .timestamp("updated_at")
+      .defaultNow()
+      .$onUpdateFn(() => new Date()),
+
+    userId: p
+      .integer("user_id")
+      .references(() => users.id, { onDelete: "cascade" })
+      .notNull(),
+  },
+  (t) => [p.index("customer_returns_search_idx").using("gin", t.searchVector)]
+);
 
 export const customerReturnItems = p.pgTable("customer_return_items", {
   id: p.serial("id").primaryKey(),
@@ -256,12 +433,14 @@ export const customerReturnItems = p.pgTable("customer_return_items", {
   returnId: p
     .integer("return_id")
     .notNull()
-    .references(() => customerReturns.id),
+    .references(() => customerReturns.id, { onDelete: "cascade" })
+    .notNull(),
 
   variantId: p
     .integer("variant_id")
     .notNull()
-    .references(() => productVariants.id),
+    .references(() => productVariants.id, { onDelete: "cascade" })
+    .notNull(),
 
   qty: p.decimal("qty", { precision: 12, scale: 3 }).notNull(),
 
@@ -272,4 +451,16 @@ export const customerReturnItems = p.pgTable("customer_return_items", {
   reason: p.text("reason"),
 
   returnedToStock: p.boolean("returned_to_stock").default(false),
+
+  isArchived: p.boolean("is_archived").default(false),
+  createdAt: p.timestamp("created_at").defaultNow(),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
+
+  userId: p
+    .integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
 });

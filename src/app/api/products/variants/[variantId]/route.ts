@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { validateUpdateProductVariantData } from "@/lib/validations/product-variant";
 
-// GET single product variant
+// GET detail product variant
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ variantId: string }> }

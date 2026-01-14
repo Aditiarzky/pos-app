@@ -26,6 +26,7 @@ export async function GET(
       where: eq(products.id, Number(productId)),
       with: {
         unit: true,
+        variants: true,
         category: true,
       },
     });

@@ -10,6 +10,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl;
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const limit = Math.max(1, parseInt(searchParams.get("limit") || "10"));
+    const order = searchParams.get("order") || "desc";
+    const orderBy = searchParams.get("orderBy") || "createdAt";
     const search = searchParams.get("search")?.trim() || "";
     const offset = (page - 1) * limit;
 
@@ -27,21 +29,33 @@ export async function GET(request: NextRequest) {
 
       searchFilter = sql`${products.searchVector} @@ ${searchQuery}`;
 
-      // urutkan berdasarkan yang paling cocok
-      searchOrder = (fields: any, { desc }: any) => [
-        desc(sql`ts_rank(${fields.searchVector}, ${searchQuery})`),
+      // urutkan berdasarkan rank
+      searchOrder = (fields: any, { asc, desc }: any) => [
+        order === "asc"
+          ? asc(sql`ts_rank(${fields.searchVector}, ${searchQuery})`)
+          : desc(sql`ts_rank(${fields.searchVector}, ${searchQuery})`),
       ];
     } else {
       searchFilter = undefined;
-      searchOrder = (fields: any, { desc }: any) => [desc(fields.createdAt)];
+      searchOrder = (fields: any, { asc, desc }: any) => [
+        order === "asc" ? asc(fields[orderBy]) : desc(fields[orderBy]),
+      ];
     }
 
     const [productsData, totalRes] = await Promise.all([
       db.query.products.findMany({
         where: searchFilter,
         with: {
-          unit: true,
-          category: true,
+          unit: {
+            columns: {
+              name: true,
+            },
+          },
+          category: {
+            columns: {
+              name: true,
+            },
+          },
           variants: true,
         },
         orderBy: searchOrder,

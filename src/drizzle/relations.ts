@@ -44,7 +44,30 @@ export const suppliersRelations = relations(schema.suppliers, ({ many }) => ({
 
 export const purchaseOrdersRelations = relations(
   schema.purchaseOrders,
-  ({ many }) => ({
+  ({ one, many }) => ({
+    supplier: one(schema.suppliers, {
+      fields: [schema.purchaseOrders.supplierId],
+      references: [schema.suppliers.id],
+    }),
+    user: one(schema.users, {
+      fields: [schema.purchaseOrders.userId],
+      references: [schema.users.id],
+    }),
+    items: many(schema.purchaseItems),
     products: many(schema.products),
+  })
+);
+
+export const purchaseItemsRelations = relations(
+  schema.purchaseItems,
+  ({ one }) => ({
+    purchaseOrder: one(schema.purchaseOrders, {
+      fields: [schema.purchaseItems.purchaseId],
+      references: [schema.purchaseOrders.id],
+    }),
+    product: one(schema.products, {
+      fields: [schema.purchaseItems.productId],
+      references: [schema.products.id],
+    }),
   })
 );
