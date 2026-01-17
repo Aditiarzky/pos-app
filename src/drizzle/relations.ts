@@ -26,7 +26,7 @@ export const categoriesRelations = relations(schema.categories, ({ many }) => ({
 
 export const productVariantsRelations = relations(
   schema.productVariants,
-  ({ one }) => ({
+  ({ one, many }) => ({
     product: one(schema.products, {
       fields: [schema.productVariants.productId],
       references: [schema.products.id],
@@ -35,6 +35,8 @@ export const productVariantsRelations = relations(
       fields: [schema.productVariants.unitId],
       references: [schema.units.id],
     }),
+    stockMutations: many(schema.stockMutations),
+    saleItems: many(schema.saleItems),
   })
 );
 
@@ -69,5 +71,32 @@ export const purchaseItemsRelations = relations(
       fields: [schema.purchaseItems.productId],
       references: [schema.products.id],
     }),
+    productVariant: one(schema.productVariants, {
+      fields: [schema.purchaseItems.variantId],
+      references: [schema.productVariants.id],
+    }),
   })
 );
+
+export const salesRelations = relations(schema.sales, ({ one, many }) => ({
+  user: one(schema.users, {
+    fields: [schema.sales.userId],
+    references: [schema.users.id],
+  }),
+  items: many(schema.saleItems),
+}));
+
+export const saleItemsRelations = relations(schema.saleItems, ({ one }) => ({
+  sale: one(schema.sales, {
+    fields: [schema.saleItems.saleId],
+    references: [schema.sales.id],
+  }),
+  product: one(schema.products, {
+    fields: [schema.saleItems.productId],
+    references: [schema.products.id],
+  }),
+  productVariant: one(schema.productVariants, {
+    fields: [schema.saleItems.variantId],
+    references: [schema.productVariants.id],
+  }),
+}));

@@ -9,44 +9,22 @@ import {
 } from "@/drizzle/schema";
 import { eq, sql } from "drizzle-orm";
 import { validateInsertPurchaseData } from "@/lib/validations/purchase";
+import {
+  formatMeta,
+  getSearchAndOrderBasic,
+  parsePagination,
+} from "@/lib/query-helper";
 
 // GET all purchase with search, pagination, and sorting
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = request.nextUrl;
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
-    const limit = Math.max(1, parseInt(searchParams.get("limit") || "10"));
-    const order = searchParams.get("order") || "desc";
-    const orderBy = searchParams.get("orderBy") || "createdAt";
-    const search = searchParams.get("search")?.trim() || "";
-    const offset = (page - 1) * limit;
-
-    let searchFilter;
-    let searchOrder;
-
-    if (search) {
-      // pecah search string menjadi kata-kata, tambahkan ':*' di tiap kata
-      const formattedSearch = search
-        .split(/\s+/)
-        .map((word) => `${word}:*`)
-        .join(" & ");
-
-      const searchQuery = sql`to_tsquery('indonesian', ${formattedSearch})`;
-
-      searchFilter = sql`${purchaseOrders.searchVector} @@ ${searchQuery}`;
-
-      // urutkan berdasarkan rank
-      searchOrder = (fields: any, { asc, desc }: any) => [
-        order === "asc"
-          ? asc(sql`ts_rank(${fields.searchVector}, ${searchQuery})`)
-          : desc(sql`ts_rank(${fields.searchVector}, ${searchQuery})`),
-      ];
-    } else {
-      searchFilter = undefined;
-      searchOrder = (fields: any, { asc, desc }: any) => [
-        order === "asc" ? asc(fields[orderBy]) : desc(fields[orderBy]),
-      ];
-    }
+    const params = parsePagination(request);
+    const { searchFilter, searchOrder } = getSearchAndOrderBasic(
+      params.search,
+      params.order,
+      params.orderBy,
+      purchaseOrders.orderNumber
+    );
 
     const [purchasesData, totalRes] = await Promise.all([
       db.query.purchaseOrders.findMany({
@@ -78,12 +56,18 @@ export async function GET(request: NextRequest) {
                   name: true,
                 },
               },
+              productVariant: {
+                columns: {
+                  id: true,
+                  name: true,
+                },
+              },
             },
           },
         },
         orderBy: searchOrder,
-        limit: limit,
-        offset: offset,
+        limit: params.limit,
+        offset: params.offset,
       }),
 
       db
@@ -97,12 +81,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: purchasesData,
-      meta: {
-        page,
-        limit,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-      },
+      meta: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {
     console.error("Error fetching purchases:", error);

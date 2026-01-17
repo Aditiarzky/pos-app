@@ -10,10 +10,6 @@ import { db } from "../db";
 import { eq } from "drizzle-orm";
 
 const baseInsertPurchaseOrderSchema = createInsertSchema(purchaseOrders);
-const baseUpdatePurchaseOrderSchema = createUpdateSchema(purchaseOrders);
-
-const baseInsertPurchaseItemSchema = createInsertSchema(purchaseItems);
-const baseUpdatePurchaseItemSchema = createUpdateSchema(purchaseItems);
 
 const purchaseItemInputSchema = createInsertSchema(purchaseItems)
   .omit({
@@ -36,16 +32,7 @@ export const insertPurchaseSchema = z.object({
     .min(1, "At least one item is required"),
 });
 
-export const updatePurchaseSchema = z.object({
-  supplierId: baseUpdatePurchaseOrderSchema.shape.supplierId,
-  userId: baseUpdatePurchaseOrderSchema.shape.userId,
-  items: z
-    .array(purchaseItemInputSchema.partial())
-    .min(1, "At least one item is required"),
-});
-
 export type insertPurchaseType = z.infer<typeof insertPurchaseSchema>;
-export type updatePurchaseType = z.infer<typeof updatePurchaseSchema>;
 
 export const validateInsertPurchaseData = async (data: unknown) => {
   return await insertPurchaseSchema
@@ -75,8 +62,4 @@ export const validateInsertPurchaseData = async (data: unknown) => {
       }
     })
     .parseAsync(data);
-};
-
-export const validateUpdatePurchaseData = (data: unknown) => {
-  return updatePurchaseSchema.safeParse(data);
 };

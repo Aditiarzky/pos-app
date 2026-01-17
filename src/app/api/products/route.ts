@@ -3,44 +3,22 @@ import { db } from "@/lib/db";
 import { products } from "@/drizzle/schema";
 import { desc, sql } from "drizzle-orm";
 import { validateProductData } from "@/lib/validations/product";
+import {
+  formatMeta,
+  getSearchAndOrderFTS,
+  parsePagination,
+} from "@/lib/query-helper";
 
 // GET semua products dengan pagination dan search
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = request.nextUrl;
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
-    const limit = Math.max(1, parseInt(searchParams.get("limit") || "10"));
-    const order = searchParams.get("order") || "desc";
-    const orderBy = searchParams.get("orderBy") || "createdAt";
-    const search = searchParams.get("search")?.trim() || "";
-    const offset = (page - 1) * limit;
-
-    let searchFilter;
-    let searchOrder;
-
-    if (search) {
-      // pecah search string menjadi kata-kata, tambahkan ':*' di tiap kata
-      const formattedSearch = search
-        .split(/\s+/)
-        .map((word) => `${word}:*`)
-        .join(" & ");
-
-      const searchQuery = sql`to_tsquery('indonesian', ${formattedSearch})`;
-
-      searchFilter = sql`${products.searchVector} @@ ${searchQuery}`;
-
-      // urutkan berdasarkan rank
-      searchOrder = (fields: any, { asc, desc }: any) => [
-        order === "asc"
-          ? asc(sql`ts_rank(${fields.searchVector}, ${searchQuery})`)
-          : desc(sql`ts_rank(${fields.searchVector}, ${searchQuery})`),
-      ];
-    } else {
-      searchFilter = undefined;
-      searchOrder = (fields: any, { asc, desc }: any) => [
-        order === "asc" ? asc(fields[orderBy]) : desc(fields[orderBy]),
-      ];
-    }
+    const params = parsePagination(request);
+    const { searchFilter, searchOrder } = getSearchAndOrderFTS(
+      params.search,
+      params.order,
+      params.orderBy,
+      products
+    );
 
     const [productsData, totalRes] = await Promise.all([
       db.query.products.findMany({
@@ -59,8 +37,8 @@ export async function GET(request: NextRequest) {
           variants: true,
         },
         orderBy: searchOrder,
-        limit: limit,
-        offset: offset,
+        limit: params.limit,
+        offset: params.offset,
       }),
 
       db
@@ -74,12 +52,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: productsData,
-      meta: {
-        page,
-        limit,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-      },
+      meta: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {
     console.error("Error fetching products:", error);

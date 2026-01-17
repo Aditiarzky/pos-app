@@ -46,6 +46,15 @@ export async function GET(
               columns: {
                 id: true,
                 name: true,
+                stock: true,
+                averageCost: true,
+              },
+            },
+            productVariant: {
+              columns: {
+                id: true,
+                name: true,
+                conversionToBase: true,
               },
             },
           },

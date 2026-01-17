@@ -1,20 +1,44 @@
 import { suppliers } from "@/drizzle/schema";
 import { db } from "@/lib/db";
+import {
+  formatMeta,
+  getSearchAndOrderFTS,
+  parsePagination,
+} from "@/lib/query-helper";
 import { validateSupplierData } from "@/lib/validations/supplier";
-import { desc } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const suppliersData = await db
-      .select()
-      .from(suppliers)
-      .orderBy(desc(suppliers.createdAt));
+    const params = parsePagination(request);
+    const { searchFilter, searchOrder } = getSearchAndOrderFTS(
+      params.search,
+      params.order,
+      params.orderBy,
+      suppliers
+    );
+
+    const [suppliersData, totalRes] = await Promise.all([
+      db.query.suppliers.findMany({
+        where: searchFilter,
+        orderBy: searchOrder,
+        limit: params.limit,
+        offset: params.offset,
+      }),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(suppliers)
+        .where(searchFilter),
+    ]);
+
+    const totalCount = Number(totalRes[0]?.count || 0);
 
     return NextResponse.json({
       success: true,
       data: suppliersData,
+      meta: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {
     console.error("fetch suppliers error:", error);
