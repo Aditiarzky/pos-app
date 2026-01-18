@@ -1,12 +1,12 @@
-import { suppliers } from "@/drizzle/schema";
+import { customers } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import {
   formatMeta,
   getSearchAndOrderBasic,
   parsePagination,
 } from "@/lib/query-helper";
-import { validateSupplierData } from "@/lib/validations/supplier";
-import { and, eq, sql } from "drizzle-orm";
+import { validateCustomerData } from "@/lib/validations/customer";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET
@@ -17,33 +17,33 @@ export async function GET(request: NextRequest) {
       params.search,
       params.order,
       params.orderBy,
-      suppliers.name
+      customers.name
     );
 
-    const [suppliersData, totalRes] = await Promise.all([
-      db.query.suppliers.findMany({
-        where: and(eq(suppliers.isActive, true), searchFilter),
+    const [customersData, totalRes] = await Promise.all([
+      db.query.customers.findMany({
+        where: and(eq(customers.isActive, true), searchFilter),
         orderBy: searchOrder,
         limit: params.limit,
         offset: params.offset,
       }),
       db
         .select({ count: sql<number>`count(*)` })
-        .from(suppliers)
-        .where(and(eq(suppliers.isActive, true), searchFilter)),
+        .from(customers)
+        .where(and(eq(customers.isActive, true), searchFilter)),
     ]);
 
     const totalCount = Number(totalRes[0]?.count || 0);
 
     return NextResponse.json({
       success: true,
-      data: suppliersData,
+      data: customersData,
       meta: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {
-    console.error("fetch suppliers error:", error);
+    console.error("fetch customers error:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to fetch suppliers" },
+      { success: false, error: "Failed to fetch customers" },
       { status: 500 }
     );
   }
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const validation = validateSupplierData(body);
+    const validation = validateCustomerData(body);
 
     if (!validation.success) {
       return NextResponse.json(
@@ -67,27 +67,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [supplier] = await db
-      .insert(suppliers)
+    const [customer] = await db
+      .insert(customers)
       .values(validation.data)
       .returning();
 
-    if (!supplier) {
+    if (!customer) {
       return NextResponse.json(
-        { success: false, error: "Supplier not found" },
+        { success: false, error: "Customer not found" },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      data: supplier,
-      message: "Supplier created successfully",
+      data: customer,
+      message: "Customer created successfully",
     });
   } catch (error) {
-    console.error("create supplier error:", error);
+    console.error("create customer error:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to create supplier" },
+      { success: false, error: "Failed to create customer" },
       { status: 500 }
     );
   }

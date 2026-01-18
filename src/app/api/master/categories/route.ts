@@ -1,7 +1,7 @@
 import { categories } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { validateCategoryData } from "@/lib/validations/category";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET
@@ -10,6 +10,7 @@ export async function GET() {
     const categoriesData = await db
       .select()
       .from(categories)
+      .where(eq(categories.isActive, true))
       .orderBy(desc(categories.createdAt));
 
     return NextResponse.json({

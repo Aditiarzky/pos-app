@@ -1,7 +1,7 @@
 import { suppliers, units } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { validateUnitData } from "@/lib/validations/unit";
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET
@@ -10,6 +10,7 @@ export async function GET() {
     const unitsData = await db
       .select()
       .from(units)
+      .where(eq(units.isActive, true))
       .orderBy(desc(units.createdAt));
 
     return NextResponse.json({

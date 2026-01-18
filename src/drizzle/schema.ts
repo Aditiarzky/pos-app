@@ -64,32 +64,35 @@ export const units = p.pgTable("units", {
     .$onUpdateFn(() => new Date()),
 });
 
-export const suppliers = p.pgTable(
-  "suppliers",
-  {
-    id: p.serial("id").primaryKey(),
-    name: p.varchar("name", { length: 120 }).notNull(),
-    phone: p.varchar("phone", { length: 30 }),
-    address: p.text("address"),
-    isActive: p.boolean("is_active").default(true),
-    searchVector: p
-      .customType<{ data: string }>({
-        dataType() {
-          return "tsvector";
-        },
-      })("search_vector")
-      .generatedAlwaysAs(
-        (): SQL =>
-          sql`to_tsvector('indonesian', ${suppliers.name} || ' ' || ${suppliers.address})`
-      ),
-    createdAt: p.timestamp("created_at").defaultNow(),
-    updatedAt: p
-      .timestamp("updated_at")
-      .defaultNow()
-      .$onUpdateFn(() => new Date()),
-  },
-  (t) => [p.index("suppliers_search_idx").using("gin", t.searchVector)]
-);
+export const suppliers = p.pgTable("suppliers", {
+  id: p.serial("id").primaryKey(),
+  name: p.varchar("name", { length: 120 }).notNull(),
+  phone: p.varchar("phone", { length: 30 }),
+  address: p.text("address"),
+  isActive: p.boolean("is_active").default(true),
+  createdAt: p.timestamp("created_at").defaultNow(),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
+});
+
+export const customers = p.pgTable("customers", {
+  id: p.serial("id").primaryKey(),
+  name: p.varchar("name", { length: 150 }).notNull(),
+  phone: p.varchar("phone", { length: 30 }),
+  address: p.text("address"),
+  creditBalance: p
+    .decimal("credit_balance", { precision: 12, scale: 2 })
+    .default("0"),
+  isActive: p.boolean("is_active").default(true),
+  createdAt: p.timestamp("created_at").defaultNow(),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
+  deletedAt: p.timestamp("deleted_at"),
+});
 
 export const products = p.pgTable(
   "products",
@@ -139,6 +142,7 @@ export const products = p.pgTable(
       .defaultNow()
       .$onUpdateFn(() => new Date()),
     isActive: p.boolean("is_active").default(true),
+    deletedAt: p.timestamp("deleted_at"),
   },
   (t) => [p.index("products_search_idx").using("gin", t.searchVector)]
 );
@@ -172,6 +176,7 @@ export const productVariants = p.pgTable("product_variants", {
     .timestamp("updated_at")
     .defaultNow()
     .$onUpdateFn(() => new Date()),
+  deletedAt: p.timestamp("deleted_at"),
 });
 
 export const productBarcodes = p.pgTable("product_barcodes", {
@@ -206,6 +211,7 @@ export const purchaseOrders = p.pgTable("purchase_orders", {
     .integer("user_id")
     .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
+  deletedAt: p.timestamp("deleted_at"),
 });
 
 export const purchaseItems = p.pgTable("purchase_items", {
@@ -237,6 +243,9 @@ export const purchaseItems = p.pgTable("purchase_items", {
 export const sales = p.pgTable("sales", {
   id: p.serial("id").primaryKey(),
   invoiceNumber: p.varchar("invoice_number", { length: 60 }).notNull().unique(),
+  customerId: p
+    .integer("customer_id")
+    .references(() => customers.id, { onDelete: "cascade" }),
   totalPrice: p.decimal("total_price", { precision: 12, scale: 2 }).notNull(),
   totalPaid: p.decimal("total_paid", { precision: 12, scale: 2 }).notNull(),
   totalReturn: p.decimal("total_return", { precision: 12, scale: 2 }).notNull(),
@@ -251,6 +260,7 @@ export const sales = p.pgTable("sales", {
     .integer("user_id")
     .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
+  deletedAt: p.timestamp("deleted_at"),
 });
 
 export const saleItems = p.pgTable("sale_items", {
@@ -351,51 +361,38 @@ export const stockMutations = p.pgTable("stock_mutations", {
     .notNull(),
 });
 
-export const customerReturns = p.pgTable(
-  "customer_returns",
-  {
-    id: p.serial("id").primaryKey(),
+export const customerReturns = p.pgTable("customer_returns", {
+  id: p.serial("id").primaryKey(),
 
-    returnNumber: p.varchar("return_number", { length: 60 }).notNull().unique(),
+  returnNumber: p.varchar("return_number", { length: 60 }).notNull().unique(),
 
-    saleId: p
-      .integer("sale_id")
-      .references(() => sales.id, { onDelete: "cascade" })
-      .notNull(),
-    customerName: p.varchar("customer_name", { length: 150 }),
+  saleId: p
+    .integer("sale_id")
+    .references(() => sales.id, { onDelete: "cascade" })
+    .notNull(),
+  customerId: p
+    .integer("customer_id")
+    .references(() => customers.id, { onDelete: "cascade" })
+    .notNull(),
 
-    totalRefund: p
-      .decimal("total_refund", { precision: 12, scale: 2 })
-      .notNull(),
+  totalRefund: p.decimal("total_refund", { precision: 12, scale: 2 }).notNull(),
 
-    compensationType: compensationType("compensation_type").notNull(),
+  compensationType: compensationType("compensation_type").notNull(),
 
-    isArchived: p.boolean("is_archived").default(false),
+  isArchived: p.boolean("is_archived").default(false),
 
-    searchVector: p
-      .customType<{ data: string }>({
-        dataType() {
-          return "tsvector";
-        },
-      })("search_vector")
-      .generatedAlwaysAs(
-        (): SQL =>
-          sql`to_tsvector('indonesian', ${customerReturns.returnNumber} || ' ' || ${customerReturns.customerName})`
-      ),
+  createdAt: p.timestamp("created_at").defaultNow(),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
 
-    createdAt: p.timestamp("created_at").defaultNow(),
-    updatedAt: p
-      .timestamp("updated_at")
-      .defaultNow()
-      .$onUpdateFn(() => new Date()),
-
-    userId: p
-      .integer("user_id")
-      .references(() => users.id, { onDelete: "cascade" })
-      .notNull(),
-  },
-  (t) => [p.index("customer_returns_search_idx").using("gin", t.searchVector)]
-);
+  userId: p
+    .integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  deletedAt: p.timestamp("deleted_at"),
+});
 
 export const customerReturnItems = p.pgTable("customer_return_items", {
   id: p.serial("id").primaryKey(),
@@ -404,6 +401,12 @@ export const customerReturnItems = p.pgTable("customer_return_items", {
     .integer("return_id")
     .notNull()
     .references(() => customerReturns.id, { onDelete: "cascade" })
+    .notNull(),
+
+  productId: p
+    .integer("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" })
     .notNull(),
 
   variantId: p
