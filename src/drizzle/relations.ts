@@ -13,7 +13,18 @@ export const productsRelations = relations(
       references: [schema.categories.id],
     }),
     variants: many(schema.productVariants),
-  })
+    barcodes: many(schema.productBarcodes),
+  }),
+);
+
+export const productBarcodesRelations = relations(
+  schema.productBarcodes,
+  ({ one }) => ({
+    product: one(schema.products, {
+      fields: [schema.productBarcodes.productId],
+      references: [schema.products.id],
+    }),
+  }),
 );
 
 export const unitsRelations = relations(schema.units, ({ many }) => ({
@@ -37,7 +48,7 @@ export const productVariantsRelations = relations(
     }),
     stockMutations: many(schema.stockMutations),
     saleItems: many(schema.saleItems),
-  })
+  }),
 );
 
 export const suppliersRelations = relations(schema.suppliers, ({ many }) => ({
@@ -57,7 +68,7 @@ export const purchaseOrdersRelations = relations(
     }),
     items: many(schema.purchaseItems),
     products: many(schema.products),
-  })
+  }),
 );
 
 export const purchaseItemsRelations = relations(
@@ -75,7 +86,7 @@ export const purchaseItemsRelations = relations(
       fields: [schema.purchaseItems.variantId],
       references: [schema.productVariants.id],
     }),
-  })
+  }),
 );
 
 export const salesRelations = relations(schema.sales, ({ one, many }) => ({
@@ -117,7 +128,11 @@ export const customerReturnsRelations = relations(
       references: [schema.users.id],
     }),
     items: many(schema.customerReturnItems),
-  })
+    sales: one(schema.sales, {
+      fields: [schema.customerReturns.saleId],
+      references: [schema.sales.id],
+    }),
+  }),
 );
 
 export const customerReturnItemsRelations = relations(
@@ -135,7 +150,7 @@ export const customerReturnItemsRelations = relations(
       fields: [schema.customerReturnItems.variantId],
       references: [schema.productVariants.id],
     }),
-  })
+  }),
 );
 
 export const stockMutationsRelations = relations(
@@ -149,5 +164,5 @@ export const stockMutationsRelations = relations(
       fields: [schema.stockMutations.userId],
       references: [schema.users.id],
     }),
-  })
+  }),
 );

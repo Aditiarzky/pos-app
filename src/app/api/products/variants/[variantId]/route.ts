@@ -7,7 +7,7 @@ import { validateUpdateProductVariantData } from "@/lib/validations/product-vari
 // GET detail product variant
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ variantId: string }> }
+  { params }: { params: Promise<{ variantId: string }> },
 ) {
   try {
     const variantId = (await params).variantId;
@@ -15,7 +15,7 @@ export async function GET(
     if (!variantId) {
       return NextResponse.json(
         { success: false, error: "Variant ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -27,10 +27,17 @@ export async function GET(
       where: eq(productVariants.id, Number(variantId)),
     });
 
+    if (variant?.isActive === false) {
+      return NextResponse.json(
+        { success: false, error: "Variant is inactive" },
+        { status: 404 },
+      );
+    }
+
     if (!variant) {
       return NextResponse.json(
         { success: false, error: "Variant not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -39,7 +46,7 @@ export async function GET(
     console.error("Error fetching variant:", error);
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -47,7 +54,7 @@ export async function GET(
 // PATCH update product variant
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ variantId: string }> }
+  { params }: { params: Promise<{ variantId: string }> },
 ) {
   try {
     const variantId = (await params).variantId;
@@ -62,14 +69,14 @@ export async function PATCH(
           error: "Validation failed",
           details: validation.error.format() || "Unknown error",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!variantId) {
       return NextResponse.json(
         { success: false, error: "Variant ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -79,7 +86,7 @@ export async function PATCH(
     if (!variant) {
       return NextResponse.json(
         { success: false, error: "Variant not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -98,7 +105,7 @@ export async function PATCH(
     console.error("Error updating variant:", error);
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -106,7 +113,7 @@ export async function PATCH(
 // DELETE delete product variant
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ variantId: string }> }
+  { params }: { params: Promise<{ variantId: string }> },
 ) {
   try {
     const variantId = (await params).variantId;
@@ -114,7 +121,7 @@ export async function DELETE(
     if (!variantId) {
       return NextResponse.json(
         { success: false, error: "Variant ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -124,7 +131,7 @@ export async function DELETE(
     if (!variant) {
       return NextResponse.json(
         { success: false, error: "Variant not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -142,7 +149,7 @@ export async function DELETE(
     console.error("Error deleting variant:", error);
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

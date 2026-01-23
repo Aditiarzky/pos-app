@@ -7,7 +7,7 @@ import {
   stockMutations,
   productVariants,
 } from "@/drizzle/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, not, sql } from "drizzle-orm";
 import { validateInsertPurchaseData } from "@/lib/validations/purchase";
 import {
   formatMeta,
@@ -23,12 +23,12 @@ export async function GET(request: NextRequest) {
       params.search,
       params.order,
       params.orderBy,
-      purchaseOrders.orderNumber
+      purchaseOrders.orderNumber,
     );
 
     const [purchasesData, totalRes] = await Promise.all([
       db.query.purchaseOrders.findMany({
-        where: searchFilter,
+        where: and(searchFilter, not(purchaseOrders.isArchived)),
         with: {
           supplier: {
             columns: {
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       db
         .select({ count: sql<number>`count(*)` })
         .from(purchaseOrders)
-        .where(searchFilter),
+        .where(and(searchFilter, not(purchaseOrders.isArchived))),
     ]);
 
     const totalCount = Number(totalRes[0]?.count || 0);
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching purchases:", error);
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
         if (!productData || !variantData) {
           throw new Error(
-            `Product/Variant ID ${item.productId}/${item.variantId} not found`
+            `Product/Variant ID ${item.productId}/${item.variantId} not found`,
           );
         }
 
@@ -215,13 +215,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { success: true, data: result, message: "Purchase created successfully" },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error: any) {
     console.error("Purchase Error:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

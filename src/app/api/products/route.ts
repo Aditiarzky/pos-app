@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products } from "@/drizzle/schema";
-import { and, desc, lte, sql } from "drizzle-orm";
+import { products, productBarcodes } from "@/drizzle/schema";
+import { and, eq, lte, sql, exists } from "drizzle-orm";
 import { validateProductData } from "@/lib/validations/product";
 import {
   formatMeta,
@@ -9,10 +9,12 @@ import {
   parsePagination,
 } from "@/lib/query-helper";
 
-// GET semua products dengan pagination dan search
 export async function GET(request: NextRequest) {
   try {
     const params = parsePagination(request);
+    const { searchParams } = new URL(request.url);
+    const barcodeSearch = searchParams.get("barcode");
+
     const { searchFilter, searchOrder } = getSearchAndOrderFTS(
       params.search,
       params.order,
@@ -20,22 +22,34 @@ export async function GET(request: NextRequest) {
       products,
     );
 
+    let finalFilter = and(searchFilter, eq(products.isActive, true));
+
+    if (barcodeSearch) {
+      finalFilter = and(
+        finalFilter,
+        exists(
+          db
+            .select()
+            .from(productBarcodes)
+            .where(
+              and(
+                eq(productBarcodes.productId, products.id),
+                eq(productBarcodes.barcode, barcodeSearch),
+              ),
+            ),
+        ),
+      );
+    }
+
     const [productsData, totalRes, totalStockCount, countUnderMinimumStock] =
       await Promise.all([
         db.query.products.findMany({
-          where: and(searchFilter, products.isActive),
+          where: finalFilter,
           with: {
-            unit: {
-              columns: {
-                id: true,
-                name: true,
-              },
-            },
-            category: {
-              columns: {
-                id: true,
-                name: true,
-              },
+            unit: { columns: { id: true, name: true } },
+            category: { columns: { id: true, name: true } },
+            barcodes: {
+              columns: { id: true, barcode: true },
             },
             variants: {
               columns: {
@@ -45,14 +59,7 @@ export async function GET(request: NextRequest) {
                 conversionToBase: true,
                 sellPrice: true,
               },
-              with: {
-                unit: {
-                  columns: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
+              with: { unit: { columns: { id: true, name: true } } },
             },
           },
           orderBy: searchOrder,
@@ -63,36 +70,28 @@ export async function GET(request: NextRequest) {
         db
           .select({ count: sql<number>`count(*)` })
           .from(products)
-          .where(and(searchFilter, products.isActive)),
+          .where(finalFilter),
         db
           .select({ countStock: sql<number>`sum(stock)` })
           .from(products)
-          .where(and(searchFilter, products.isActive)),
+          .where(finalFilter),
         db
           .select({ countUnderMinimumStock: sql<number>`count(*)` })
           .from(products)
-          .where(
-            and(
-              searchFilter,
-              products.isActive,
-              lte(products.stock, products.minStock),
-            ),
-          ),
+          .where(and(finalFilter, lte(products.stock, products.minStock))),
       ]);
 
     const totalCount = Number(totalRes[0]?.count || 0);
-    const totalStock = Number(totalStockCount[0]?.countStock || 0);
-    const totalUnderMinimumStock = Number(
-      countUnderMinimumStock[0]?.countUnderMinimumStock || 0,
-    );
 
     return NextResponse.json({
       success: true,
       data: productsData,
       analytics: {
         totalProducts: totalCount,
-        totalStock: totalStock,
-        underMinimumStock: totalUnderMinimumStock,
+        totalStock: Number(totalStockCount[0]?.countStock || 0),
+        underMinimumStock: Number(
+          countUnderMinimumStock[0]?.countUnderMinimumStock || 0,
+        ),
       },
       meta: formatMeta(totalCount, params.page, params.limit),
     });
@@ -105,11 +104,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST tambah product
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-
     const validation = validateProductData(body);
 
     if (!validation.success) {
@@ -123,23 +120,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [newProduct] = await db
-      .insert(products)
-      .values(validation.data)
-      .returning();
+    const { barcodes, ...productData } = validation.data;
+
+    const newBarcodeValue: any[] = [];
+    const result = await db.transaction(async (tx) => {
+      const [newProduct] = await tx
+        .insert(products)
+        .values(productData)
+        .returning();
+      if (barcodes && Array.isArray(barcodes) && barcodes.length > 0) {
+        const barcodeValues = barcodes.map((b: string) => ({
+          productId: newProduct.id,
+          barcode: b,
+        }));
+        const insertedBarcodes = await tx
+          .insert(productBarcodes)
+          .values(barcodeValues)
+          .returning({
+            id: productBarcodes.id,
+            barcode: productBarcodes.barcode,
+          });
+        newBarcodeValue.push(...insertedBarcodes);
+      }
+
+      return { product: newProduct, barcodes: newBarcodeValue };
+    });
 
     return NextResponse.json(
       {
         success: true,
-        data: newProduct,
+        data: result,
         message: "Product created successfully",
       },
       { status: 201 },
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error inserting product:", error);
+    if (error.code === "23505") {
+      return NextResponse.json(
+        { success: false, error: "SKU atau Barcode sudah terdaftar" },
+        { status: 400 },
+      );
+    }
     return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
+      { success: false, error: error.message },
       { status: 500 },
     );
   }

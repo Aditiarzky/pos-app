@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { products } from "@/drizzle/schema";
+import { productBarcodes, products } from "@/drizzle/schema";
 import {
   validateProductData,
   validateUpdateProductData,
@@ -10,7 +10,7 @@ import {
 // GET detail product
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ productId: string }> }
+  { params }: { params: Promise<{ productId: string }> },
 ) {
   try {
     const productId = (await params).productId;
@@ -18,7 +18,7 @@ export async function GET(
     if (!productId) {
       return NextResponse.json(
         { success: false, error: "Product ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -30,10 +30,16 @@ export async function GET(
         category: true,
       },
     });
+    if (product?.isActive === false) {
+      return NextResponse.json(
+        { success: false, error: "Product is not active" },
+        { status: 404 },
+      );
+    }
     if (!product) {
       return NextResponse.json(
         { success: false, error: "Product not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
     return NextResponse.json({ success: true, data: product });
@@ -41,7 +47,7 @@ export async function GET(
     console.error("Error fetching product:", error);
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -49,58 +55,98 @@ export async function GET(
 // PATCH update product
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ productId: string }> }
+  { params }: { params: Promise<{ productId: string }> },
 ) {
   try {
-    const productId = (await params).productId;
+    const { productId } = await params;
     const body = await request.json();
 
     const validation = validateUpdateProductData(body);
-
     if (!validation.success) {
       return NextResponse.json(
         {
           success: false,
           error: "Validation failed",
-          details: validation.error.format() || "Unknown error",
+          details: validation.error.format(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    if (!productId) {
+    const idNum = Number(productId);
+    if (!idNum) {
       return NextResponse.json(
-        { success: false, error: "Product ID is required" },
-        { status: 400 }
+        { success: false, error: "ID tidak valid" },
+        { status: 400 },
       );
     }
 
-    const product = await db.query.products.findFirst({
-      where: eq(products.id, Number(productId)),
+    const { barcodes, ...productUpdateData } = body;
+
+    const updatedBarcodes: any[] = [];
+
+    const result = await db.transaction(async (tx) => {
+      const existingProduct = await tx.query.products.findFirst({
+        where: eq(products.id, idNum),
+      });
+
+      if (!existingProduct) throw new Error("Produk tidak ditemukan");
+
+      const [updatedProduct] = await tx
+        .update(products)
+        .set({
+          ...productUpdateData,
+          updatedAt: new Date(),
+        })
+        .where(eq(products.id, idNum))
+        .returning();
+
+      if (barcodes && Array.isArray(barcodes)) {
+        await tx
+          .delete(productBarcodes)
+          .where(eq(productBarcodes.productId, idNum));
+        if (barcodes.length > 0) {
+          const barcodeValues = barcodes.map((b: string) => ({
+            productId: idNum,
+            barcode: b,
+          }));
+          const insertedBarcodes = await tx
+            .insert(productBarcodes)
+            .values(barcodeValues)
+            .returning({
+              id: productBarcodes.id,
+              barcode: productBarcodes.barcode,
+            });
+          updatedBarcodes.push(...insertedBarcodes);
+        }
+      }
+
+      return { product: updatedProduct, barcodes: updatedBarcodes };
     });
-    if (!product) {
-      return NextResponse.json(
-        { success: false, error: "Product not found" },
-        { status: 404 }
-      );
-    }
-
-    const updatedProduct = await db
-      .update(products)
-      .set(body)
-      .where(eq(products.id, Number(productId)))
-      .returning();
 
     return NextResponse.json({
       success: true,
-      data: updatedProduct,
-      message: "Product updated successfully",
+      data: result,
+      message: "Produk berhasil diperbarui",
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error updating product:", error);
+    if (error.code === "23505") {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Barcode sudah digunakan oleh produk lain",
+        },
+        { status: 400 },
+      );
+    }
+
     return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
-      { status: 500 }
+      {
+        success: false,
+        error: error.message || "Internal Server Error",
+      },
+      { status: 500 },
     );
   }
 }
@@ -109,7 +155,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ productId: string }> }
+  { params }: { params: Promise<{ productId: string }> },
 ) {
   try {
     const productId = (await params).productId;
@@ -117,7 +163,7 @@ export async function DELETE(
     if (!productId) {
       return NextResponse.json(
         { success: false, error: "Product ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -127,7 +173,7 @@ export async function DELETE(
     if (!product) {
       return NextResponse.json(
         { success: false, error: "Product not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -145,7 +191,7 @@ export async function DELETE(
     console.error("Error deleting product:", error);
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

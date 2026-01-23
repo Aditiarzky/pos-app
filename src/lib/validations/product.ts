@@ -13,11 +13,11 @@ export const insertProductSchema = baseInsertSchema
   .extend({
     sku: baseInsertSchema.shape.sku.min(
       3,
-      "SKU must be at least 3 characters long"
+      "SKU must be at least 3 characters long",
     ),
     name: baseInsertSchema.shape.name.min(
       3,
-      "Name must be at least 3 characters long"
+      "Name must be at least 3 characters long",
     ),
     minStock: baseInsertSchema.shape.minStock.default("0"),
     stock: baseInsertSchema.shape.stock.default("0"),
@@ -28,6 +28,7 @@ export const insertProductSchema = baseInsertSchema
     categoryId: baseInsertSchema.shape.categoryId.optional().nullable(),
     baseUnitId: baseInsertSchema.shape.baseUnitId,
     image: baseInsertSchema.shape.image.optional().nullable(),
+    barcodes: z.array(z.string()).optional(),
   })
   .strip();
 
