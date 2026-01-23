@@ -1,179 +1,145 @@
-import * as React from "react"
+"use client";
+
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
-  IconCamera,
-  IconChartBar,
-  IconDashboard,
-  IconDatabase,
-  IconFileAi,
-  IconFileDescription,
-  IconFileWord,
-  IconFolder,
-  IconHelp,
-  IconInnerShadowTop,
-  IconListDetails,
-  IconReport,
-  IconSearch,
-  IconSettings,
+  Package,
+  Settings,
+  ChevronLeft,
+  RotateCcw,
+  FileText,
+  History,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import LogoNav from "@/assets/logo-nav/logo-nav";
+import { Separator } from "./ui/separator";
+import {
+  IconLayout,
+  IconShoppingCart,
+  IconTrolley,
   IconUsers,
-} from "@tabler/icons-react"
-
-import { NavDocuments } from "@/components/nav-documents"
-import { NavMain } from "@/components/nav-main"
-import { NavSecondary } from "@/components/nav-secondary"
-import { NavUser } from "@/components/nav-user"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar"
-
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "#",
-      icon: IconDashboard,
-    },
-    {
-      title: "Lifecycle",
-      url: "#",
-      icon: IconListDetails,
-    },
-    {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
-    },
-    {
-      title: "Projects",
-      url: "#",
-      icon: IconFolder,
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: IconUsers,
-    },
-  ],
-  navClouds: [
-    {
-      title: "Capture",
-      icon: IconCamera,
-      isActive: true,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Proposal",
-      icon: IconFileDescription,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Prompts",
-      icon: IconFileAi,
-      url: "#",
-      items: [
-        {
-          title: "Active Proposals",
-          url: "#",
-        },
-        {
-          title: "Archived",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: IconReport,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord,
-    },
-  ],
+} from "@tabler/icons-react";
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ReactNode;
 }
-
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+const navItems: NavItem[] = [
+  {
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: <IconLayout className="w-5 h-5" />,
+  },
+  {
+    label: "Kasir",
+    href: "/dashboard/sales",
+    icon: <IconShoppingCart className="w-5 h-5" />,
+  },
+  {
+    label: "Barang & Stok",
+    href: "/dashboard/products",
+    icon: <Package className="w-5 h-5" />,
+  },
+  {
+    label: "Supplier & Pembelian",
+    href: "/dashboard/purchase",
+    icon: <IconTrolley className="w-5 h-5" />,
+  },
+  {
+    label: "Pelanggan & Saldo",
+    href: "/dashboard/customer",
+    icon: <IconUsers className="w-5 h-5" />,
+  },
+  {
+    label: "Laporan",
+    href: "/dashboard/report",
+    icon: <FileText className="w-5 h-5" />,
+  },
+  {
+    label: "Pengaturan",
+    href: "/dashboard/setting",
+    icon: <Settings className="w-5 h-5" />,
+  },
+];
+interface SidebarProps {
+  isOpen: boolean;
+  onToggle: () => void;
+}
+export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
+  const pathname = usePathname();
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
-            >
-              <a href="#">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
-      </SidebarContent>
-      <SidebarFooter>
-        <NavUser user={data.user} />
-      </SidebarFooter>
-    </Sidebar>
-  )
+    <>
+      {/* Sidebar */}
+      <div className="md:block hidden absolute right-4 left-4 top-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onToggle}
+          className="text-sidebar-foreground hover:bg-sidebar-accent"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </Button>
+      </div>
+      <div
+        className={cn(
+          "fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border transition-transform duration-300 z-40",
+          isOpen
+            ? "translate-x-0 w-64 md:relative"
+            : "-translate-x-full -left-10 w-64",
+        )}
+      >
+        <div className="pt-6 px-4">
+          <LogoNav height={32} type="sidebar" />
+          <Separator className="mt-6" />
+        </div>
+        {/* Close button for mobile */}
+        <div className="absolute right-[-16px] top-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onToggle}
+            className="text-sidebar-foreground bg-background dark:bg-sidebar-accent hover:bg-sidebar-accent"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
+        </div>
+        {/* Navigation */}
+        <nav className="p-4">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link key={item.href} href={item.href}>
+                <button
+                  onClick={() => {
+                    // Close sidebar on mobile when navigating
+                    if (window.innerWidth < 768) {
+                      onToggle();
+                    }
+                  }}
+                  className={cn(
+                    "w-full flex items-center my-1 gap-3 px-4 py-2 cursor-pointer rounded-lg transition-colors",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  )}
+                >
+                  {item.icon}
+                  <span className="font-regular">{item.label}</span>
+                </button>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+      {/* Overlay for mobile */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-background/50 backdrop-blur-sm z-30 md:hidden"
+          onClick={onToggle}
+        />
+      )}
+    </>
+  );
 }

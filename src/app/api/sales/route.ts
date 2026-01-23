@@ -7,7 +7,7 @@ import {
   stockMutations,
   productVariants,
 } from "@/drizzle/schema";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, not, sql } from "drizzle-orm";
 import { validateInsertSaleData } from "@/lib/validations/sale";
 import {
   parsePagination,
@@ -23,12 +23,12 @@ export async function GET(request: NextRequest) {
       params.search,
       params.order,
       params.orderBy,
-      sales.invoiceNumber
+      sales.invoiceNumber,
     );
 
     const [salesData, totalRes] = await Promise.all([
       db.query.sales.findMany({
-        where: searchFilter,
+        where: and(searchFilter, not(sales.isArchived)),
         with: {
           user: {
             columns: {
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       db
         .select({ count: sql<number>`count(*)` })
         .from(sales)
-        .where(searchFilter),
+        .where(and(searchFilter, not(sales.isArchived))),
     ]);
 
     const totalCount = Number(totalRes[0]?.count || 0);
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching sales:", error);
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
           success: false,
           error: "Terdapat item duplikat, silahkan digabung kuantitasnya",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
 
         if (currentStock < qtyInBaseUnit) {
           throw new Error(
-            `Stok tidak mencukupi untuk produk: ${productData.name}`
+            `Stok tidak mencukupi untuk produk: ${productData.name}`,
           );
         }
 
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
           }).format(grandTotal)}, Dibayar: ${new Intl.NumberFormat("id-ID", {
             style: "currency",
             currency: "IDR",
-          }).format(paidAmount)}`
+          }).format(paidAmount)}`,
         );
       }
       const calculatedReturn = paidAmount - grandTotal;
@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
     console.error("Sales Error:", error);
     return NextResponse.json(
       { success: false, error: error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
