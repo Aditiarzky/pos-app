@@ -1,49 +1,66 @@
 import {
   createInsertSchema,
-  createSelectSchema,
   createUpdateSchema,
+  createSelectSchema,
 } from "drizzle-zod";
 import { z } from "zod";
-import { products } from "@/drizzle/schema";
+import { products, productVariants } from "@/drizzle/schema";
 
-const baseInsertSchema = createInsertSchema(products);
-const baseUpdateSchema = createUpdateSchema(products);
+const baseVariantInsert = createInsertSchema(productVariants);
 
-export const insertProductSchema = baseInsertSchema
+export const productVariantSchema = baseVariantInsert
   .extend({
-    sku: baseInsertSchema.shape.sku.min(
-      3,
-      "SKU must be at least 3 characters long",
+    id: baseVariantInsert.shape.id.optional(),
+    productId: baseVariantInsert.shape.productId.optional(),
+    name: baseVariantInsert.shape.name.min(1, "Nama variant harus diisi"),
+    sku: baseVariantInsert.shape.sku.min(3, "SKU harus diisi"),
+    sellPrice: baseVariantInsert.shape.sellPrice.refine(
+      (v) => Number(v) >= 1,
+      "Harga jual harus lebih dari 1",
     ),
-    name: baseInsertSchema.shape.name.min(
-      3,
-      "Name must be at least 3 characters long",
+    conversionToBase: baseVariantInsert.shape.conversionToBase.refine(
+      (v) => Number(v) >= 1,
+      "Konversi ke satuan dasar harus lebih dari 1",
     ),
-    minStock: baseInsertSchema.shape.minStock.default("0"),
-    stock: baseInsertSchema.shape.stock.default("0"),
-    averageCost: baseInsertSchema.shape.averageCost.optional().nullable(),
-    lastPurchaseCost: baseInsertSchema.shape.lastPurchaseCost
-      .optional()
-      .nullable(),
-    categoryId: baseInsertSchema.shape.categoryId.optional().nullable(),
-    baseUnitId: baseInsertSchema.shape.baseUnitId,
-    image: baseInsertSchema.shape.image.optional().nullable(),
-    barcodes: z.array(z.string()).optional(),
+    unitId: baseVariantInsert.shape.unitId,
   })
   .strip();
 
-export const updateProductSchema = baseUpdateSchema;
+const baseInsertSchema = createInsertSchema(products);
 
-export const selectProductSchema = createSelectSchema(products);
+export const insertProductSchema = baseInsertSchema
+  .extend({
+    sku: baseInsertSchema.shape.sku.min(3, "SKU harus diisi"),
+    name: baseInsertSchema.shape.name.min(3, "Nama harus diisi"),
+    minStock: baseInsertSchema.shape.minStock
+      .default("0")
+      .refine((v) => Number(v) >= 0, "Stok minimum tidak boleh negatif"),
+    stock: baseInsertSchema.shape.stock
+      .default("0")
+      .refine((v) => Number(v) >= 0, "Stok tidak boleh negatif"),
+    baseUnitId: z.number({
+      error: () => ({
+        message: "Satuan dasar harus diisi",
+      }),
+    }),
+    barcodes: z.array(z.object({ barcode: z.string() })).optional(),
+    variants: z.array(productVariantSchema).optional(),
+  })
+  .strip();
+
+export const updateProductSchema = insertProductSchema.partial().extend({
+  barcodes: z.array(z.object({ barcode: z.string() })).optional(),
+  variants: z.array(productVariantSchema).optional(),
+});
 
 export type InsertProductInputType = z.infer<typeof insertProductSchema>;
 export type UpdateProductInputType = z.infer<typeof updateProductSchema>;
-export type SelectProductDataType = z.infer<typeof selectProductSchema>;
+export type ProductVariantInputType = z.infer<typeof productVariantSchema>;
+export type InsertProductBarcodeInputType = z.infer<
+  typeof insertProductSchema.shape.barcodes
+>;
 
-export const validateProductData = (data: unknown) => {
-  return insertProductSchema.safeParse(data);
-};
-
-export const validateUpdateProductData = (data: unknown) => {
-  return updateProductSchema.safeParse(data);
-};
+export const validateProductData = (data: unknown) =>
+  insertProductSchema.safeParse(data);
+export const validateUpdateProductData = (data: unknown) =>
+  updateProductSchema.safeParse(data);

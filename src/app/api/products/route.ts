@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products, productBarcodes } from "@/drizzle/schema";
+import { products, productBarcodes, productVariants } from "@/drizzle/schema";
 import { and, eq, lte, sql, exists } from "drizzle-orm";
-import { validateProductData } from "@/lib/validations/product";
+import {
+  ProductVariantInputType,
+  validateProductData,
+} from "@/lib/validations/product";
 import {
   formatMeta,
   getSearchAndOrderFTS,
   parsePagination,
 } from "@/lib/query-helper";
+import { handleApiError } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,6 +87,19 @@ export async function GET(request: NextRequest) {
 
     const totalCount = Number(totalRes[0]?.count || 0);
 
+    const allSkusFromDb = await db.transaction(async (tx) => {
+      const pSku = await tx
+        .select({ sku: products.sku })
+        .from(products)
+        .where(eq(products.isActive, true));
+      const vSku = await tx
+        .select({ sku: productVariants.sku })
+        .from(productVariants);
+      return [...pSku.map((p) => p.sku), ...vSku.map((v) => v.sku)].filter(
+        Boolean,
+      );
+    });
+
     return NextResponse.json({
       success: true,
       data: productsData,
@@ -93,14 +110,11 @@ export async function GET(request: NextRequest) {
           countUnderMinimumStock[0]?.countUnderMinimumStock || 0,
         ),
       },
+      allSku: allSkusFromDb,
       meta: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {
-    console.error("Error fetching products:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -111,60 +125,56 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Validation failed",
-          details: validation.error.format() || "Unknown error",
-        },
+        { success: false, details: validation.error.format() },
         { status: 400 },
       );
     }
 
-    const { barcodes, ...productData } = validation.data;
+    const { barcodes, variants, ...productData } = validation.data;
 
-    const newBarcodeValue: any[] = [];
     const result = await db.transaction(async (tx) => {
+      // 1. Insert Product
       const [newProduct] = await tx
         .insert(products)
         .values(productData)
         .returning();
-      if (barcodes && Array.isArray(barcodes) && barcodes.length > 0) {
-        const barcodeValues = barcodes.map((b: string) => ({
-          productId: newProduct.id,
-          barcode: b,
-        }));
-        const insertedBarcodes = await tx
+
+      // 2. Insert Barcodes
+      let newBarcodes: any[] = [];
+      if (barcodes?.length) {
+        newBarcodes = await tx
           .insert(productBarcodes)
-          .values(barcodeValues)
+          .values(
+            barcodes.map((b) => ({
+              productId: newProduct.id,
+              barcode: b.barcode,
+            })),
+          )
           .returning({
             id: productBarcodes.id,
             barcode: productBarcodes.barcode,
           });
-        newBarcodeValue.push(...insertedBarcodes);
       }
 
-      return { product: newProduct, barcodes: newBarcodeValue };
+      // 3. Insert Variants
+      let newVariants: ProductVariantInputType[] = [];
+      if (variants?.length) {
+        newVariants = await tx
+          .insert(productVariants)
+          .values(
+            variants.map((v: ProductVariantInputType) => ({
+              ...v,
+              productId: newProduct.id,
+            })),
+          )
+          .returning();
+      }
+
+      return { ...newProduct, barcodes: newBarcodes, variants: newVariants };
     });
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: result,
-        message: "Product created successfully",
-      },
-      { status: 201 },
-    );
+    return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error: any) {
-    console.error("Error inserting product:", error);
-    if (error.code === "23505") {
-      return NextResponse.json(
-        { success: false, error: "SKU atau Barcode sudah terdaftar" },
-        { status: 400 },
-      );
-    }
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

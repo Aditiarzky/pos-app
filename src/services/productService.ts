@@ -5,11 +5,14 @@ import {
 } from "@/lib/validations/product";
 
 export type ProductResponse = {
+  barcodes: any;
   id: number;
   sku: string;
   name: string;
   image?: string;
   minStock: string;
+  unitId: number;
+  categoryId: number;
   stock: string;
   baseUnitId: number;
   averageCost?: string;
@@ -36,6 +39,12 @@ export type ApiResponse<T = unknown> = {
   data?: T;
   error?: string;
   errors?: Record<string, string[]>;
+  analytics?: {
+    totalProducts: number;
+    totalStock: number;
+    underMinimumStock: number;
+  };
+  allSku?: string[];
   meta?: {
     page: number;
     limit: number;
@@ -80,7 +89,7 @@ export const updateProduct = async ({
 }: { id: number } & UpdateProductInputType): Promise<
   ApiResponse<ProductResponse>
 > => {
-  const response = await axiosInstance.patch(`/products/${id}`, data);
+  const response = await axiosInstance.put(`/products/${id}`, data);
   return response.data;
 };
 

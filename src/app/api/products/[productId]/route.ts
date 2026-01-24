@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { eq } from "drizzle-orm";
-import { productBarcodes, products } from "@/drizzle/schema";
+import { and, eq, notInArray } from "drizzle-orm";
+import { productBarcodes, products, productVariants } from "@/drizzle/schema";
 import {
+  ProductVariantInputType,
   validateProductData,
   validateUpdateProductData,
 } from "@/lib/validations/product";
+import { handleApiError } from "@/lib/api-utils";
 
 // GET detail product
 export async function GET(
@@ -44,110 +46,114 @@ export async function GET(
     }
     return NextResponse.json({ success: true, data: product });
   } catch (error) {
-    console.error("Error fetching product:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
-// PATCH update product
-export async function PATCH(
+// PUT update product
+export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ productId: string }> },
 ) {
   try {
     const { productId } = await params;
-    const body = await request.json();
-
-    const validation = validateUpdateProductData(body);
-    if (!validation.success) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Validation failed",
-          details: validation.error.format(),
-        },
-        { status: 400 },
-      );
-    }
-
     const idNum = Number(productId);
-    if (!idNum) {
+    const body = await request.json();
+    const validation = validateUpdateProductData(body);
+
+    if (!validation.success)
       return NextResponse.json(
-        { success: false, error: "ID tidak valid" },
+        { success: false, details: validation.error.format() },
         { status: 400 },
       );
-    }
 
-    const { barcodes, ...productUpdateData } = body;
-
-    const updatedBarcodes: any[] = [];
+    const { barcodes, variants, ...productUpdateData } = validation.data;
 
     const result = await db.transaction(async (tx) => {
-      const existingProduct = await tx.query.products.findFirst({
-        where: eq(products.id, idNum),
+      const product = await tx.query.products.findFirst({
+        where: and(eq(products.id, idNum), eq(products.isActive, true)),
       });
 
-      if (!existingProduct) throw new Error("Produk tidak ditemukan");
+      if (!product) {
+        return NextResponse.json(
+          { success: false, error: "Product not found" },
+          { status: 404 },
+        );
+      }
 
       const [updatedProduct] = await tx
         .update(products)
-        .set({
-          ...productUpdateData,
-          updatedAt: new Date(),
-        })
+        .set({ ...productUpdateData, updatedAt: new Date() })
         .where(eq(products.id, idNum))
         .returning();
 
-      if (barcodes && Array.isArray(barcodes)) {
+      let updatedBarcodes;
+      if (barcodes !== undefined) {
         await tx
           .delete(productBarcodes)
           .where(eq(productBarcodes.productId, idNum));
         if (barcodes.length > 0) {
-          const barcodeValues = barcodes.map((b: string) => ({
-            productId: idNum,
-            barcode: b,
-          }));
-          const insertedBarcodes = await tx
+          updatedBarcodes = await tx
             .insert(productBarcodes)
-            .values(barcodeValues)
+            .values(
+              barcodes.map((b) => ({ productId: idNum, barcode: b.barcode })),
+            )
             .returning({
               id: productBarcodes.id,
               barcode: productBarcodes.barcode,
             });
-          updatedBarcodes.push(...insertedBarcodes);
+        }
+      }
+      const updatedVariants: ProductVariantInputType[] = [];
+
+      if (variants !== undefined) {
+        const incomingVariantIds = variants
+          .map((v) => v.id)
+          .filter((id): id is number => !!id);
+
+        if (incomingVariantIds.length > 0) {
+          await tx
+            .delete(productVariants)
+            .where(
+              and(
+                eq(productVariants.productId, idNum),
+                notInArray(productVariants.id, incomingVariantIds),
+              ),
+            );
+        } else {
+          await tx
+            .delete(productVariants)
+            .where(eq(productVariants.productId, idNum));
+        }
+
+        for (const v of variants) {
+          if (v.id) {
+            const [updatedVariant] = await tx
+              .update(productVariants)
+              .set(v)
+              .where(eq(productVariants.id, v.id))
+              .returning();
+            updatedVariants.push(updatedVariant);
+          } else {
+            const [insertedVariant] = await tx
+              .insert(productVariants)
+              .values({ ...v, productId: idNum })
+              .returning();
+            updatedVariants.push(insertedVariant);
+          }
         }
       }
 
-      return { product: updatedProduct, barcodes: updatedBarcodes };
+      return {
+        ...updatedProduct,
+        variants: updatedVariants,
+        barcodes: updatedBarcodes,
+      };
     });
 
-    return NextResponse.json({
-      success: true,
-      data: result,
-      message: "Produk berhasil diperbarui",
-    });
+    return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
-    console.error("Error updating product:", error);
-    if (error.code === "23505") {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Barcode sudah digunakan oleh produk lain",
-        },
-        { status: 400 },
-      );
-    }
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Internal Server Error",
-      },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -188,10 +194,6 @@ export async function DELETE(
       message: "Product deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting product:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }

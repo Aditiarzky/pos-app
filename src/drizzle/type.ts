@@ -5,6 +5,8 @@ export type UserType = InferSelectModel<typeof schema.users>;
 export type InsertUserType = InferInsertModel<typeof schema.users>;
 export type CategoryType = InferSelectModel<typeof schema.categories>;
 export type InsertCategoryType = InferInsertModel<typeof schema.categories>;
+export type UnitType = InferSelectModel<typeof schema.units>;
+export type InsertUnitType = InferInsertModel<typeof schema.units>;
 export type SupplierType = InferSelectModel<typeof schema.suppliers>;
 export type InsertSupplierType = InferInsertModel<typeof schema.suppliers>;
 export type ProductType = InferSelectModel<typeof schema.products>;
@@ -30,4 +32,10 @@ export type InsertSupplierReturnType = InferInsertModel<
 export type StockMutationType = InferSelectModel<typeof schema.stockMutations>;
 export type InsertStockMutationType = InferInsertModel<
   typeof schema.stockMutations
+>;
+export type ProductBarcodeType = InferSelectModel<
+  typeof schema.productBarcodes
+>;
+export type InsertProductBarcodeType = InferInsertModel<
+  typeof schema.productBarcodes
 >;

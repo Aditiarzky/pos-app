@@ -156,6 +156,10 @@ export const customerReturnItemsRelations = relations(
 export const stockMutationsRelations = relations(
   schema.stockMutations,
   ({ one }) => ({
+    product: one(schema.products, {
+      fields: [schema.stockMutations.productId],
+      references: [schema.products.id],
+    }),
     productVariant: one(schema.productVariants, {
       fields: [schema.stockMutations.variantId],
       references: [schema.productVariants.id],

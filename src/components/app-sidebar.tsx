@@ -100,7 +100,7 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
             variant="outline"
             size="icon"
             onClick={onToggle}
-            className="text-sidebar-foreground bg-background dark:bg-sidebar-accent hover:bg-sidebar-accent"
+            className="text-sidebar-foreground cursor-pointer rounded-full bg-background dark:bg-sidebar-accent hover:bg-sidebar-accent"
           >
             <ChevronLeft className="w-5 h-5" />
           </Button>
