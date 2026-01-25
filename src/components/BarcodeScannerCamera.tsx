@@ -81,7 +81,7 @@ export default function BarcodeScannerCamera({
         },
         (errorMessage, error) => {
           // Callback Failure (Silent failure agar tidak spam console)
-          // console.debug(errorMessage);
+          console.debug(errorMessage);
         },
       );
 
