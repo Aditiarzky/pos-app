@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useQueryState } from "@/hooks/use-query-state";
 
-export default function ProductsPage() {
+function ProductsContent() {
   const [tab, setTab] = useQueryState<string>("tab", "list");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
@@ -174,5 +174,21 @@ export default function ProductsPage() {
         product={adjustmentProduct}
       />
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
+          <p className="text-muted-foreground animate-pulse">
+            Memuat halaman produk...
+          </p>
+        </div>
+      }
+    >
+      <ProductsContent />
+    </Suspense>
   );
 }
