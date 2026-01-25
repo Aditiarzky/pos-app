@@ -8,6 +8,7 @@ import {
   BadgeQuestionMark,
   Blocks,
   LayoutPanelTopIcon,
+  Loader2,
   PackageIcon,
   PanelTopOpen,
   Plus,
@@ -182,9 +183,7 @@ export default function ProductsPage() {
     <Suspense
       fallback={
         <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
-          <p className="text-muted-foreground animate-pulse">
-            Memuat halaman produk...
-          </p>
+          <Loader2 className="h-8 w-8 animate-spin" />
         </div>
       }
     >

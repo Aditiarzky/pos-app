@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/contexts/ConfirmDialog";
+import { formatCompactNumber } from "@/lib/format";
 
 interface ProductVariant {
   id: number;
@@ -115,7 +116,7 @@ export function ProductCard({
               isLowStock && "animate-pulse",
             )}
           >
-            {stockNum} {product.unit?.name || "unit"}
+            {formatCompactNumber(stockNum)} {product.unit?.name || "unit"}
           </Badge>
           {isLowStock && (
             <div className="w-full h-1 bg-background/20 rounded-full overflow-hidden">
@@ -132,9 +133,9 @@ export function ProductCard({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="icon"
-                  className="h-7 w-7 bg-secondary/80 sm:h-8 sm:w-8 shadow-md hover:shadow-lg"
+                  className="h-7 w-7 sm:h-8 sm:w-8 shadow-md hover:shadow-lg"
                   type="button"
                 >
                   <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -240,7 +241,7 @@ export function ProductCard({
         <div className="flex flex-col gap-0.5">
           <span className="text-xs text-muted-foreground">Min. Stok:</span>
           <span className="text-xs sm:text-sm font-medium">
-            {minStockNum} {product.unit?.name}
+            {formatCompactNumber(minStockNum)} {product.unit?.name}
           </span>
         </div>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCompactNumber } from "@/lib/format";
 import { useEffect, useState } from "react";
 
 interface AnimatedNumberProps {
@@ -41,7 +42,5 @@ export function AnimatedNumber({
     window.requestAnimationFrame(step);
   }, [value, duration]);
 
-  return (
-    <span className={className}>{displayValue.toLocaleString("id-ID")}</span>
-  );
+  return <span className={className}>{formatCompactNumber(displayValue)}</span>;
 }

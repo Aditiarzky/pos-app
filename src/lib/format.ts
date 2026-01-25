@@ -22,6 +22,18 @@ export const formatNumber = (value: string | number) => {
   }).format(numericValue);
 };
 
+export const formatCompactNumber = (number: number | string) => {
+  const value = typeof number === "string" ? parseFloat(number) : number;
+
+  if (isNaN(value)) return "0";
+
+  return new Intl.NumberFormat("id-ID", {
+    notation: "compact",
+    compactDisplay: "short",
+    maximumFractionDigits: 1,
+  }).format(value);
+};
+
 export const parseNumber = (value: string) => {
   // Replace comma with dot for parsing
   return value.replace(/\./g, "").replace(/,/g, ".");
