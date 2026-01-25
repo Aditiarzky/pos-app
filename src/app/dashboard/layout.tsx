@@ -1,9 +1,6 @@
 "use client";
 
 import { AppLayout } from "@/components/app-layout";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SiteHeader } from "@/components/site-header";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import React from "react";
 
 export default function DashboardLayout({
