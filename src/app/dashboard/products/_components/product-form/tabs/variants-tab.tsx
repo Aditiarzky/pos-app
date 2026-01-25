@@ -1,7 +1,13 @@
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Trash2, Plus, Upload, X, Loader2 } from "lucide-react";
+import { CurrencyInput } from "@/components/ui/currency-input";
+import { NumericInput } from "@/components/ui/numeric-input";
+import { Controller } from "react-hook-form";
+import { UnitType } from "@/drizzle/type";
 import { TabsContent } from "@/components/ui/tabs";
-import { Upload, X, Loader2, Plus } from "lucide-react";
+import { InsertProductVariantInputType } from "@/lib/validations/product-variant";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -9,11 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CategoryType, UnitType } from "@/drizzle/type";
-import { InsertProductVariantInputType } from "@/lib/validations/product-variant";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
 
 export function VariantsTab({
   register,
@@ -24,7 +26,11 @@ export function VariantsTab({
   variantFields,
   appendVariant,
   removeVariant,
+  control,
 }: any) {
+  const baseUnitId = watch("baseUnitId");
+  const baseUnitName =
+    units.find((u: UnitType) => u.id === baseUnitId)?.name || "Satuan Dasar";
   return (
     <div className="space-y-4">
       <TabsContent value="variants" className="mt-4 space-y-4">
@@ -88,10 +94,12 @@ export function VariantsTab({
 
                 <div className="space-y-2">
                   <Label>Harga Jual</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    {...register(`variants.${index}.sellPrice` as const)}
+                  <Controller
+                    name={`variants.${index}.sellPrice`}
+                    control={control}
+                    render={({ field }) => (
+                      <CurrencyInput {...field} placeholder="0" />
+                    )}
                   />
                   {errors.variants?.[index]?.sellPrice && (
                     <p className="text-sm text-destructive">
@@ -102,25 +110,27 @@ export function VariantsTab({
 
                 <div className="space-y-2 md:col-span-2">
                   <Label>
-                    Konversi ke Satuan Dasar
+                    Konversi ke {baseUnitName}
                     <p className="text-xs text-muted-foreground">
-                      (misal: 1 dus = 40 pcs)
+                      (misal: 1{" "}
+                      {units.find((u: UnitType) => u.id === field.unitId)
+                        ?.name || "unit"}{" "}
+                      = 40 {baseUnitName})
                     </p>
                   </Label>
                   <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      step="0.0001"
-                      {...register(
-                        `variants.${index}.conversionToBase` as const,
+                    <Controller
+                      name={`variants.${index}.conversionToBase`}
+                      control={control}
+                      render={({ field }) => (
+                        <NumericInput
+                          {...field}
+                          className="flex-1"
+                          suffix={baseUnitName}
+                          placeholder="Jumlah unit"
+                        />
                       )}
                     />
-                    <p className="text-sm">
-                      {
-                        units.find((unit: UnitType) => unit.id === field.unitId)
-                          ?.name
-                      }
-                    </p>
                   </div>
                   {errors.variants?.[index]?.conversionToBase && (
                     <p className="text-sm text-destructive">

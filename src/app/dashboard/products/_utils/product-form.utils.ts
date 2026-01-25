@@ -8,7 +8,6 @@ export const defaultProductValues = {
   sku: "",
   categoryId: undefined,
   baseUnitId: undefined,
-  minStock: "0",
   variants: [
     {
       name: "",
@@ -29,7 +28,6 @@ export function mapProductToForm(
     sku: product.sku,
     categoryId: product.categoryId ?? undefined,
     baseUnitId: product.baseUnitId,
-    minStock: product.minStock,
     variants: product.variants?.length
       ? product.variants.map((v: any) => ({
           id: v.id,

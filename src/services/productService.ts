@@ -74,6 +74,7 @@ export type ApiResponse<T = unknown> = {
     totalPages: number;
   };
   message?: string;
+  details?: Record<string, string[]>;
 };
 
 // Get all products

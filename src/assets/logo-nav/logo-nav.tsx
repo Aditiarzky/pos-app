@@ -24,8 +24,8 @@ const LogoNav = ({
           type === "nav" ? "hidden md:flex" : "",
         )}
       >
-        <h1 className="text-2xl font-instrument">Gunung Muria</h1>
-        <i>Grosir</i>
+        <h1 className="text-xl font-instrument">Gunung Muria</h1>
+        <i className="text-sm">Grosir</i>
       </div>
     </div>
   );

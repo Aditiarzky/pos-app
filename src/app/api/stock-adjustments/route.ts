@@ -7,7 +7,8 @@ import { z } from "zod";
 
 const adjustmentSchema = z.object({
   productId: z.number(),
-  actualStock: z.number(),
+  actualStock: z.number().optional(),
+  minStock: z.number().or(z.string()).optional(),
   reason: z.string().optional(),
   userId: z.number(),
 });
@@ -24,7 +25,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { productId, actualStock, reason, userId } = validation.data;
+    const { productId, actualStock, minStock, reason, userId } =
+      validation.data;
 
     const result = await db.transaction(async (tx) => {
       // 1. Get current product stock
@@ -52,32 +54,41 @@ export async function POST(request: NextRequest) {
       }
 
       const currentStock = Number(product.stock);
-      const diff = actualStock - currentStock;
+      const diff = actualStock! - currentStock;
 
       if (diff === 0) {
         return { message: "No stock change needed" };
       }
 
-      // 2. Insert Mutation
-      await tx.insert(stockMutations).values({
-        productId: product.id,
-        variantId: product.variants[0].id,
-        type: "adjustment",
-        qtyBaseUnit: diff.toString(),
-        reference: "Stock Adjustment",
-        userId: userId,
-      });
+      // 2. Insert Mutation if actualStock changed
+      if (actualStock !== undefined && actualStock !== currentStock) {
+        await tx.insert(stockMutations).values({
+          productId: product.id,
+          variantId: product.variants[0].id,
+          type: "adjustment",
+          qtyBaseUnit: diff.toString(),
+          reference: "Stock Adjustment",
+          userId: userId,
+        });
+      }
 
-      // 3. Update Product Stock
-      await tx
-        .update(products)
-        .set({ stock: actualStock.toString() })
-        .where(eq(products.id, productId));
+      // 3. Update Product
+      const updateData: any = {};
+      if (actualStock !== undefined) updateData.stock = actualStock.toString();
+      if (minStock !== undefined) updateData.minStock = minStock.toString();
+
+      if (Object.keys(updateData).length > 0) {
+        await tx
+          .update(products)
+          .set(updateData)
+          .where(eq(products.id, productId));
+      }
 
       return {
         previousStock: currentStock,
-        newStock: actualStock,
-        adjustment: diff,
+        newStock: actualStock ?? currentStock,
+        adjustment: actualStock !== undefined ? diff : 0,
+        minStock: minStock !== undefined ? minStock : undefined,
       };
     });
 

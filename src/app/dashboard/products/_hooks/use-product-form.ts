@@ -14,6 +14,7 @@ import {
   defaultProductValues,
   mapProductToForm,
 } from "../_utils/product-form.utils";
+import { ApiResponse } from "@/services/productService";
 
 export function useProductForm({
   isEdit,
@@ -47,17 +48,23 @@ export function useProductForm({
       barcodes: (data.barcodes ?? []).filter((b) => !!b.barcode),
     };
 
-    const onSuccessToast = () => {
-      toast.success(
-        isEdit ? "Produk berhasil diperbarui" : "Produk berhasil ditambahkan",
-      );
+    const onSuccessToast = (response: ApiResponse<unknown>) => {
+      const successMessage =
+        response.message ||
+        (isEdit ? "Produk berhasil diperbarui" : "Produk berhasil ditambahkan");
+      toast.success(successMessage);
       onSuccess();
     };
 
-    const onErrorToast = () => {
-      toast.error(
-        isEdit ? "Gagal memperbarui produk" : "Gagal menambahkan produk",
-      );
+    const onErrorToast = (error: ApiResponse<unknown>) => {
+      const errorMessage =
+        error.message || error.error || "Terjadi kesalahan pada server";
+
+      toast.error(errorMessage);
+
+      if (error.details) {
+        console.error("Validation Details:", error.details);
+      }
     };
 
     if (isEdit && productId) {

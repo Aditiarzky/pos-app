@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import BarcodeScannerCamera from "@/components/BarcodeScannerCamera";
+import BarcodeScannerCamera from "@/components/barcode-scanner-camera";
 
 export default function Home() {
   const [barcode, setBarcode] = useState<string | null>(null);

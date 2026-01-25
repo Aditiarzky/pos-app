@@ -2,219 +2,156 @@
 
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Filter } from "lucide-react";
+import {
+  BadgeQuestionMark,
+  Blocks,
+  LayoutPanelTopIcon,
+  PackageIcon,
+  PanelTopOpen,
+  Plus,
+  Table,
+} from "lucide-react";
 
 import { useProducts } from "@/hooks/products/use-products";
-// import { ProductCard } from "./product-card";
-// import { StockMutationsSection } from "./stock-mutations-section";
-// import { LowStockList } from "./low-stock-list";
-import { AppPagination } from "@/components/app-pagination";
-import { ProductCard } from "./_components/product-card";
 import { ProductFormModal } from "./_components/product-form/product-form-modal";
 import { StockMutationsSection } from "./_components/stock-mutations-section";
-import { LowStockList } from "./_components/low-stock-list";
-import { useDeleteProduct } from "@/hooks/products/use-delete-product";
-import { toast } from "sonner";
+import { StockAdjustmentModal } from "./_components/stock-adjustment-modal";
+import { ProductListSection } from "./_components/product-list-section";
+import { AnimatedNumber } from "@/components/ui/animated-number";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useQueryState } from "@/hooks/use-query-state";
 
 export default function ProductsPage() {
-  const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  const [unitFilter, setUnitFilter] = useState<string>("all");
-  const [stockFilter, setStockFilter] = useState<"all" | "low" | "normal">(
-    "all",
-  );
-  const [page, setPage] = useState(1);
-  const limit = 12;
-
+  const [tab, setTab] = useQueryState<string>("tab", "list");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [adjustmentProduct, setAdjustmentProduct] = useState<any | null>(null);
 
-  const deleteMutation = useDeleteProduct();
-
-  const handleDelete = async (id: number) => {
-    if (!id) return;
-
-    await deleteMutation.mutateAsync(id, {
-      onSuccess: (data) => {
-        toast.success(
-          data?.message || "Produk berhasil dipindahkan ke tempat sampah",
-        );
-      },
-      onError: (error: any) => {
-        toast.error(
-          error.message || "Gagal memindahkan produk ke tempat sampah",
-        );
-      },
-    });
-  };
-
-  const { data, isLoading } = useProducts({
-    params: {
-      search,
-      page,
-      limit,
-      categoryId: categoryFilter !== "all" ? categoryFilter : undefined,
-      unitId: unitFilter !== "all" ? unitFilter : undefined,
-      lowStockOnly: stockFilter === "low" ? true : undefined,
-    },
+  // Still need analytics for the top cards
+  const { data: productsData } = useProducts({
+    params: { limit: 1 },
   });
-
-  const products = data?.data || [];
-  const analytics = data?.analytics;
-  const meta = data?.meta;
+  const analytics = productsData?.analytics;
 
   return (
     <div className="container mx-auto p-4 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Produk</h1>
-          <p className="text-muted-foreground">
+      <div className="flex flex-row justify-between w-full items-center gap-4">
+        <div className="overflow-hidden">
+          <h1 className="text-3xl font-geist font-semibold truncate">Produk</h1>
+          <p className="text-muted-foreground font-instrument text-xl tracking-tight truncate italic">
             Kelola produk, stok, dan variant
           </p>
         </div>
-        <Button
-          onClick={() => setIsAddModalOpen(true)}
-          className="w-full sm:w-auto"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Tambah Produk
+        <Button onClick={() => setIsAddModalOpen(true)} className="w-auto">
+          <Plus className="m-0 sm:mr-2 sm:h-4 sm:w-4 w-5 h-5" />
+          <p className="hidden sm:block">Tambah Produk</p>
         </Button>
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Produk</CardTitle>
+            <CardTitle className="text-sm justify-between w-full font-medium flex items-center gap-2">
+              Total Produk
+              <span className="ml-2">
+                <PackageIcon className="h-5 w-5 text-muted-foreground" />
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {analytics?.totalProducts ?? 0}
+              <AnimatedNumber value={analytics?.totalProducts ?? 0} />
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Stok</CardTitle>
+            <CardTitle className="text-sm justify-between w-full font-medium flex items-center gap-2">
+              <dt className="flex items-center gap-2">
+                Total Stok
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      type="button"
+                      size="icon"
+                      className="p-0 text-muted-foreground w-fit h-fit"
+                    >
+                      <BadgeQuestionMark className="w-3 h-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      Total berdasarkan stok dari satuan terkecil setiap produk
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </dt>
+              <span className="ml-2">
+                <Blocks className="h-5 w-5 text-muted-foreground" />
+              </span>
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {analytics?.totalStock ?? 0}
+              <AnimatedNumber value={analytics?.totalStock ?? 0} />
+              <span className="text-base text-muted-foreground"> (BU)</span>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-destructive">
+            <CardTitle className="text-sm justify-between text-destructive w-full font-medium flex items-center gap-2">
               Stok Rendah
+              <span className="ml-2">
+                <PanelTopOpen className="h-5 w-5 text-destructive/80" />
+              </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-destructive">
-              {analytics?.underMinimumStock ?? 0}
+              <AnimatedNumber value={analytics?.underMinimumStock ?? 0} />
+              <span className="text-xl">
+                /<AnimatedNumber value={analytics?.totalProducts ?? 0} />
+              </span>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="list" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="list">Daftar Produk</TabsTrigger>
-          <TabsTrigger value="mutations">Mutasi Stok</TabsTrigger>
-          <TabsTrigger value="low-stock">Stok Minimum</TabsTrigger>
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="list" className="cursor-pointer overflow-hidden">
+            <LayoutPanelTopIcon className="mr-2 h-4 w-4" />
+            <p className="truncate">Daftar Produk</p>
+          </TabsTrigger>
+          <TabsTrigger
+            value="mutations"
+            className="cursor-pointer overflow-hidden"
+          >
+            <Table className="mr-2 h-4 w-4" />
+            <p className="truncate">Mutasi Stok</p>
+          </TabsTrigger>
         </TabsList>
 
         {/* DAFTAR PRODUK */}
-        <TabsContent value="list" className="space-y-4">
-          {/* Search & Filters */}
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari nama produk atau SKU..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Kategori" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Kategori</SelectItem>
-                {/* Isi dari query categories */}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={stockFilter}
-              onValueChange={(v) => setStockFilter(v as any)}
-            >
-              <SelectTrigger className="w-full sm:w-[160px]">
-                <SelectValue placeholder="Stok" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Stok</SelectItem>
-                <SelectItem value="low">Stok Rendah</SelectItem>
-                <SelectItem value="normal">Stok Normal</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button variant="outline" className="sm:hidden">
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Grid Cards */}
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i} className="h-64 animate-pulse" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {products.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onEdit={() => setEditingProductId(product.id)}
-                  onDelete={() => handleDelete(product.id)}
-                />
-              ))}
-            </div>
-          )}
-
-          {meta && (
-            <AppPagination
-              currentPage={page}
-              totalPages={meta.totalPages}
-              onPageChange={setPage}
-            />
-          )}
+        <TabsContent value="list">
+          <ProductListSection
+            onEdit={(id) => setEditingProductId(id)}
+            onAdjust={(p) => setAdjustmentProduct(p)}
+          />
         </TabsContent>
 
         {/* MUTASI STOK */}
         <TabsContent value="mutations">
           <StockMutationsSection />
-        </TabsContent>
-
-        {/* STOK MINIMUM */}
-        <TabsContent value="low-stock">
-          <LowStockList />
         </TabsContent>
       </Tabs>
 
@@ -230,6 +167,11 @@ export default function ProductsPage() {
         onOpenChange={(open: boolean) => !open && setEditingProductId(null)}
         mode="edit"
         productId={editingProductId}
+      />
+      <StockAdjustmentModal
+        open={!!adjustmentProduct}
+        onOpenChange={(open: boolean) => !open && setAdjustmentProduct(null)}
+        product={adjustmentProduct}
       />
     </div>
   );

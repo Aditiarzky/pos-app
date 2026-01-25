@@ -6,7 +6,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Package, FileText, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { IconLayout, IconShoppingCart, IconUsers } from "@tabler/icons-react";
+import {
+  IconLayout,
+  IconShoppingCart,
+  IconTrolley,
+  IconUsers,
+} from "@tabler/icons-react";
 
 interface NavItem {
   label: string;
@@ -31,9 +36,9 @@ const mainNavItems: NavItem[] = [
     icon: <IconShoppingCart className="w-6 h-6" />,
   },
   {
-    label: "Pelanggan",
-    href: "/dashboard/customer",
-    icon: <IconUsers className="w-6 h-6" />,
+    label: "Pembelian",
+    href: "/dashboard/purchases",
+    icon: <IconTrolley className="w-6 h-6" />,
   },
   {
     label: "Laporan",

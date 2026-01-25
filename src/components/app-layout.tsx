@@ -47,7 +47,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col md:ml-0">
         <TopNavbar onToggleSidebar={toggleSidebar} sidebarOpen={sidebarOpen} />
 
-        <main className="flex-1 pt-20 pb-20 md:pb-0 overflow-y-auto">
+        <main className="flex-1 pt-16 pb-16 md:pb-0 overflow-y-auto">
           {children}
         </main>
         <BottomNavbar />

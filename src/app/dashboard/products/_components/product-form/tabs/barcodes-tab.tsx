@@ -1,8 +1,11 @@
+import { useState } from "react"; // Import useState
 import { Input } from "@/components/ui/input";
 import { TabsContent } from "@/components/ui/tabs";
-import { InsertProductBarcodeType } from "@/drizzle/type";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog"; // Import Dialog UI
+import { Trash2, QrCode } from "lucide-react"; // Import Icon QrCode
+import { InsertProductBarcodeType } from "@/drizzle/type";
+import BarcodeScannerCamera from "@/components/barcode-scanner-camera";
 
 export function BarcodesTab({
   register,
@@ -11,15 +14,29 @@ export function BarcodesTab({
   appendBarcode,
   removeBarcode,
 }: any) {
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const handleScanSuccess = (barcode: string) => {
+    setIsScannerOpen(false);
+    appendBarcode({ barcode });
+  };
+
   return (
     <div className="space-y-4">
       <TabsContent value="barcodes" className="mt-4 space-y-3">
         {barcodeFields.map((field: InsertProductBarcodeType, index: number) => (
           <div key={field.id} className="flex gap-2">
-            <Input
-              placeholder="Masukkan barcode (contoh: 8991234567890)"
-              {...register(`barcodes.${index}.barcode` as const)}
-            />
+            <div>
+              <Input
+                placeholder="Masukkan barcode (contoh: 8991234567890)"
+                {...register(`barcodes.${index}.barcode` as const)}
+              />
+              {errors.barcodes?.[index]?.barcode && (
+                <p className="text-red-500 mt-1">
+                  {errors.barcodes?.[index]?.barcode?.message}
+                </p>
+              )}
+            </div>
             {barcodeFields.length > 1 && (
               <Button
                 type="button"
@@ -33,14 +50,35 @@ export function BarcodesTab({
           </div>
         ))}
 
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => appendBarcode({ barcode: "" })}
-        >
-          Tambah Barcode
-        </Button>
+        <div className="flex gap-2 pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => appendBarcode({ barcode: "" })}
+            className="flex-1"
+          >
+            Input Manual
+          </Button>
+          <Button
+            type="button"
+            variant="default"
+            onClick={() => setIsScannerOpen(true)}
+            className="flex-1"
+          >
+            <QrCode className="mr-2 h-4 w-4" />
+            Scan Barcode
+          </Button>
+        </div>
       </TabsContent>
+
+      <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+        <DialogContent className="p-0 border-none max-w-lg max-h-[90vh]">
+          <BarcodeScannerCamera
+            onScanSuccess={handleScanSuccess}
+            onClose={() => setIsScannerOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

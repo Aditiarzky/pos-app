@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStockMutations } from "@/hooks/products/use-stock-mutations";
 import {
   Table,
@@ -24,23 +24,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LayoutGrid, Table2 } from "lucide-react";
+import { Filter, LayoutGrid, Search, SearchX, Table2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { useDebounce } from "@/hooks/use-debounce";
+import { IconSortAscending, IconSortDescending } from "@tabler/icons-react";
 
 type ViewMode = "table" | "card";
 
 export function StockMutationsSection() {
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebounce(searchInput, 500);
+
   const [typeFilter, setTypeFilter] = useState("all");
+  const [orderBy, setOrderBy] = useState("createdAt");
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
-  const limit = 10;
+  const [limit, setLimit] = useState(12);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, typeFilter, orderBy, order]);
 
   const { data, isLoading } = useStockMutations({
     params: {
       page,
       limit,
-      search,
+      search: debouncedSearch,
       type: typeFilter !== "all" ? typeFilter : undefined,
+      orderBy,
+      order,
     },
   });
 
@@ -85,47 +111,90 @@ export function StockMutationsSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <div className="flex flex-col sm:flex-row gap-4 flex-1">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 bg-background">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Cari referensi, produk, atau SKU..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-sm"
+            value={searchInput}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setSearchInput(e.target.value);
+            }}
+            className="pl-10 h-10"
           />
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Tipe Mutasi" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Tipe</SelectItem>
-              <SelectItem value="purchase">Pembelian</SelectItem>
-              <SelectItem value="sale">Penjualan</SelectItem>
-              <SelectItem value="adjustment">Penyesuaian</SelectItem>
-              <SelectItem value="waste">Terbuang/Rusak</SelectItem>
-              <SelectItem value="return_restock">Retur (Restock)</SelectItem>
-              <SelectItem value="supplier_return">Retur ke Supplier</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
 
-        <div className="flex gap-2">
-          <Button
-            variant={viewMode === "table" ? "default" : "outline"}
-            size="icon"
-            onClick={() => setViewMode("table")}
-            title="Tampilan Tabel"
-          >
-            <Table2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "card" ? "default" : "outline"}
-            size="icon"
-            onClick={() => setViewMode("card")}
-            title="Tampilan Kartu"
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </Button>
+        <div className="flex justify-between gap-2 bg-background">
+          {/* Mobile Filter */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" className="h-10 sm:hidden">
+                <Filter className="mr-2 h-4 w-4" />
+                Filter
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="bottom"
+              className="px-4 py-6 sm:hidden rounded-t-[20px]"
+            >
+              <SheetHeader className="mb-4">
+                <SheetTitle>Filter Mutasi</SheetTitle>
+              </SheetHeader>
+              <MutationFilterForm
+                typeFilter={typeFilter}
+                setTypeFilter={setTypeFilter}
+                orderBy={orderBy}
+                setOrderBy={setOrderBy}
+                order={order}
+                setOrder={setOrder}
+                setPage={setPage}
+              />
+            </SheetContent>
+          </Sheet>
+
+          {/* Desktop Filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="h-10 hidden sm:flex">
+                <Filter className="mr-2 h-4 w-4" />
+                Filter Lanjutan
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-80 p-4" align="end">
+              <MutationFilterForm
+                typeFilter={typeFilter}
+                setTypeFilter={setTypeFilter}
+                orderBy={orderBy}
+                setOrderBy={setOrderBy}
+                order={order}
+                setOrder={setOrder}
+                setPage={setPage}
+                isDropdown
+              />
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="h-10 w-[1px] bg-border mx-1 hidden sm:block" />
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === "table" ? "default" : "outline"}
+              size="icon"
+              onClick={() => setViewMode("table")}
+              className="h-10 w-10 sm:flex"
+              title="Tampilan Tabel"
+            >
+              <Table2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "card" ? "default" : "outline"}
+              size="icon"
+              onClick={() => setViewMode("card")}
+              className="h-10 w-10 sm:flex"
+              title="Tampilan Kartu"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -151,8 +220,11 @@ export function StockMutationsSection() {
                 </TableRow>
               ) : mutations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    Tidak ada data mutasi stok
+                  <TableCell colSpan={6} className="text-center py-12">
+                    <div className="flex flex-col items-center justify-center text-muted-foreground">
+                      <SearchX className="h-8 w-8 mb-2 opacity-20" />
+                      <p>Tidak ada data mutasi stok</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -280,12 +352,129 @@ export function StockMutationsSection() {
       )}
 
       {meta && (
-        <AppPagination
-          currentPage={page}
-          totalPages={meta.totalPages}
-          onPageChange={setPage}
-        />
+        <div className="pt-4">
+          <AppPagination
+            currentPage={page}
+            totalPages={meta.totalPages}
+            onPageChange={setPage}
+            limit={limit}
+            onLimitChange={(newLimit) => {
+              setLimit(newLimit);
+              setPage(1);
+            }}
+          />
+        </div>
       )}
+    </div>
+  );
+}
+
+interface MutationFilterFormProps {
+  typeFilter: string;
+  setTypeFilter: (v: string) => void;
+  orderBy: string;
+  setOrderBy: (v: string) => void;
+  order: string;
+  setOrder: (v: any) => void;
+  setPage: (p: number) => void;
+  isDropdown?: boolean;
+}
+
+function MutationFilterForm({
+  typeFilter,
+  setTypeFilter,
+  orderBy,
+  setOrderBy,
+  order,
+  setOrder,
+  setPage,
+  isDropdown,
+}: MutationFilterFormProps) {
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <h4 className="font-medium leading-none text-xs text-muted-foreground uppercase tracking-wider">
+          Tipe Mutasi
+        </h4>
+        <Select
+          value={typeFilter}
+          onValueChange={(v) => {
+            setTypeFilter(v);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-full h-10 px-3 bg-muted/50 border-none shadow-none">
+            <SelectValue placeholder="Semua Tipe" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Tipe</SelectItem>
+            <SelectItem value="purchase">Pembelian</SelectItem>
+            <SelectItem value="sale">Penjualan</SelectItem>
+            <SelectItem value="adjustment">Penyesuaian</SelectItem>
+            <SelectItem value="waste">Terbuang/Rusak</SelectItem>
+            <SelectItem value="return_restock">Retur (Restock)</SelectItem>
+            <SelectItem value="supplier_return">Retur ke Supplier</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <h4 className="font-medium leading-none text-xs text-muted-foreground uppercase tracking-wider">
+          Urutkan
+        </h4>
+        <div className="grid grid-cols-2 gap-2">
+          <Select
+            value={orderBy}
+            onValueChange={(v) => {
+              setOrderBy(v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="h-10 px-3 bg-muted/50 border-none shadow-none">
+              <SelectValue placeholder="Urutkan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="createdAt">Tanggal</SelectItem>
+              <SelectItem value="name">Nama Produk</SelectItem>
+              <SelectItem value="qty">Jumlah</SelectItem>
+              <SelectItem value="reference">Referensi</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select
+            value={order}
+            onValueChange={(v: any) => {
+              setOrder(v);
+              setPage(1);
+            }}
+          >
+            <SelectTrigger className="h-10 px-3 bg-muted/50 border-none shadow-none">
+              <SelectValue placeholder="A-Z" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="asc">
+                Terbawah <IconSortAscending className="h-4 w-4" />
+              </SelectItem>
+              <SelectItem value="desc">
+                Teratas <IconSortDescending className="h-4 w-4" />
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {isDropdown && <DropdownMenuSeparator />}
+      <Button
+        variant="ghost"
+        className="w-full h-10 text-xs font-semibold text-muted-foreground"
+        onClick={() => {
+          setTypeFilter("all");
+          setOrderBy("createdAt");
+          setOrder("desc");
+          setPage(1);
+        }}
+      >
+        Reset Filter
+      </Button>
     </div>
   );
 }

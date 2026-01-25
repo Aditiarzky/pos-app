@@ -29,10 +29,13 @@ import { axiosInstance } from "@/lib/axios";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
-import {
-  stockAdjustmentSchema,
-  StockAdjustmentInput,
-} from "@/lib/validations/stock-adjustment";
+import { stockAdjustmentSchema } from "@/lib/validations/stock-adjustment";
+
+const stockAndMinStockSchema = stockAdjustmentSchema.extend({
+  minStock: z.string().or(z.number()),
+});
+
+type StockAndMinStockInput = z.infer<typeof stockAndMinStockSchema>;
 
 interface StockAdjustmentModalProps {
   open: boolean;
@@ -41,6 +44,7 @@ interface StockAdjustmentModalProps {
     id: number;
     name: string;
     stock: string | number;
+    minStock: string | number;
     unit?: { name: string };
   } | null;
 }
@@ -53,13 +57,13 @@ export function StockAdjustmentModal({
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // Use local state to force re-render or reset form when product changes
   const [currentProduct, setCurrentProduct] = useState(product);
 
-  const form = useForm({
-    resolver: zodResolver(stockAdjustmentSchema),
+  const form = useForm<StockAndMinStockInput>({
+    resolver: zodResolver(stockAndMinStockSchema),
     defaultValues: {
       actualStock: "",
+      minStock: "",
       reason: "",
     },
   });
@@ -69,18 +73,20 @@ export function StockAdjustmentModal({
       setCurrentProduct(product);
       form.reset({
         actualStock: String(product.stock),
+        minStock: String(product.minStock || "0"),
         reason: "",
       });
     }
   }, [product, form]);
 
   const mutation = useMutation({
-    mutationFn: async (values: StockAdjustmentInput) => {
+    mutationFn: async (values: StockAndMinStockInput) => {
       if (!product || !user) return;
 
       const response = await axiosInstance.post("/stock-adjustments", {
         productId: product.id,
         actualStock: values.actualStock,
+        minStock: values.minStock,
         reason: values.reason,
         userId: user.id,
       });
@@ -96,7 +102,7 @@ export function StockAdjustmentModal({
     },
   });
 
-  const onSubmit = (values: StockAdjustmentInput) => {
+  const onSubmit = (values: StockAndMinStockInput) => {
     mutation.mutate(values);
   };
 
@@ -106,23 +112,16 @@ export function StockAdjustmentModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Penyesuaian Stok</DialogTitle>
+          <DialogTitle>Penyesuaian Stok & Min. Stok</DialogTitle>
           <DialogDescription>
-            Sesuaikan stok fisik untuk produk <strong>{product.name}</strong>.
-            Perubahan akan tercatat di mutasi stok.
+            Sesuaikan stok fisik dan stok minimum untuk produk{" "}
+            <strong>{product.name}</strong>.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <FormItem>
-                <FormLabel>Stok Sistem</FormLabel>
-                <div className="p-2 border rounded-md bg-muted text-muted-foreground">
-                  {Number(product.stock)} {product.unit?.name}
-                </div>
-              </FormItem>
-
               <FormField
                 control={form.control}
                 name="actualStock"
@@ -133,11 +132,29 @@ export function StockAdjustmentModal({
                       <Input
                         type="number"
                         placeholder="0"
+                        {...field}
                         value={String(field.value ?? 0)}
                         onChange={(e) => field.onChange(e.target.value || "0")}
-                        onBlur={field.onBlur}
-                        name={field.name}
-                        ref={field.ref}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="minStock"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Minimum Stok</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="0"
+                        {...field}
+                        value={String(field.value ?? 0)}
+                        onChange={(e) => field.onChange(e.target.value || "0")}
                       />
                     </FormControl>
                     <FormMessage />
@@ -176,7 +193,7 @@ export function StockAdjustmentModal({
                 {mutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
-                Simpan Penyesuaian
+                Simpan Perubahan
               </Button>
             </DialogFooter>
           </form>

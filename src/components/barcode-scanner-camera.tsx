@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode"; // <--- Perhatikan import ini
+import { Html5Qrcode, Html5QrcodeCameraScanConfig } from "html5-qrcode";
 import {
   Card,
   CardContent,
@@ -12,7 +12,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Camera, CheckCircle2, XCircle, Loader2, ScanLine } from "lucide-react";
+import {
+  Camera,
+  CheckCircle2,
+  XCircle,
+  Loader2,
+  Zap,
+  ScanLine,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BarcodeScannerCameraProps {
@@ -20,6 +27,40 @@ interface BarcodeScannerCameraProps {
   onClose?: () => void;
   className?: string;
 }
+
+// Fungsi untuk membuat suara Beep tanpa file eksternal
+const playBeep = () => {
+  try {
+    const AudioContext =
+      window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+
+    const audioCtx = new AudioContext();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Frekuensi tinggi
+    oscillator.frequency.exponentialRampToValueAtTime(
+      440,
+      audioCtx.currentTime + 0.1,
+    );
+
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.01,
+      audioCtx.currentTime + 0.1,
+    );
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.1);
+  } catch (e) {
+    console.error("Audio error", e);
+  }
+};
 
 export default function BarcodeScannerCamera({
   onScanSuccess,
@@ -30,15 +71,32 @@ export default function BarcodeScannerCamera({
   const [isScanning, setIsScanning] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [torchEnabled, setTorchEnabled] = useState(false); // State Torch
 
-  // ID elemen video kita
   const elementId = "scanner-video-container";
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const hasScannedRef = useRef(false);
 
-  // Fungsi untuk memulai scan
+  // Toggle Lampu (Torch)
+  const toggleTorch = async () => {
+    if (!scannerRef.current) return;
+
+    try {
+      const newState = !torchEnabled;
+
+      // Apply constraints ke kamera
+      await scannerRef.current.applyVideoConstraints({
+        advanced: [{ torch: newState } as any],
+      });
+
+      setTorchEnabled(newState);
+    } catch (err) {
+      console.warn("Torch tidak didukung perangkat ini", err);
+      setError("Lampu kamera tidak didukung di perangkat ini.");
+    }
+  };
+
   const startScanner = async () => {
-    // Pastikan instance dibersihkan jika ada
     if (scannerRef.current?.isScanning) {
       await scannerRef.current.stop();
     }
@@ -51,26 +109,27 @@ export default function BarcodeScannerCamera({
     setIsCameraReady(false);
 
     try {
-      // Konfigurasi scanner
-      const config = {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
+      // KONFIGURASI OPTIMAL
+      const config: Html5QrcodeCameraScanConfig = {
+        fps: 20, // Naikkan ke 20 untuk responsivitas lebih cepat
+        qrbox: undefined, // <--- HAPUS QRBOX agar Scan Full Frame (Lebih mudah)
         aspectRatio: 1.0,
+        // focusMode: "continuous", // Membantu fokus (opsional)
       };
 
-      // Mulai scan
       await scannerRef.current.start(
-        { facingMode: "environment" }, // Prioritas kamera belakang
+        { facingMode: "environment" },
         config,
         (decodedText, decodedResult) => {
-          // Callback Success
           if (hasScannedRef.current) return;
+
+          // Bunyikan beep
+          playBeep();
 
           hasScannedRef.current = true;
           setScanResult(decodedText);
           setIsScanning(false);
 
-          // Berhenti scan setelah dapat hasil
           if (scannerRef.current) {
             scannerRef.current
               .stop()
@@ -79,9 +138,8 @@ export default function BarcodeScannerCamera({
 
           onScanSuccess(decodedText);
         },
-        (errorMessage, error) => {
-          // Callback Failure (Silent failure agar tidak spam console)
-          console.debug(errorMessage);
+        (errorMessage) => {
+          // Silent failure
         },
       );
 
@@ -93,11 +151,9 @@ export default function BarcodeScannerCamera({
     }
   };
 
-  // Init saat mount
   useEffect(() => {
     startScanner();
 
-    // Cleanup saat unmount
     return () => {
       if (scannerRef.current?.isScanning) {
         scannerRef.current.stop().catch(console.error);
@@ -137,21 +193,14 @@ export default function BarcodeScannerCamera({
           )}
         </div>
         <CardDescription>
-          Arahkan kamera ke barcode atau QR code
+          Arahkan kamera ke barcode. Anda bisa memindai di area mana saja.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* 
-           1. CUSTOM VIDEO CONTAINER 
-           Di sini kita memiliki kendali penuh atas UI.
-           Kita menambahkan overlay corner frame agar terlihat modern.
-        */}
         <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden border border-border shadow-inner">
-          {/* Elemen Video kosong (Target Scan) */}
           <div id={elementId} className="w-full h-full" />
 
-          {/* Loading Indicator */}
           {!isCameraReady && isScanning && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10 text-white gap-2">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -159,34 +208,42 @@ export default function BarcodeScannerCamera({
             </div>
           )}
 
-          {/* Overlay UI (Visual Scanner) */}
           {isCameraReady && (
             <>
-              {/* Area Fokus (Corner Brackets) */}
-              <div className="absolute inset-0 z-0 pointer-events-none">
-                <div className="absolute top-4 left-4 w-12 h-12 border-t-4 border-l-4 border-primary rounded-tl-lg" />
-                <div className="absolute top-4 right-4 w-12 h-12 border-t-4 border-r-4 border-primary rounded-tr-lg" />
-                <div className="absolute bottom-4 left-4 w-12 h-12 border-b-4 border-l-4 border-primary rounded-bl-lg" />
-                <div className="absolute bottom-4 right-4 w-12 h-12 border-b-4 border-r-4 border-primary rounded-br-lg" />
-
-                {/* Garis Scan (Animasi) */}
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.8)] animate-[scan_2s_ease-in-out_infinite]" />
+              {/* UI Overlay (Corner lebih simpel, karena scan full frame) */}
+              <div className="absolute inset-0 z-0 pointer-events-none flex items-center justify-center">
+                <div className="w-[80%] h-[60%] border-2 border-white/30 rounded-lg border-dashed flex items-center justify-center relative">
+                  <div className="text-center">
+                    <ScanLine className="h-8 w-8 text-white/50 mx-auto mb-2" />
+                    <span className="text-xs text-white/60">
+                      Area Scan Aktif
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              {/* Label Status */}
-              <div className="absolute bottom-6 left-0 right-0 text-center">
-                <Badge
+              {/* Tombol Torch (Muncul jika kamera aktif) */}
+              <div className="absolute top-4 right-4">
+                <Button
+                  type="button"
+                  size="icon"
                   variant="secondary"
-                  className="bg-black/50 text-white border-none backdrop-blur-sm"
+                  className={cn(
+                    "rounded-full h-10 w-10 bg-black/20 backdrop-blur text-white border border-white/20 hover:bg-black/40",
+                    torchEnabled &&
+                      "bg-yellow-500/80 text-white border-yellow-500 hover:bg-yellow-600",
+                  )}
+                  onClick={toggleTorch}
                 >
-                  {isScanning ? "Memindai..." : "Berhenti"}
-                </Badge>
+                  <Zap
+                    className={cn("h-4 w-4", torchEnabled && "fill-current")}
+                  />
+                </Button>
               </div>
             </>
           )}
         </div>
 
-        {/* Error State */}
         {error && (
           <Alert variant="destructive">
             <XCircle className="h-4 w-4" />
@@ -194,7 +251,6 @@ export default function BarcodeScannerCamera({
           </Alert>
         )}
 
-        {/* Success State */}
         {scanResult && (
           <Alert className="border-green-500 bg-green-50 dark:bg-green-950/20">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -209,7 +265,6 @@ export default function BarcodeScannerCamera({
           </Alert>
         )}
 
-        {/* Actions */}
         <div className="flex gap-2 pt-2">
           {scanResult && (
             <>

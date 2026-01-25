@@ -14,6 +14,8 @@ type UseStockMutationsOptions = {
     search?: string;
     productId?: number;
     type?: string;
+    orderBy?: string;
+    order?: string;
   };
   enabled?: boolean;
 };

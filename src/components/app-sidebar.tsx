@@ -92,7 +92,7 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
       >
         <div className="pt-6 px-4">
           <LogoNav height={32} type="sidebar" />
-          <Separator className="mt-6" />
+          <Separator className="mt-3" />
         </div>
         {/* Close button for mobile */}
         <div className="absolute right-[-16px] top-4">

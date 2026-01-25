@@ -17,7 +17,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, Trash2, MoreVertical, Barcode, PackagePlus } from "lucide-react";
+import {
+  Edit,
+  Trash2,
+  MoreVertical,
+  Barcode,
+  PackagePlus,
+  Package,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/contexts/ConfirmDialog";
 
@@ -46,7 +53,6 @@ interface ProductCardProps {
   onEdit?: (id: number) => void;
   onDelete?: (id: number) => void;
   onAdjust?: (product: any) => void;
-  mode?: "full" | "low-stock"; // New prop to determine which actions to show
 }
 
 export function ProductCard({
@@ -54,7 +60,6 @@ export function ProductCard({
   onEdit,
   onDelete,
   onAdjust,
-  mode = "full",
 }: ProductCardProps) {
   const confirm = useConfirm();
   const stockNum = Number(product.stock);
@@ -83,10 +88,6 @@ export function ProductCard({
     }
   };
 
-  // Determine which actions to show based on mode
-  const showAllActions = mode === "full";
-  const showAdjustOnly = mode === "low-stock";
-
   return (
     <Card className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full">
       <div className="relative h-40 sm:h-48 overflow-hidden bg-gradient-to-br from-muted to-muted/50">
@@ -101,7 +102,7 @@ export function ProductCard({
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-4xl sm:text-5xl transition-transform duration-300 group-hover:scale-110">
-              📦
+              <Package className="h-10 w-10 text-muted-foreground" />
             </span>
           </div>
         )}
@@ -126,14 +127,14 @@ export function ProductCard({
           )}
         </div>
 
-        {(showAllActions || onAdjust) && (
-          <div className="absolute top-2 sm:top-3 left-2 sm:left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        {(onAdjust || onEdit || onDelete) && (
+          <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  variant="secondary"
+                  variant="outline"
                   size="icon"
-                  className="h-7 w-7 sm:h-8 sm:w-8 shadow-md hover:shadow-lg"
+                  className="h-7 w-7 bg-secondary/80 sm:h-8 sm:w-8 shadow-md hover:shadow-lg"
                   type="button"
                 >
                   <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -146,25 +147,21 @@ export function ProductCard({
                     Sesuaikan Stok
                   </DropdownMenuItem>
                 )}
-                {showAllActions && (
-                  <>
-                    {onAdjust && onEdit && <DropdownMenuSeparator />}
-                    {onEdit && (
-                      <DropdownMenuItem onClick={() => onEdit(product.id)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit Produk
-                      </DropdownMenuItem>
-                    )}
-                    {onDelete && (
-                      <DropdownMenuItem
-                        onClick={handleDeleteClick}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Hapus Produk
-                      </DropdownMenuItem>
-                    )}
-                  </>
+                {onAdjust && (onEdit || onDelete) && <DropdownMenuSeparator />}
+                {onEdit && (
+                  <DropdownMenuItem onClick={() => onEdit(product.id)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Produk
+                  </DropdownMenuItem>
+                )}
+                {onDelete && (
+                  <DropdownMenuItem
+                    onClick={handleDeleteClick}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Hapus Produk
+                  </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -240,7 +237,7 @@ export function ProductCard({
 
       <CardFooter className="px-3 sm:px-4 py-2.5 sm:py-3 border-t bg-muted/30 flex justify-between items-center gap-2 mt-auto">
         {/* Min stock info */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2">
+        <div className="flex flex-col gap-0.5">
           <span className="text-xs text-muted-foreground">Min. Stok:</span>
           <span className="text-xs sm:text-sm font-medium">
             {minStockNum} {product.unit?.name}
@@ -249,45 +246,29 @@ export function ProductCard({
 
         {/* Action buttons */}
         <div className="flex gap-1.5 sm:gap-2">
-          {showAdjustOnly && onAdjust && (
+          {onAdjust && (
             <Button
-              variant="default"
+              variant="outline"
               size="sm"
               onClick={() => onAdjust(product)}
               className="h-7 sm:h-8 px-2 sm:px-3 text-xs"
               type="button"
             >
-              <PackagePlus className="h-3 w-3 sm:mr-1.5" />
-              <span className="hidden sm:inline">Atur Stok</span>
+              <PackagePlus className="h-3 w-3 sm:mr-1" />
+              <span className="hidden sm:inline">Stok</span>
             </Button>
           )}
-          {showAllActions && (
-            <>
-              {onAdjust && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onAdjust(product)}
-                  className="h-7 sm:h-8 px-2 sm:px-3 text-xs"
-                  type="button"
-                >
-                  <PackagePlus className="h-3 w-3 sm:mr-1" />
-                  <span className="hidden sm:inline">Stok</span>
-                </Button>
-              )}
-              {onEdit && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onEdit(product.id)}
-                  className="h-7 sm:h-8 px-2 sm:px-3 text-xs"
-                  type="button"
-                >
-                  <Edit className="h-3 w-3 sm:mr-1" />
-                  <span className="hidden sm:inline">Edit</span>
-                </Button>
-              )}
-            </>
+          {onEdit && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onEdit(product.id)}
+              className="h-7 sm:h-8 px-2 sm:px-3 text-xs"
+              type="button"
+            >
+              <Edit className="h-3 w-3 sm:mr-1" />
+              <span className="hidden sm:inline">Edit</span>
+            </Button>
           )}
         </div>
       </CardFooter>

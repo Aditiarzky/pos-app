@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
     const search = request.nextUrl.searchParams.get("search");
     const productId = request.nextUrl.searchParams.get("productId");
     const type = request.nextUrl.searchParams.get("type");
+    const orderBy = request.nextUrl.searchParams.get("orderBy") || "createdAt";
+    const order = request.nextUrl.searchParams.get("order") || "desc";
 
     let whereClause = undefined;
     const conditions = [];
@@ -52,6 +54,13 @@ export async function GET(request: NextRequest) {
       .where(whereClause);
     const totalCount = Number(totalCountResult[0]?.count || 0);
 
+    const getOrderFn = order === "asc" ? (col: any) => col : desc;
+
+    let sortColumn: any = stockMutations.createdAt;
+    if (orderBy === "qty") sortColumn = stockMutations.qtyBaseUnit;
+    if (orderBy === "name") sortColumn = products.name;
+    if (orderBy === "reference") sortColumn = stockMutations.reference;
+
     // Get Data
     const data = await db
       .select({
@@ -82,7 +91,7 @@ export async function GET(request: NextRequest) {
       .where(whereClause)
       .limit(limit)
       .offset(offset)
-      .orderBy(desc(stockMutations.createdAt));
+      .orderBy(getOrderFn(sortColumn));
 
     return NextResponse.json({
       success: true,

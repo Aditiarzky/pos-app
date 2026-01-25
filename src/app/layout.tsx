@@ -1,6 +1,6 @@
 import QueryProvider from "@/components/providers/QueryProvider";
 import { Metadata } from "next";
-import { Instrument_Serif, Inter } from "next/font/google";
+import { Instrument_Serif, Inter, Geist } from "next/font/google";
 import "./globals.css";
 import { ConfirmProvider } from "@/contexts/ConfirmDialog";
 
@@ -28,6 +28,14 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+const geist = Geist({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal"],
+  display: "swap",
+  variable: "--font-geist",
+});
+
 export default function RootLayout({
   children,
 }: {
@@ -36,7 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${instrumentSerif.variable} font-sans`}
+        className={`${geist.variable} ${instrumentSerif.variable} font-geist`}
       >
         <QueryProvider>
           <ConfirmProvider>{children}</ConfirmProvider>

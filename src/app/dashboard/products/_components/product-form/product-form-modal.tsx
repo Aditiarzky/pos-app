@@ -178,6 +178,7 @@ export function ProductFormModal({
                 barcodeFields={barcodeFields}
                 appendBarcode={appendBarcode}
                 removeBarcode={removeBarcode}
+                errors={form.formState.errors}
               />
             </TabsContent>
           </Tabs>

@@ -10,6 +10,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CategoryType, UnitType } from "@/drizzle/type";
+import { NumericInput } from "@/components/ui/numeric-input";
+import { Controller } from "react-hook-form";
 
 export function BasicInfoTab({
   register,
@@ -23,7 +25,12 @@ export function BasicInfoTab({
   inputRef,
   uploadImage,
   clearImage,
+  control,
 }: any) {
+  const selectedUnitId = watch("baseUnitId");
+  const selectedUnitName = units.find(
+    (u: UnitType) => u.id === selectedUnitId,
+  )?.name;
   return (
     <div className="space-y-4">
       <TabsContent value="basic" className="space-y-4 mt-4">
@@ -106,16 +113,6 @@ export function BasicInfoTab({
               </p>
             )}
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Stok Minimum</Label>
-          <Input type="number" step="0.001" {...register("minStock")} />
-          {errors.minStock && (
-            <p className="text-sm text-destructive">
-              {errors.minStock.message}
-            </p>
-          )}
         </div>
 
         {/* Upload Image */}
