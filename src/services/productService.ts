@@ -3,9 +3,9 @@ import {
   InsertProductInputType,
   UpdateProductInputType,
 } from "@/lib/validations/product";
+import { StockAdjustmentInput } from "@/lib/validations/stock-adjustment";
 
 export type ProductResponse = {
-  barcodes: any;
   id: number;
   sku: string;
   name: string;
@@ -23,6 +23,10 @@ export type ProductResponse = {
   deletedAt?: string;
   category?: { name: string };
   unit?: { name: string };
+  barcodes?: Array<{
+    id: number;
+    barcode: string;
+  }>;
   variants: Array<{
     id: number;
     name: string;
@@ -32,6 +36,25 @@ export type ProductResponse = {
     sellPrice: string;
     isArchived: boolean;
   }>;
+};
+
+export type StockMutationResponse = {
+  id: number;
+  type: string;
+  qty: string;
+  reference: string;
+  createdAt: string;
+  product: {
+    name: string;
+    sku: string;
+  };
+  variant: {
+    name: string;
+    sku: string;
+  };
+  user: {
+    name: string;
+  };
 };
 
 export type ApiResponse<T = unknown> = {
@@ -44,13 +67,13 @@ export type ApiResponse<T = unknown> = {
     totalStock: number;
     underMinimumStock: number;
   };
-  allSku?: string[];
   meta?: {
     page: number;
     limit: number;
     total: number;
     totalPages: number;
   };
+  message?: string;
 };
 
 // Get all products
@@ -96,5 +119,25 @@ export const updateProduct = async ({
 // Delete product
 export const deleteProduct = async (id: number): Promise<ApiResponse<void>> => {
   const response = await axiosInstance.delete(`/products/${id}`);
+  return response.data;
+};
+
+// Get stock mutations
+export const getStockMutations = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  productId?: number;
+  type?: string;
+}): Promise<ApiResponse<StockMutationResponse[]>> => {
+  const response = await axiosInstance.get("/stock-mutations", { params });
+  return response.data;
+};
+
+// Create stock adjustment
+export const createStockAdjustment = async (
+  data: StockAdjustmentInput & { productId: number; userId: number },
+): Promise<ApiResponse<void>> => {
+  const response = await axiosInstance.post("/stock-adjustments", data);
   return response.data;
 };

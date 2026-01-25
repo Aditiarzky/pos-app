@@ -18,9 +18,9 @@ import { Trash2 } from "lucide-react";
 export function VariantsTab({
   register,
   units,
-  product,
   errors,
   setValue,
+  watch,
   variantFields,
   appendVariant,
   removeVariant,
@@ -43,8 +43,13 @@ export function VariantsTab({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>SKU Variant</Label>
-                  <Input {...register(`variants.${index}.sku` as const)} />
+                  <Label>
+                    SKU Variant{" "}
+                    <p className="text-xs text-muted-foreground">
+                      (auto-generated)
+                    </p>
+                  </Label>
+                  <Input {...register(`variants.${index}.sku`)} disabled />
                   {errors.variants?.[index]?.sku && (
                     <p className="text-sm text-destructive">
                       {errors.variants?.[index]?.sku?.message}
@@ -61,7 +66,7 @@ export function VariantsTab({
                         shouldValidate: true,
                       })
                     }
-                    defaultValue={field.unitId?.toString()}
+                    value={watch(`variants.${index}.unitId`)?.toString()}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih satuan" />

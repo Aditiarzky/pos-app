@@ -1,19 +1,6 @@
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { TabsContent } from "@/components/ui/tabs";
-import { Upload, X, Loader2 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  CategoryType,
-  InsertProductBarcodeType,
-  UnitType,
-} from "@/drizzle/type";
+import { InsertProductBarcodeType } from "@/drizzle/type";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 

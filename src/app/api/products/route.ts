@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products, productBarcodes, productVariants } from "@/drizzle/schema";
+import {
+  products,
+  productBarcodes,
+  productVariants,
+  categories,
+} from "@/drizzle/schema";
 import { and, eq, lte, sql, exists } from "drizzle-orm";
 import {
   ProductVariantInputType,
@@ -12,12 +17,14 @@ import {
   parsePagination,
 } from "@/lib/query-helper";
 import { handleApiError } from "@/lib/api-utils";
+import { getInitial } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   try {
     const params = parsePagination(request);
     const { searchParams } = new URL(request.url);
     const barcodeSearch = searchParams.get("barcode");
+    const lowStockOnly = searchParams.get("lowStockOnly") === "true";
 
     const { searchFilter, searchOrder } = getSearchAndOrderFTS(
       params.search,
@@ -27,6 +34,10 @@ export async function GET(request: NextRequest) {
     );
 
     let finalFilter = and(searchFilter, eq(products.isActive, true));
+
+    if (lowStockOnly) {
+      finalFilter = and(finalFilter, lte(products.stock, products.minStock));
+    }
 
     if (barcodeSearch) {
       finalFilter = and(
@@ -87,19 +98,6 @@ export async function GET(request: NextRequest) {
 
     const totalCount = Number(totalRes[0]?.count || 0);
 
-    const allSkusFromDb = await db.transaction(async (tx) => {
-      const pSku = await tx
-        .select({ sku: products.sku })
-        .from(products)
-        .where(eq(products.isActive, true));
-      const vSku = await tx
-        .select({ sku: productVariants.sku })
-        .from(productVariants);
-      return [...pSku.map((p) => p.sku), ...vSku.map((v) => v.sku)].filter(
-        Boolean,
-      );
-    });
-
     return NextResponse.json({
       success: true,
       data: productsData,
@@ -110,7 +108,6 @@ export async function GET(request: NextRequest) {
           countUnderMinimumStock[0]?.countUnderMinimumStock || 0,
         ),
       },
-      allSku: allSkusFromDb,
       meta: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {
@@ -133,11 +130,23 @@ export async function POST(request: NextRequest) {
     const { barcodes, variants, ...productData } = validation.data;
 
     const result = await db.transaction(async (tx) => {
+      const category = await tx.query.categories.findFirst({
+        where: eq(categories.id, Number(productData.categoryId)),
+      });
+      const catCode = getInitial(category?.name || "NON");
+      const prodCode = getInitial(productData.name);
+
       // 1. Insert Product
       const [newProduct] = await tx
         .insert(products)
-        .values(productData)
+        .values({ ...productData, sku: "TEMP-SKU" })
         .returning();
+
+      const parentSku = `${catCode}-${prodCode}-${newProduct.id}`;
+      await tx
+        .update(products)
+        .set({ sku: parentSku })
+        .where(eq(products.id, newProduct.id));
 
       // 2. Insert Barcodes
       let newBarcodes: any[] = [];
@@ -165,6 +174,7 @@ export async function POST(request: NextRequest) {
             variants.map((v: ProductVariantInputType) => ({
               ...v,
               productId: newProduct.id,
+              sku: `${parentSku}-${v.unitId}`,
             })),
           )
           .returning();

@@ -14,7 +14,6 @@ import {
   defaultProductValues,
   mapProductToForm,
 } from "../_utils/product-form.utils";
-import { generateUniqueSKU } from "@/lib/sku-generator";
 
 export function useProductForm({
   isEdit,
@@ -23,19 +22,15 @@ export function useProductForm({
   createMutation,
   updateMutation,
   productId,
-  allExistingSkus,
 }: any) {
   const form = useForm<InsertProductInputType | UpdateProductInputType>({
     resolver: zodResolver(isEdit ? updateProductSchema : insertProductSchema),
     defaultValues: defaultProductValues,
   });
 
-  const { reset, watch, setValue } = form;
+  const { reset } = form;
 
-  const productName = watch("name");
-  const productSku = watch("sku");
-  const variants = watch("variants");
-
+  // Load edit data
   useEffect(() => {
     if (isEdit && productData?.data) {
       reset(mapProductToForm(productData.data));
@@ -43,32 +38,6 @@ export function useProductForm({
       reset(defaultProductValues);
     }
   }, [isEdit, productData, reset]);
-
-  // Generate SKU Produk Induk (Basic Info)
-  useEffect(() => {
-    if (productName && !productSku) {
-      const newSku = generateUniqueSKU(productName, undefined, allExistingSkus);
-      setValue("sku", newSku, { shouldValidate: false });
-    }
-  }, [productName, productSku, allExistingSkus, setValue]);
-
-  // Generate SKU Variant
-  useEffect(() => {
-    if (!variants || !productSku) return;
-
-    variants.forEach((variant: any, index: number) => {
-      if (variant.name && !variant.sku) {
-        const newVariantSku = generateUniqueSKU(
-          variant.name,
-          productSku,
-          allExistingSkus,
-        );
-        setValue(`variants.${index}.sku`, newVariantSku, {
-          shouldValidate: false,
-        });
-      }
-    });
-  }, [variants, productSku, allExistingSkus, setValue]);
 
   const submitHandler = async (
     data: InsertProductInputType | UpdateProductInputType,

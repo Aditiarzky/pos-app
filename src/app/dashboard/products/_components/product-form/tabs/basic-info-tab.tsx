@@ -40,9 +40,10 @@ export function BasicInfoTab({
 
           <div className="space-y-2">
             <Label>
-              SKU <p className="text-red-500">*</p>
+              SKU{" "}
+              <p className="text-xs text-muted-foreground">(auto-generated)</p>
             </Label>
-            <Input {...register("sku")} placeholder="INDM-GRG-001" />
+            <Input {...register("sku")} disabled />
             {errors.sku && (
               <p className="text-sm text-destructive">{errors.sku.message}</p>
             )}
@@ -59,7 +60,7 @@ export function BasicInfoTab({
                   shouldValidate: true,
                 })
               }
-              defaultValue={watch("categoryId")?.toString()}
+              value={watch("categoryId")?.toString()}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Pilih kategori" />
@@ -86,7 +87,7 @@ export function BasicInfoTab({
                   shouldValidate: true,
                 })
               }
-              defaultValue={watch("baseUnitId")?.toString()}
+              value={watch("baseUnitId")?.toString()}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Pilih satuan" />

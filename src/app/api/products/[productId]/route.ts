@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { and, eq, notInArray } from "drizzle-orm";
-import { productBarcodes, products, productVariants } from "@/drizzle/schema";
+import {
+  categories,
+  productBarcodes,
+  products,
+  productVariants,
+  units,
+} from "@/drizzle/schema";
 import {
   ProductVariantInputType,
   validateProductData,
   validateUpdateProductData,
 } from "@/lib/validations/product";
 import { handleApiError } from "@/lib/api-utils";
+import { getInitial } from "@/lib/utils";
 
 // GET detail product
 export async function GET(
@@ -30,6 +37,7 @@ export async function GET(
         unit: true,
         variants: true,
         category: true,
+        barcodes: true,
       },
     });
     if (product?.isActive === false) {
@@ -67,23 +75,42 @@ export async function PUT(
         { status: 400 },
       );
 
-    const { barcodes, variants, ...productUpdateData } = validation.data;
+    const { barcodes, variants, stock, ...productUpdateData } = validation.data;
 
     const result = await db.transaction(async (tx) => {
-      const product = await tx.query.products.findFirst({
+      const oldProduct = await tx.query.products.findFirst({
         where: and(eq(products.id, idNum), eq(products.isActive, true)),
       });
 
-      if (!product) {
+      if (!oldProduct) {
         return NextResponse.json(
           { success: false, error: "Product not found" },
           { status: 404 },
         );
       }
 
+      const category = await tx.query.categories.findFirst({
+        where: eq(categories.id, Number(productUpdateData.categoryId)),
+      });
+
+      if (!category) {
+        return NextResponse.json(
+          { success: false, error: "Category not found" },
+          { status: 404 },
+        );
+      }
+
+      const catCode = getInitial(category?.name || "NON");
+      const prodCode = getInitial(productUpdateData.name || oldProduct.name);
+      const newParentSku = `${catCode}-${prodCode}-${idNum}`;
+
+      // Exclude stock from update - stock is only managed through stock mutations
       const [updatedProduct] = await tx
         .update(products)
-        .set({ ...productUpdateData, updatedAt: new Date() })
+        .set({
+          ...productUpdateData,
+          sku: newParentSku,
+        })
         .where(eq(products.id, idNum))
         .returning();
 
@@ -127,17 +154,26 @@ export async function PUT(
         }
 
         for (const v of variants) {
+          const unit = await tx.query.units.findFirst({
+            where: eq(units.id, v.unitId),
+          });
+          const unitCode = unit?.name.toUpperCase();
+          const vSku = `${newParentSku}-${unitCode}-${v.id}`;
+
           if (v.id) {
             const [updatedVariant] = await tx
               .update(productVariants)
-              .set(v)
+              .set({
+                ...v,
+                sku: vSku,
+              })
               .where(eq(productVariants.id, v.id))
               .returning();
             updatedVariants.push(updatedVariant);
           } else {
             const [insertedVariant] = await tx
               .insert(productVariants)
-              .values({ ...v, productId: idNum })
+              .values({ ...v, productId: idNum, sku: vSku })
               .returning();
             updatedVariants.push(insertedVariant);
           }
@@ -184,14 +220,17 @@ export async function DELETE(
     }
 
     const deletedProduct = await db
-      .delete(products)
+      .update(products)
+      .set({
+        isActive: false,
+        deletedAt: new Date(),
+      })
       .where(eq(products.id, Number(productId)))
       .returning();
-
     return NextResponse.json({
       success: true,
       data: deletedProduct,
-      message: "Product deleted successfully",
+      message: "Produk berhasil dipindahkan ke tempat sampah",
     });
   } catch (error) {
     return handleApiError(error);

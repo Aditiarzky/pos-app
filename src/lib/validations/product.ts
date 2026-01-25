@@ -1,8 +1,4 @@
-import {
-  createInsertSchema,
-  createUpdateSchema,
-  createSelectSchema,
-} from "drizzle-zod";
+import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { products, productVariants } from "@/drizzle/schema";
 
@@ -12,8 +8,8 @@ export const productVariantSchema = baseVariantInsert
   .extend({
     id: baseVariantInsert.shape.id.optional(),
     productId: baseVariantInsert.shape.productId.optional(),
+    sku: baseVariantInsert.shape.sku.optional(),
     name: baseVariantInsert.shape.name.min(1, "Nama variant harus diisi"),
-    sku: baseVariantInsert.shape.sku.min(3, "SKU harus diisi"),
     sellPrice: baseVariantInsert.shape.sellPrice.refine(
       (v) => Number(v) >= 1,
       "Harga jual harus lebih dari 1",
@@ -30,8 +26,8 @@ const baseInsertSchema = createInsertSchema(products);
 
 export const insertProductSchema = baseInsertSchema
   .extend({
-    sku: baseInsertSchema.shape.sku.min(3, "SKU harus diisi"),
     name: baseInsertSchema.shape.name.min(3, "Nama harus diisi"),
+    sku: baseInsertSchema.shape.sku.optional(),
     minStock: baseInsertSchema.shape.minStock
       .default("0")
       .refine((v) => Number(v) >= 0, "Stok minimum tidak boleh negatif"),

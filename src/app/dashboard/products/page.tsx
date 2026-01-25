@@ -22,6 +22,10 @@ import { useProducts } from "@/hooks/products/use-products";
 import { AppPagination } from "@/components/app-pagination";
 import { ProductCard } from "./_components/product-card";
 import { ProductFormModal } from "./_components/product-form/product-form-modal";
+import { StockMutationsSection } from "./_components/stock-mutations-section";
+import { LowStockList } from "./_components/low-stock-list";
+import { useDeleteProduct } from "@/hooks/products/use-delete-product";
+import { toast } from "sonner";
 
 export default function ProductsPage() {
   const [search, setSearch] = useState("");
@@ -35,9 +39,25 @@ export default function ProductsPage() {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
-  const [deletingProductId, setDeletingProductId] = useState<number | null>(
-    null,
-  );
+
+  const deleteMutation = useDeleteProduct();
+
+  const handleDelete = async (id: number) => {
+    if (!id) return;
+
+    await deleteMutation.mutateAsync(id, {
+      onSuccess: (data) => {
+        toast.success(
+          data?.message || "Produk berhasil dipindahkan ke tempat sampah",
+        );
+      },
+      onError: (error: any) => {
+        toast.error(
+          error.message || "Gagal memindahkan produk ke tempat sampah",
+        );
+      },
+    });
+  };
 
   const { data, isLoading } = useProducts({
     params: {
@@ -53,7 +73,6 @@ export default function ProductsPage() {
   const products = data?.data || [];
   const analytics = data?.analytics;
   const meta = data?.meta;
-  const allSku = data?.allSku;
 
   return (
     <div className="container mx-auto p-4 space-y-6">
@@ -173,7 +192,7 @@ export default function ProductsPage() {
                   key={product.id}
                   product={product}
                   onEdit={() => setEditingProductId(product.id)}
-                  onDelete={() => setDeletingProductId(product.id)}
+                  onDelete={() => handleDelete(product.id)}
                 />
               ))}
             </div>
@@ -190,12 +209,12 @@ export default function ProductsPage() {
 
         {/* MUTASI STOK */}
         <TabsContent value="mutations">
-          {/* <StockMutationsSection /> */}
+          <StockMutationsSection />
         </TabsContent>
 
         {/* STOK MINIMUM */}
         <TabsContent value="low-stock">
-          {/* <LowStockList products={products} /> */}
+          <LowStockList />
         </TabsContent>
       </Tabs>
 
@@ -204,7 +223,6 @@ export default function ProductsPage() {
         open={isAddModalOpen}
         onOpenChange={setIsAddModalOpen}
         mode="create"
-        allSku={allSku}
       />
 
       <ProductFormModal
@@ -212,7 +230,6 @@ export default function ProductsPage() {
         onOpenChange={(open: boolean) => !open && setEditingProductId(null)}
         mode="edit"
         productId={editingProductId}
-        allSku={allSku}
       />
     </div>
   );

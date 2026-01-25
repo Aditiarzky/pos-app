@@ -42,13 +42,6 @@ export function ProductFormModal({
     enabled: isEdit && open,
   });
 
-  const allExistingSkus = useMemo(() => {
-    if (allSku) {
-      return allSku;
-    }
-    return [];
-  }, [allSku]);
-
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const uploadMutation = useUploadImage();
@@ -73,19 +66,16 @@ export function ProductFormModal({
     productId,
     createMutation,
     updateMutation,
-    allExistingSkus,
     onSuccess: () => onOpenChange(false),
   });
 
   const { imagePreview, setImagePreview, uploading, inputRef, uploadImage } =
     useProductImage(uploadMutation, form.setValue, open, productData);
 
-  const currentProductSku = form.watch("sku");
-
   const hasBasicError =
     !!form.formState.errors.name ||
-    !!form.formState.errors.sku ||
-    !!form.formState.errors.baseUnitId;
+    !!form.formState.errors.baseUnitId ||
+    !!form.formState.errors.categoryId;
   const hasVariantError = !!form.formState.errors.variants;
   const hasBarcodeError = !!form.formState.errors.barcodes;
 
@@ -101,7 +91,6 @@ export function ProductFormModal({
           case hasBasicError:
             toast.error("Mohon isi minimal nama produk, SKU, dan satuan");
             setActiveTab("basic");
-            console.log(allExistingSkus);
             break;
           case hasVariantError:
             toast.error("Mohon isi minimal satu data Variant");
@@ -131,14 +120,14 @@ export function ProductFormModal({
           {/* Controlled Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="basic" className="relative">
+              <TabsTrigger type="button" value="basic" className="relative">
                 Informasi
                 {hasBasicError && (
                   <Circle className="absolute top-2 right-2 h-2 w-2 fill-red-500 text-red-500 animate-pulse" />
                 )}
               </TabsTrigger>
 
-              <TabsTrigger value="variants" className="relative">
+              <TabsTrigger type="button" value="variants" className="relative">
                 Variants
                 {/* Titik merah muncul otomatis jika ada error di formState */}
                 {hasVariantError && (
@@ -146,7 +135,7 @@ export function ProductFormModal({
                 )}
               </TabsTrigger>
 
-              <TabsTrigger value="barcodes" className="relative">
+              <TabsTrigger type="button" value="barcodes" className="relative">
                 Barcodes
                 {hasBarcodeError && (
                   <Circle className="absolute top-2 right-2 h-2 w-2 fill-red-500 text-red-500 animate-pulse" />
@@ -167,7 +156,6 @@ export function ProductFormModal({
                   setImagePreview(null);
                   form.setValue("image", undefined);
                 }}
-                existingSkus={allExistingSkus}
                 errors={form.formState.errors}
               />
             </TabsContent>
@@ -180,8 +168,6 @@ export function ProductFormModal({
                 variantFields={variantFields}
                 appendVariant={appendVariant}
                 removeVariant={removeVariant}
-                existingSkus={allExistingSkus}
-                parentSku={currentProductSku}
                 isEditMode={isEdit}
               />
             </TabsContent>
@@ -197,7 +183,11 @@ export function ProductFormModal({
           </Tabs>
 
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Batal
             </Button>
             <Button
