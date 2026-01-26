@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Filter, SearchX } from "lucide-react";
+import { Search, Filter, SearchX, Printer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +36,9 @@ import { toast } from "sonner";
 
 import { ProductCard } from "./product-card";
 import { AppPagination } from "@/components/app-pagination";
+import { formatCompactNumber } from "@/lib/format";
+import { ProductResponse } from "@/services/productService";
+import { IconSortAscending, IconSortDescending } from "@tabler/icons-react";
 
 interface ProductListSectionProps {
   onEdit: (id: number) => void;
@@ -58,6 +61,14 @@ export function ProductListSection({
 
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(12);
+
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Still need to reset page when filters change
   useEffect(() => {
@@ -102,16 +113,56 @@ export function ProductListSection({
       },
     });
 
+  // Fetches ALL products for printing when isPrinting is true
+  const { data: printData, isFetching: isFetchingPrint } = useProducts({
+    params: {
+      search: debouncedSearch,
+      categoryId: categoryFilter !== "all" ? categoryFilter : undefined,
+      lowStockOnly: stockFilter === "low" ? true : undefined,
+      orderBy,
+      order,
+      limit: 9999, // Fetch all for printing
+    },
+    queryConfig: {
+      enabled: isPrinting,
+    },
+  });
+
+  useEffect(() => {
+    if (isPrinting && !isFetchingPrint && printData?.data) {
+      const style = document.createElement("style");
+      style.innerHTML = "@page { size: A4; margin-top: 0; margin-bottom: 0; }";
+      style.id = "dynamic-print-style";
+      document.head.appendChild(style);
+      const timer = setTimeout(() => {
+        window.print();
+        setIsPrinting(false);
+        document.getElementById("dynamic-print-style")?.remove();
+      }, 500);
+
+      return () => {
+        clearTimeout(timer);
+        document.getElementById("dynamic-print-style")?.remove();
+      };
+    }
+  }, [isPrinting, isFetchingPrint, printData]);
+
   const lowStockProducts = lowStockData?.data || [];
   const allProducts = allProductsData?.data || [];
   const analytics = allProductsData?.analytics;
   const meta = allProductsData?.meta;
 
+  const hasActiveFilters =
+    categoryFilter !== "all" ||
+    stockFilter !== "all" ||
+    orderBy !== "createdAt" ||
+    order !== "desc";
+
   return (
     <div className="space-y-8">
       {/* Search & Advanced Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 bg-background">
+      <div className="flex flex-col sm:flex-row gap-3 bg-background rounded-md">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Cari nama produk atau SKU..."
@@ -123,13 +174,19 @@ export function ProductListSection({
           />
         </div>
 
-        <div className="flex gap-2 bg-background">
+        <div className="flex gap-2">
           {/* Mobile Filter Trigger */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" className="h-10 sm:hidden">
+              <Button variant="outline" className="h-10 sm:hidden relative">
                 <Filter className="mr-2 h-4 w-4" />
                 Filter
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                )}
               </Button>
             </SheetTrigger>
             <SheetContent
@@ -157,9 +214,18 @@ export function ProductListSection({
           {/* Desktop Filter Trigger */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-10 hidden sm:flex">
+              <Button
+                variant="outline"
+                className="h-10 hidden sm:flex relative"
+              >
                 <Filter className="mr-2 h-4 w-4" />
                 Filter Lanjutan
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-80 p-4" align="end">
@@ -178,6 +244,17 @@ export function ProductListSection({
               />
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Button
+            variant="outline"
+            className="h-10"
+            onClick={() => setIsPrinting(true)}
+            disabled={isPrinting || isFetchingPrint}
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            <span className="hidden sm:inline">Cetak Opname</span>
+            <span className="sm:hidden">Cetak</span>
+          </Button>
         </div>
       </div>
 
@@ -209,6 +286,19 @@ export function ProductListSection({
                 />
               ))}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Hanya menampilkan 4 produk terbaru.{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setStockFilter("low");
+                  setPage(1);
+                }}
+                className="text-primary underline font-medium cursor-pointer"
+              >
+                Lihat Semua
+              </button>
+            </p>
             <Separator className="mt-8" />
           </section>
         )}
@@ -263,6 +353,102 @@ export function ProductListSection({
           </div>
         )}
       </section>
+
+      {/* Hidden Printable Table for Stock Opname */}
+      <div
+        id="printable-stock-opname"
+        className="hidden print:block p-8 text-black"
+      >
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-bold uppercase">Laporan Stok Opname</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Dicetak pada:{" "}
+            {mounted ? new Date().toLocaleString("id-ID") : "Loading..."}
+          </p>
+        </div>
+
+        <table className="w-full border-collapse border border-black text-black">
+          <thead>
+            <tr className="bg-muted/10">
+              <th className="border border-black p-2 text-center w-10">No</th>
+              <th className="border border-black p-2 text-left">
+                Produk & SKU
+              </th>
+              <th className="border border-black p-2 text-left">Variant</th>
+              <th className="border border-black p-2 text-center w-24">
+                Stok Base Unit
+              </th>
+              <th className="border border-black p-2 text-center w-20">
+                Satuan
+              </th>
+              <th className="border border-black p-2 text-center w-28">
+                Stok Aktual
+              </th>
+              <th className="border border-black p-2 text-left">Keterangan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {printData?.data?.flatMap(
+              (product: ProductResponse, productIdx: number) => {
+                if (product.variants && product.variants.length > 0) {
+                  return product.variants.map(
+                    (v: ProductResponse["variants"][number], vIdx: number) => (
+                      <tr key={`${product.id}-${v.id}`}>
+                        <td className="border border-black p-2 text-center">
+                          {productIdx + 1}.{vIdx + 1}
+                        </td>
+                        <td className="border border-black p-2">
+                          <div className="font-medium">{product.name}</div>
+                          <div className="text-[10px] text-black/80">
+                            {product.sku}
+                          </div>
+                        </td>
+                        <td className="border border-black p-2 font-mono text-xs">
+                          {v.name}
+                        </td>
+                        <td className="border border-black p-2 text-center">
+                          {formatCompactNumber(product?.stock || 0)}{" "}
+                          {product?.unit?.name || ""}
+                        </td>
+                        <td className="border border-black p-2 text-center text-xs">
+                          {v.unit?.name || "-"}
+                        </td>
+                        <td className="border border-black p-2"></td>
+                        <td className="border border-black p-2"></td>
+                      </tr>
+                    ),
+                  );
+                }
+
+                // Jika produk tidak punya variant
+                return (
+                  <tr key={product.id}>
+                    <td className="border border-black p-2 text-center">
+                      {productIdx + 1}
+                    </td>
+                    <td className="border border-black p-2">
+                      <div className="font-medium">{product.name}</div>
+                      <div className="text-[10px] text-black/80">
+                        {product.sku}
+                      </div>
+                    </td>
+                    <td className="border border-black p-2 text-xs">-</td>
+                    <td className="border border-black p-2 text-center">
+                      {formatCompactNumber(product?.stock || 0)}{" "}
+                      {product?.unit?.name || ""}
+                    </td>
+                    <td className="border border-black p-2 text-center text-xs">
+                      {product?.variants?.[0]?.unit?.name || "-"}
+                    </td>
+                    <td className="border border-black p-2">-</td>
+                    <td className="border border-black p-2">-</td>
+                  </tr>
+                );
+              },
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -376,8 +562,13 @@ function FilterForm({
               <SelectValue placeholder="A-Z" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="asc">Ascending</SelectItem>
-              <SelectItem value="desc">Descending</SelectItem>
+              <SelectItem value="asc">
+                Ascending <IconSortAscending className="h-4 w-4 ml-2 inline" />
+              </SelectItem>
+              <SelectItem value="desc">
+                Descending{" "}
+                <IconSortDescending className="h-4 w-4 ml-2 inline" />
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

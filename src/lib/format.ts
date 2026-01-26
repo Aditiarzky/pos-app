@@ -38,3 +38,10 @@ export const parseNumber = (value: string) => {
   // Replace comma with dot for parsing
   return value.replace(/\./g, "").replace(/,/g, ".");
 };
+export const formatDate = (date: string | Date) => {
+  if (!date) return "-";
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(date));
+};

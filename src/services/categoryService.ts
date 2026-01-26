@@ -16,3 +16,11 @@ export const getCategories = async (): Promise<
   const response = await axiosInstance.get("/master/categories");
   return response.data;
 };
+
+export const createCategory = async (data: {
+  name: string;
+  description?: string;
+}): Promise<ApiResponse<CategoryResponse>> => {
+  const response = await axiosInstance.post("/master/categories", data);
+  return response.data;
+};

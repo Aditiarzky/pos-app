@@ -35,6 +35,7 @@ export type ProductResponse = {
     conversionToBase: string;
     sellPrice: string;
     isArchived: boolean;
+    unit?: { id: number; name: string };
   }>;
 };
 

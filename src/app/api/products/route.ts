@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
               columns: { id: true, barcode: true },
             },
             variants: {
+              where: eq(productVariants.isActive, true),
               columns: {
                 id: true,
                 name: true,

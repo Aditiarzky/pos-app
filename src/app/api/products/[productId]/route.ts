@@ -35,7 +35,9 @@ export async function GET(
       where: eq(products.id, Number(productId)),
       with: {
         unit: true,
-        variants: true,
+        variants: {
+          where: eq(productVariants.isActive, true),
+        },
         category: true,
         barcodes: true,
       },
@@ -140,7 +142,11 @@ export async function PUT(
 
         if (incomingVariantIds.length > 0) {
           await tx
-            .delete(productVariants)
+            .update(productVariants)
+            .set({
+              isActive: false,
+              deletedAt: new Date(),
+            })
             .where(
               and(
                 eq(productVariants.productId, idNum),
@@ -149,7 +155,11 @@ export async function PUT(
             );
         } else {
           await tx
-            .delete(productVariants)
+            .update(productVariants)
+            .set({
+              isActive: false,
+              deletedAt: new Date(),
+            })
             .where(eq(productVariants.productId, idNum));
         }
 
@@ -166,6 +176,8 @@ export async function PUT(
               .set({
                 ...v,
                 sku: vSku,
+                isActive: true,
+                deletedAt: null,
               })
               .where(eq(productVariants.id, v.id))
               .returning();

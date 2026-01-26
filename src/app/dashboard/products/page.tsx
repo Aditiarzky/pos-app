@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  AlertCircle,
   BadgeQuestionMark,
   Blocks,
   LayoutPanelTopIcon,
@@ -27,6 +28,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useQueryState } from "@/hooks/use-query-state";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { CardBg, OrnamentCard } from "@/assets/card-background/card-bg";
 
 function ProductsContent() {
   const [tab, setTab] = useQueryState<string>("tab", "list");
@@ -44,8 +48,10 @@ function ProductsContent() {
     <div className="container mx-auto p-4 space-y-6">
       <div className="flex flex-row justify-between w-full items-center gap-4">
         <div className="overflow-hidden">
-          <h1 className="text-3xl font-geist font-semibold truncate">Produk</h1>
-          <p className="text-muted-foreground font-instrument text-xl tracking-tight truncate italic">
+          <h1 className="text-3xl text-primary font-geist font-semibold truncate">
+            Produk
+          </h1>
+          <p className="text-muted-foreground font-sans text-base truncate">
             Kelola produk, stok, dan variant
           </p>
         </div>
@@ -56,9 +62,10 @@ function ProductsContent() {
       </div>
 
       {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 ">
-        <Card>
-          <CardHeader className="pb-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="relative overflow-hidden">
+          <CardBg />
+          <CardHeader className="pb-2 z-10">
             <CardTitle className="text-sm justify-between w-full font-medium flex items-center gap-2">
               Total Produk
               <span className="ml-2">
@@ -66,14 +73,15 @@ function ProductsContent() {
               </span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="z-10 text-primary">
             <div className="text-3xl font-bold">
               <AnimatedNumber value={analytics?.totalProducts ?? 0} />
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="relative overflow-hidden">
+          <CardBg />
+          <CardHeader className="pb-2 z-10">
             <CardTitle className="text-sm justify-between w-full font-medium flex items-center gap-2">
               <dt className="flex items-center gap-2">
                 Total Stok
@@ -100,26 +108,27 @@ function ProductsContent() {
               </span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
+          <CardContent className="z-10 text-primary">
+            <div className="text-3xl font-bold z-10">
               <AnimatedNumber value={analytics?.totalStock ?? 0} />
               <span className="text-base text-muted-foreground"> (BU)</span>
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm justify-between text-destructive w-full font-medium flex items-center gap-2">
+        <Card className="relative overflow-hidden">
+          <CardBg />
+          <CardHeader className="pb-2 z-10">
+            <CardTitle className="text-sm justify-between w-full font-medium flex items-center gap-2">
               Stok Rendah
               <span className="ml-2">
-                <PanelTopOpen className="h-5 w-5 text-destructive/80" />
+                <AlertCircle className="h-5 w-5" />
               </span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="z-10 text-primary">
             <div className="text-3xl font-bold text-destructive">
               <AnimatedNumber value={analytics?.underMinimumStock ?? 0} />
-              <span className="text-xl">
+              <span className="text-xl text-muted-foreground">
                 /<AnimatedNumber value={analytics?.totalProducts ?? 0} />
               </span>
             </div>

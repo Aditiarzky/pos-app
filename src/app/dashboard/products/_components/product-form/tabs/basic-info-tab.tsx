@@ -12,6 +12,8 @@ import {
 import { CategoryType, UnitType } from "@/drizzle/type";
 import { NumericInput } from "@/components/ui/numeric-input";
 import { Controller } from "react-hook-form";
+import { UnitSelect } from "@/components/ui/unit-select";
+import { CategorySelect } from "@/components/ui/category-select";
 
 export function BasicInfoTab({
   register,
@@ -60,56 +62,63 @@ export function BasicInfoTab({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Kategori</Label>
-            <Select
-              onValueChange={(v) =>
-                setValue("categoryId", Number(v), {
+            <CategorySelect
+              categories={categories}
+              value={watch("categoryId")}
+              onValueChange={(v: number) =>
+                setValue("categoryId", v, {
                   shouldDirty: true,
                   shouldValidate: true,
                 })
               }
-              value={watch("categoryId")?.toString()}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih kategori" />
-              </SelectTrigger>
-              <SelectContent>
-                {/* Isi dinamis dari API categories */}
-                {categories.map((category: CategoryType) => (
-                  <SelectItem key={category.id} value={category.id.toString()}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Pilih kategori"
+            />
+            {errors.categoryId && (
+              <p className="text-sm text-destructive">
+                {errors.categoryId.message}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label>
               Satuan Dasar <p className="text-red-500">*</p>
             </Label>
-            <Select
-              onValueChange={(v) =>
-                setValue("baseUnitId", Number(v), {
+            <UnitSelect
+              units={units}
+              value={watch("baseUnitId")}
+              onValueChange={(v: number) =>
+                setValue("baseUnitId", v, {
                   shouldDirty: true,
                   shouldValidate: true,
                 })
               }
-              value={watch("baseUnitId")?.toString()}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih satuan" />
-              </SelectTrigger>
-              <SelectContent>
-                {units.map((unit: UnitType) => (
-                  <SelectItem key={unit.id} value={unit.id.toString()}>
-                    {unit.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Pilih satuan"
+            />
             {errors.baseUnitId && (
               <p className="text-sm text-destructive">
                 {errors.baseUnitId.message}
+              </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label>Stok Minimal</Label>
+            <Controller
+              name="minStock"
+              control={control}
+              render={({ field }) => (
+                <NumericInput
+                  {...field}
+                  placeholder="Contoh: 10"
+                  min={0}
+                  suffix={selectedUnitName}
+                  max={1000000}
+                />
+              )}
+            />
+            {errors.minStock && (
+              <p className="text-sm text-destructive">
+                {errors.minStock.message}
               </p>
             )}
           </div>

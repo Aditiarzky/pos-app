@@ -12,6 +12,7 @@ import Image from "next/image";
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     // Check if mobile on initial load
@@ -37,6 +38,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     setSidebarOpen(!sidebarOpen);
   };
 
+  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
+    const scrollTop = e.currentTarget.scrollTop;
+    setIsScrolled(scrollTop > 10);
+  };
+
   return (
     <div className="flex h-screen transition-all duration-300 animate-out dark:bg-background/80">
       <div className="w-full absolute -z-10 h-full">
@@ -47,7 +53,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col md:ml-0">
         <TopNavbar onToggleSidebar={toggleSidebar} sidebarOpen={sidebarOpen} />
 
-        <main className="flex-1 pt-16 pb-16 md:pb-0 overflow-y-auto">
+        <main
+          onScroll={handleScroll}
+          className="flex-1 pt-16 pb-16 md:pb-0 overflow-y-auto"
+        >
           {children}
         </main>
         <BottomNavbar />

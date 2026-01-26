@@ -1,13 +1,6 @@
-import {
-  purchaseItems,
-  purchaseOrders,
-  suppliers,
-  users,
-} from "@/drizzle/schema";
-import { createInsertSchema, createUpdateSchema } from "drizzle-zod";
+import { purchaseItems, purchaseOrders } from "@/drizzle/schema";
+import { createInsertSchema } from "drizzle-zod";
 import z from "zod";
-import { db } from "../db";
-import { eq } from "drizzle-orm";
 
 const baseInsertPurchaseOrderSchema = createInsertSchema(purchaseOrders);
 
@@ -34,32 +27,7 @@ export const insertPurchaseSchema = z.object({
 
 export type insertPurchaseType = z.infer<typeof insertPurchaseSchema>;
 
+// Server-side only validation
 export const validateInsertPurchaseData = async (data: unknown) => {
-  return await insertPurchaseSchema
-    .superRefine(async (val, ctx) => {
-      // Cek Supplier
-      const supplier = await db.query.suppliers.findFirst({
-        where: eq(suppliers.id, val.supplierId),
-      });
-      if (!supplier) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Supplier tidak terdaftar di database",
-          path: ["supplierId"],
-        });
-      }
-
-      // Cek User
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, val.userId),
-      });
-      if (!user) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "User tidak terdaftar di database",
-          path: ["userId"],
-        });
-      }
-    })
-    .parseAsync(data);
+  return await insertPurchaseSchema.parseAsync(data);
 };

@@ -16,6 +16,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { UnitSelect } from "@/components/ui/unit-select";
+import { useConfirm } from "@/contexts/ConfirmDialog";
+
+const COMMON_VARIANT_NAMES = [
+  "Dus",
+  "Rentengan",
+  "Pack",
+  "Lusin",
+  "Box",
+  "Karton",
+  "Ikat",
+  "Pcs",
+  "Bungkus",
+  "Karung",
+];
 
 export function VariantsTab({
   register,
@@ -28,6 +43,25 @@ export function VariantsTab({
   removeVariant,
   control,
 }: any) {
+  const confirm = useConfirm();
+
+  const handleRemoveVariant = async (index: number) => {
+    const variantId = watch(`variants.${index}.id`);
+    const variantName = watch(`variants.${index}.name`);
+
+    if (variantId) {
+      const ok = await confirm({
+        title: "Hapus Variant",
+        description: `Apakah Anda yakin ingin menghapus variant "${variantName || "tanpa nama"}"? Data ini tidak akan benar-benar dihapus, hanya dinonaktifkan.`,
+        confirmText: "Ya, Hapus",
+        cancelText: "Batal",
+      });
+      if (ok) removeVariant(index);
+    } else {
+      removeVariant(index);
+    }
+  };
+
   const baseUnitId = watch("baseUnitId");
   const baseUnitName =
     units.find((u: UnitType) => u.id === baseUnitId)?.name || "Satuan Dasar";
@@ -40,7 +74,26 @@ export function VariantsTab({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nama Variant</Label>
-                  <Input {...register(`variants.${index}.name` as const)} />
+                  <div className="space-y-2">
+                    <Input {...register(`variants.${index}.name` as const)} />
+                    <div className="flex flex-wrap gap-1.5">
+                      {COMMON_VARIANT_NAMES.map((name) => (
+                        <button
+                          key={name}
+                          type="button"
+                          className="px-2 py-0.5 text-[10px] font-medium bg-secondary text-secondary-foreground rounded-full hover:bg-primary hover:text-primary-foreground transition-colors border border-transparent"
+                          onClick={() =>
+                            setValue(`variants.${index}.name`, name, {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            })
+                          }
+                        >
+                          {name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   {errors.variants?.[index]?.name && (
                     <p className="text-sm text-destructive">
                       {errors.variants?.[index]?.name?.message}
@@ -65,26 +118,17 @@ export function VariantsTab({
 
                 <div className="space-y-2">
                   <Label>Satuan</Label>
-                  <Select
-                    onValueChange={(v) =>
-                      setValue(`variants.${index}.unitId` as const, Number(v), {
+                  <UnitSelect
+                    units={units}
+                    value={watch(`variants.${index}.unitId`)}
+                    onValueChange={(v: number) =>
+                      setValue(`variants.${index}.unitId` as const, v, {
                         shouldDirty: true,
                         shouldValidate: true,
                       })
                     }
-                    value={watch(`variants.${index}.unitId`)?.toString()}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih satuan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {units.map((unit: UnitType) => (
-                        <SelectItem key={unit.id} value={unit.id.toString()}>
-                          {unit.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Pilih satuan"
+                  />
                   {errors.variants?.[index]?.unitId && (
                     <p className="text-sm text-destructive">
                       {errors.variants?.[index]?.unitId?.message}
@@ -146,7 +190,7 @@ export function VariantsTab({
                   variant="ghost"
                   size="sm"
                   className="mt-3 text-red-600"
-                  onClick={() => removeVariant(index)}
+                  onClick={() => handleRemoveVariant(index)}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
                   Hapus Variant

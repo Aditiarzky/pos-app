@@ -221,3 +221,49 @@
     letter-spacing: var(--tracking-normal);
   }
 }
+
+@media print {
+  @page {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #printable-stock-opname,
+  #printable-stock-opname * {
+    visibility: visible;
+  }
+
+  #printable-stock-opname {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    visibility: visible !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    border: 1px solid #000;
+    padding: 4px 8px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

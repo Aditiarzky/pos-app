@@ -8,7 +8,7 @@ import { Package, FileText, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   IconLayout,
-  IconShoppingCart,
+  IconCalculator,
   IconTrolley,
   IconUsers,
 } from "@tabler/icons-react";
@@ -21,19 +21,19 @@ interface NavItem {
 
 const mainNavItems: NavItem[] = [
   {
-    label: "Dashboard",
+    label: "Beranda",
     href: "/dashboard",
     icon: <IconLayout className="w-6 h-6" />,
   },
   {
-    label: "Barang",
+    label: "Produk",
     href: "/dashboard/products",
     icon: <Package className="w-6 h-6" />,
   },
   {
     label: "Kasir",
     href: "/dashboard/sales",
-    icon: <IconShoppingCart className="w-6 h-6" />,
+    icon: <IconCalculator className="w-6 h-6" />,
   },
   {
     label: "Pembelian",

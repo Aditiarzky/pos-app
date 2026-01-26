@@ -17,7 +17,7 @@ import LogoNav from "@/assets/logo-nav/logo-nav";
 import { Separator } from "./ui/separator";
 import {
   IconLayout,
-  IconShoppingCart,
+  IconCalculator,
   IconTrolley,
   IconUsers,
 } from "@tabler/icons-react";
@@ -28,23 +28,23 @@ interface NavItem {
 }
 const navItems: NavItem[] = [
   {
-    label: "Dashboard",
+    label: "Beranda",
     href: "/dashboard",
     icon: <IconLayout className="w-5 h-5" />,
   },
   {
     label: "Kasir",
     href: "/dashboard/sales",
-    icon: <IconShoppingCart className="w-5 h-5" />,
+    icon: <IconCalculator className="w-5 h-5" />,
   },
   {
-    label: "Barang & Stok",
+    label: "Produk & Stok",
     href: "/dashboard/products",
     icon: <Package className="w-5 h-5" />,
   },
   {
-    label: "Supplier & Pembelian",
-    href: "/dashboard/purchase",
+    label: "Pembelian & Supplier",
+    href: "/dashboard/purchases",
     icon: <IconTrolley className="w-5 h-5" />,
   },
   {
@@ -121,7 +121,7 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
                   className={cn(
                     "w-full flex items-center my-1 gap-3 px-4 py-2 cursor-pointer rounded-lg transition-colors",
                     isActive
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-primary/90 border-border shadow-lg via-primary to-primary/5 text-primary-foreground"
                       : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                   )}
                 >

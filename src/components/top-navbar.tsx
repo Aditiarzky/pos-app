@@ -21,7 +21,7 @@ interface TopNavbarProps {
 
 export function TopNavbar({ onToggleSidebar, sidebarOpen }: TopNavbarProps) {
   return (
-    <div className="fixed top-0 left-0 right-0 h-16 bg-card border-b border-border z-20 flex items-center justify-between px-4 md:pl-4 md:px-8">
+    <div className="fixed top-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-sm border-b border-border z-20 flex items-center justify-between px-4 md:pl-4 md:px-8">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
           <Menu className="w-5 h-5" />

@@ -54,7 +54,6 @@ export function StockMutationsSection() {
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [limit, setLimit] = useState(12);
 
-  // Reset page when filters change
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, typeFilter, orderBy, order]);
@@ -72,6 +71,9 @@ export function StockMutationsSection() {
 
   const mutations = data?.data || [];
   const meta = data?.meta;
+
+  const hasActiveFilters =
+    typeFilter !== "all" || orderBy !== "createdAt" || order !== "desc";
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -111,8 +113,8 @@ export function StockMutationsSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 bg-background">
+      <div className="flex flex-col sm:flex-row gap-3 bg-background rounded-md">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Cari referensi, produk, atau SKU..."
@@ -124,13 +126,19 @@ export function StockMutationsSection() {
           />
         </div>
 
-        <div className="flex justify-between gap-2 bg-background">
+        <div className="flex justify-between gap-2">
           {/* Mobile Filter */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" className="h-10 sm:hidden">
+              <Button variant="outline" className="h-10 sm:hidden relative">
                 <Filter className="mr-2 h-4 w-4" />
                 Filter
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                )}
               </Button>
             </SheetTrigger>
             <SheetContent
@@ -155,9 +163,18 @@ export function StockMutationsSection() {
           {/* Desktop Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-10 hidden sm:flex">
+              <Button
+                variant="outline"
+                className="h-10 hidden sm:flex relative"
+              >
                 <Filter className="mr-2 h-4 w-4" />
                 Filter Lanjutan
+                {hasActiveFilters && (
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </span>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-80 p-4" align="end">
@@ -452,10 +469,10 @@ function MutationFilterForm({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="asc">
-                Terbawah <IconSortAscending className="h-4 w-4" />
+                Ascending <IconSortAscending className="h-4 w-4" />
               </SelectItem>
               <SelectItem value="desc">
-                Teratas <IconSortDescending className="h-4 w-4" />
+                Descending <IconSortDescending className="h-4 w-4" />
               </SelectItem>
             </SelectContent>
           </Select>
