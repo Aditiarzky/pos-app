@@ -21,7 +21,7 @@ export const compensationType = p.pgEnum("compensation_type", [
   "refund",
 ]);
 
-export const userRole = p.pgEnum("user_role", ["user", "admin"]);
+export const userRole = p.pgEnum("user_role", ["admin toko", "admin sistem"]);
 
 // Table
 
@@ -32,7 +32,6 @@ export const users = p.pgTable(
     email: p.text("email").notNull(),
     name: p.text("name").notNull(),
     password: p.text("password").notNull(),
-    role: userRole("role").default("user"),
     isActive: p.boolean("is_active").default(true),
     createdAt: p.timestamp("created_at").defaultNow(),
     updatedAt: p
@@ -42,6 +41,18 @@ export const users = p.pgTable(
     deletedAt: p.timestamp("deleted_at"),
   },
   (t) => [p.uniqueIndex("users_email_key").on(t.email)],
+);
+
+export const userRoles = p.pgTable(
+  "user_roles",
+  {
+    userId: p
+      .integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: userRole("role").notNull(),
+  },
+  (t) => [p.primaryKey({ columns: [t.userId, t.role] })],
 );
 
 export const categories = p.pgTable("categories", {

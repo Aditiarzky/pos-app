@@ -6,8 +6,6 @@ import { useState, useEffect } from "react";
 import { AppSidebar } from "./app-sidebar";
 import { TopNavbar } from "./top-navbar";
 import { BottomNavbar } from "./bottom-navbar";
-import AuthBackgroundShape from "@/assets/login-background/auth-background-shape";
-import Image from "next/image";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);

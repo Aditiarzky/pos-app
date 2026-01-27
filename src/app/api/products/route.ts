@@ -35,6 +35,18 @@ export async function GET(request: NextRequest) {
 
     let finalFilter = and(searchFilter, eq(products.isActive, true));
 
+    // If search is provided, also try to match barcodes
+    if (params.search) {
+      finalFilter = and(
+        eq(products.isActive, true),
+        sql`(${searchFilter} OR EXISTS (
+                SELECT 1 FROM product_barcodes 
+                WHERE product_barcodes.product_id = ${products.id} 
+                AND product_barcodes.barcode ILIKE ${`%${params.search}%`}
+            ))`,
+      );
+    }
+
     if (lowStockOnly) {
       finalFilter = and(finalFilter, lte(products.stock, products.minStock));
     }

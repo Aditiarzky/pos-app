@@ -6,7 +6,9 @@ export type UserResponse = {
   id: number;
   email: string;
   name: string;
-  role: "user" | "admin";
+  roles: Array<{
+    role: "admin toko" | "admin sistem";
+  }>;
   createdAt: string;
   updatedAt: string;
 };
@@ -20,7 +22,7 @@ export type ApiResponse<T = unknown> = {
 
 // Login
 export const authLogin = async (
-  data: LoginInputType
+  data: LoginInputType,
 ): Promise<ApiResponse<{ token: string; user: UserResponse }>> => {
   const response = await axiosInstance.post("/auth/login", data);
   return response.data;
@@ -34,7 +36,7 @@ export const authMe = async (): Promise<ApiResponse<UserResponse>> => {
 
 // Register
 export const authRegister = async (
-  data: CreateUserInputType
+  data: CreateUserInputType,
 ): Promise<ApiResponse<UserResponse>> => {
   const response = await axiosInstance.post("/auth/register", data);
   return response.data;

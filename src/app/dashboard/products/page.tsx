@@ -45,8 +45,8 @@ function ProductsContent() {
   const analytics = productsData?.analytics;
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      <div className="flex flex-row justify-between w-full items-center gap-4">
+    <>
+      <header className="flex flex-row px-4 justify-between w-full items-center gap-4">
         <div className="overflow-hidden">
           <h1 className="text-3xl text-primary font-geist font-semibold truncate">
             Produk
@@ -59,131 +59,136 @@ function ProductsContent() {
           <Plus className="m-0 sm:mr-2 sm:h-4 sm:w-4 w-5 h-5" />
           <p className="hidden sm:block">Tambah Produk</p>
         </Button>
-      </div>
+      </header>
+      <main className="container bg-background box-shadow shadow-primary rounded-t-4xl mx-auto p-4 space-y-6">
+        {/* Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="relative overflow-hidden">
+            <CardBg />
+            <CardHeader className="pb-2 z-10">
+              <CardTitle className="text-sm justify-between w-full font-medium flex items-center gap-2">
+                Total Produk
+                <span className="ml-2">
+                  <PackageIcon className="h-5 w-5 text-muted-foreground" />
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="z-10 text-primary">
+              <div className="text-3xl font-bold">
+                <AnimatedNumber value={analytics?.totalProducts ?? 0} />
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="relative overflow-hidden">
+            <CardBg />
+            <CardHeader className="pb-2 z-10">
+              <CardTitle className="text-sm justify-between w-full font-medium flex items-center gap-2">
+                <dt className="flex items-center gap-2">
+                  Total Stok
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        type="button"
+                        size="icon"
+                        className="p-0 text-muted-foreground w-fit h-fit"
+                      >
+                        <BadgeQuestionMark className="w-3 h-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        Total berdasarkan stok dari satuan terkecil setiap
+                        produk
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </dt>
+                <span className="ml-2">
+                  <Blocks className="h-5 w-5 text-muted-foreground" />
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="z-10 text-primary">
+              <div className="text-3xl font-bold z-10">
+                <AnimatedNumber value={analytics?.totalStock ?? 0} />
+                <span className="text-base text-muted-foreground"> (BU)</span>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="relative overflow-hidden">
+            <CardBg />
+            <CardHeader className="pb-2 z-10">
+              <CardTitle className="text-sm justify-between w-full font-medium flex items-center gap-2">
+                Stok Rendah
+                <span className="ml-2">
+                  <AlertCircle className="h-5 w-5" />
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="z-10 text-primary">
+              <div className="text-3xl font-bold text-destructive">
+                <AnimatedNumber value={analytics?.underMinimumStock ?? 0} />
+                <span className="text-xl text-muted-foreground">
+                  /<AnimatedNumber value={analytics?.totalProducts ?? 0} />
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="relative overflow-hidden">
-          <CardBg />
-          <CardHeader className="pb-2 z-10">
-            <CardTitle className="text-sm justify-between w-full font-medium flex items-center gap-2">
-              Total Produk
-              <span className="ml-2">
-                <PackageIcon className="h-5 w-5 text-muted-foreground" />
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="z-10 text-primary">
-            <div className="text-3xl font-bold">
-              <AnimatedNumber value={analytics?.totalProducts ?? 0} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="relative overflow-hidden">
-          <CardBg />
-          <CardHeader className="pb-2 z-10">
-            <CardTitle className="text-sm justify-between w-full font-medium flex items-center gap-2">
-              <dt className="flex items-center gap-2">
-                Total Stok
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      type="button"
-                      size="icon"
-                      className="p-0 text-muted-foreground w-fit h-fit"
-                    >
-                      <BadgeQuestionMark className="w-3 h-3" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      Total berdasarkan stok dari satuan terkecil setiap produk
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </dt>
-              <span className="ml-2">
-                <Blocks className="h-5 w-5 text-muted-foreground" />
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="z-10 text-primary">
-            <div className="text-3xl font-bold z-10">
-              <AnimatedNumber value={analytics?.totalStock ?? 0} />
-              <span className="text-base text-muted-foreground"> (BU)</span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="relative overflow-hidden">
-          <CardBg />
-          <CardHeader className="pb-2 z-10">
-            <CardTitle className="text-sm justify-between w-full font-medium flex items-center gap-2">
-              Stok Rendah
-              <span className="ml-2">
-                <AlertCircle className="h-5 w-5" />
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="z-10 text-primary">
-            <div className="text-3xl font-bold text-destructive">
-              <AnimatedNumber value={analytics?.underMinimumStock ?? 0} />
-              <span className="text-xl text-muted-foreground">
-                /<AnimatedNumber value={analytics?.totalProducts ?? 0} />
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2 h-11 bg-muted/50 p-1">
+            <TabsTrigger
+              value="list"
+              className="cursor-pointer font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground overflow-hidden"
+            >
+              <LayoutPanelTopIcon className="mr-2 h-4 w-4" />
+              <p className="truncate">Daftar Produk</p>
+            </TabsTrigger>
+            <TabsTrigger
+              value="mutations"
+              className="cursor-pointer font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground overflow-hidden"
+            >
+              <Table className="mr-2 h-4 w-4" />
+              <p className="truncate">Mutasi Stok</p>
+            </TabsTrigger>
+          </TabsList>
 
-      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="list" className="cursor-pointer overflow-hidden">
-            <LayoutPanelTopIcon className="mr-2 h-4 w-4" />
-            <p className="truncate">Daftar Produk</p>
-          </TabsTrigger>
-          <TabsTrigger
-            value="mutations"
-            className="cursor-pointer overflow-hidden"
-          >
-            <Table className="mr-2 h-4 w-4" />
-            <p className="truncate">Mutasi Stok</p>
-          </TabsTrigger>
-        </TabsList>
+          {/* DAFTAR PRODUK */}
+          <TabsContent value="list">
+            <ProductListSection
+              onEdit={(id) => setEditingProductId(id)}
+              onAdjust={(p) => setAdjustmentProduct(p)}
+            />
+          </TabsContent>
 
-        {/* DAFTAR PRODUK */}
-        <TabsContent value="list">
-          <ProductListSection
-            onEdit={(id) => setEditingProductId(id)}
-            onAdjust={(p) => setAdjustmentProduct(p)}
-          />
-        </TabsContent>
+          {/* MUTASI STOK */}
+          <TabsContent value="mutations">
+            <StockMutationsSection />
+          </TabsContent>
+        </Tabs>
 
-        {/* MUTASI STOK */}
-        <TabsContent value="mutations">
-          <StockMutationsSection />
-        </TabsContent>
-      </Tabs>
+        {/* MODALS */}
+        <ProductFormModal
+          open={isAddModalOpen}
+          onOpenChange={setIsAddModalOpen}
+          mode="create"
+        />
 
-      {/* MODALS */}
-      <ProductFormModal
-        open={isAddModalOpen}
-        onOpenChange={setIsAddModalOpen}
-        mode="create"
-      />
-
-      <ProductFormModal
-        open={!!editingProductId}
-        onOpenChange={(open: boolean) => !open && setEditingProductId(null)}
-        mode="edit"
-        productId={editingProductId}
-      />
-      <StockAdjustmentModal
-        open={!!adjustmentProduct}
-        onOpenChange={(open: boolean) => !open && setAdjustmentProduct(null)}
-        product={adjustmentProduct}
-      />
-    </div>
+        <ProductFormModal
+          open={!!editingProductId}
+          onOpenChange={(open: boolean) => !open && setEditingProductId(null)}
+          mode="edit"
+          productId={editingProductId}
+        />
+        <StockAdjustmentModal
+          open={!!adjustmentProduct}
+          onOpenChange={(open: boolean) => !open && setAdjustmentProduct(null)}
+          product={adjustmentProduct}
+        />
+      </main>
+    </>
   );
 }
 

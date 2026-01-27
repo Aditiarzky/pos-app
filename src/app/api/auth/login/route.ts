@@ -13,32 +13,36 @@ export async function POST(req: NextRequest) {
     if (!email || !password) {
       return NextResponse.json(
         { success: false, error: "Email dan password wajib diisi" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    const userResult = await db.query.users.findFirst({
+      where: eq(users.email, email),
+      with: {
+        roles: true,
+      },
+    });
 
-    if (!user || !(await compare(password, user.password))) {
+    if (!userResult || !(await compare(password, userResult.password))) {
       return NextResponse.json(
         { success: false, error: "Email atau password salah" },
-        { status: 401 }
+        { status: 401 },
       );
     }
+
+    const userRolesList = userResult.roles.map((r) => r.role);
 
     // Buat session & set cookie
     await createSession({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role as "user" | "admin",
+      id: userResult.id,
+      email: userResult.email,
+      name: userResult.name,
+      roles: userRolesList,
     });
 
-    const { password: _, ...userWithoutPassword } = user;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...userWithoutPassword } = userResult;
 
     return NextResponse.json({
       success: true,
@@ -48,7 +52,7 @@ export async function POST(req: NextRequest) {
     console.error("Login error:", error);
     return NextResponse.json(
       { success: false, error: "Login gagal" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

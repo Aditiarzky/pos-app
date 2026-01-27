@@ -9,26 +9,29 @@ export const createUserSchema = insertSchema.extend({
     .min(6, "Password minimal 6 karakter")
     .regex(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      "Password harus mengandung huruf besar, kecil, dan angka"
+      "Password harus mengandung huruf besar, kecil, dan angka",
     ),
   email: insertSchema.shape.email.email("Email tidak valid"),
   name: insertSchema.shape.name.min(1, "Nama wajib diisi"),
+  roles: z
+    .array(z.enum(["admin toko", "admin sistem"]))
+    .min(1, "Minimal pilih satu role"),
 });
 
-export const updateUserSchema = insertSchema
-  .omit({ password: true })
-  .partial()
-  .extend({
-    password: z
-      .string()
-      .min(6, "Password minimal 6 karakter")
-      .regex(
-        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password harus mengandung huruf besar, kecil, dan angka"
-      )
-      .optional()
-      .or(z.literal("")),
-  });
+export const updateUserSchema = insertSchema.extend({
+  password: z
+    .string()
+    .min(6, "Password minimal 6 karakter")
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+      "Password harus mengandung huruf besar, kecil, dan angka",
+    )
+    .optional()
+    .or(z.literal("")),
+  roles: z
+    .array(z.enum(["admin toko", "admin sistem"]))
+    .min(1, "Minimal pilih satu role"),
+});
 
 export const userFormSchema = createSelectSchema(users).extend({
   password: z.string().optional(),
@@ -47,7 +50,7 @@ export const changePasswordSchema = z
       .min(6, "Password baru minimal 6 karakter")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-        "Password harus mengandung huruf besar, kecil, dan angka"
+        "Password harus mengandung huruf besar, kecil, dan angka",
       ),
     confirmPassword: z.string().min(1, "Konfirmasi password wajib diisi"),
   })

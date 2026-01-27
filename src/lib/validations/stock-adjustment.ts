@@ -8,7 +8,18 @@ export const stockAdjustmentSchema = z.object({
     (v) => Number(v) >= 0,
     "Stok tidak boleh negatif",
   ),
-  reason: z.string().min(1, "Alasan wajib diisi"),
+  reason: z.string().min(1, "Alasan wajib diisi").optional(),
+});
+
+export const variantAdjustmentSchema = z.object({
+  variants: z.array(
+    z.object({
+      variantId: z.number(),
+      qty: z.coerce.number().nonnegative("Jumlah tidak boleh negatif"),
+    }),
+  ),
+  userId: z.number(),
 });
 
 export type StockAdjustmentInput = z.infer<typeof stockAdjustmentSchema>;
+export type VariantAdjustmentInput = z.infer<typeof variantAdjustmentSchema>;

@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { UnitSelect } from "@/components/ui/unit-select";
 import { useConfirm } from "@/contexts/ConfirmDialog";
+import { VariantCard } from "../../variant-card";
 
 const COMMON_VARIANT_NAMES = [
   "Dus",
@@ -42,6 +43,7 @@ export function VariantsTab({
   appendVariant,
   removeVariant,
   control,
+  averageCost,
 }: any) {
   const confirm = useConfirm();
 
@@ -70,133 +72,21 @@ export function VariantsTab({
       <TabsContent value="variants" className="mt-4 space-y-4">
         {variantFields.map(
           (field: InsertProductVariantInputType, index: number) => (
-            <Card key={field.id} className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nama Variant</Label>
-                  <div className="space-y-2">
-                    <Input {...register(`variants.${index}.name` as const)} />
-                    <div className="flex flex-wrap gap-1.5">
-                      {COMMON_VARIANT_NAMES.map((name) => (
-                        <button
-                          key={name}
-                          type="button"
-                          className="px-2 py-0.5 text-[10px] font-medium bg-secondary text-secondary-foreground rounded-full hover:bg-primary hover:text-primary-foreground transition-colors border border-transparent"
-                          onClick={() =>
-                            setValue(`variants.${index}.name`, name, {
-                              shouldDirty: true,
-                              shouldValidate: true,
-                            })
-                          }
-                        >
-                          {name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  {errors.variants?.[index]?.name && (
-                    <p className="text-sm text-destructive">
-                      {errors.variants?.[index]?.name?.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>
-                    SKU Variant{" "}
-                    <p className="text-xs text-muted-foreground">
-                      (auto-generated)
-                    </p>
-                  </Label>
-                  <Input {...register(`variants.${index}.sku`)} disabled />
-                  {errors.variants?.[index]?.sku && (
-                    <p className="text-sm text-destructive">
-                      {errors.variants?.[index]?.sku?.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Satuan</Label>
-                  <UnitSelect
-                    units={units}
-                    value={watch(`variants.${index}.unitId`)}
-                    onValueChange={(v: number) =>
-                      setValue(`variants.${index}.unitId` as const, v, {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      })
-                    }
-                    placeholder="Pilih satuan"
-                  />
-                  {errors.variants?.[index]?.unitId && (
-                    <p className="text-sm text-destructive">
-                      {errors.variants?.[index]?.unitId?.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Harga Jual</Label>
-                  <Controller
-                    name={`variants.${index}.sellPrice`}
-                    control={control}
-                    render={({ field }) => (
-                      <CurrencyInput {...field} placeholder="0" />
-                    )}
-                  />
-                  {errors.variants?.[index]?.sellPrice && (
-                    <p className="text-sm text-destructive">
-                      {errors.variants?.[index]?.sellPrice?.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label>
-                    Konversi ke {baseUnitName}
-                    <p className="text-xs text-muted-foreground">
-                      (misal: 1{" "}
-                      {units.find((u: UnitType) => u.id === field.unitId)
-                        ?.name || "unit"}{" "}
-                      = 40 {baseUnitName})
-                    </p>
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Controller
-                      name={`variants.${index}.conversionToBase`}
-                      control={control}
-                      render={({ field }) => (
-                        <NumericInput
-                          {...field}
-                          className="flex-1"
-                          suffix={baseUnitName}
-                          placeholder="Jumlah unit"
-                        />
-                      )}
-                    />
-                  </div>
-                  {errors.variants?.[index]?.conversionToBase && (
-                    <p className="text-sm text-destructive">
-                      {errors.variants?.[index]?.conversionToBase?.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {variantFields.length > 1 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="mt-3 text-red-600"
-                  onClick={() => handleRemoveVariant(index)}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Hapus Variant
-                </Button>
-              )}
-            </Card>
+            <VariantCard
+              key={field.id}
+              field={field}
+              index={index}
+              units={units}
+              watch={watch}
+              register={register}
+              errors={errors}
+              setValue={setValue}
+              control={control}
+              baseUnitName={baseUnitName}
+              handleRemoveVariant={handleRemoveVariant}
+              variantFieldsLength={variantFields.length}
+              averageCost={averageCost}
+            />
           ),
         )}
 

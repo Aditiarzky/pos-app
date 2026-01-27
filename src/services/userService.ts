@@ -11,7 +11,7 @@ export type UserResponse = {
   id: number;
   email: string;
   name: string;
-  role: "user" | "admin";
+  roles: Array<{ role: "admin toko" | "admin sistem" }>;
   createdAt: string;
   updatedAt: string;
 };
@@ -41,7 +41,7 @@ export const getUsers = async (params?: {
 
 // Get single user
 export const getUser = async (
-  id: number
+  id: number,
 ): Promise<ApiResponse<UserResponse>> => {
   const response = await axiosInstance.get(`/users/${id}`);
   return response.data;
@@ -49,7 +49,7 @@ export const getUser = async (
 
 // Create user
 export const createUser = async (
-  data: CreateUserInputType
+  data: CreateUserInputType,
 ): Promise<ApiResponse<UserResponse>> => {
   const response = await axiosInstance.post("/users", data);
   return response.data;
@@ -74,7 +74,7 @@ export const deleteUser = async (id: number): Promise<ApiResponse<void>> => {
 
 // Login
 export const login = async (
-  data: LoginInputType
+  data: LoginInputType,
 ): Promise<ApiResponse<{ token: string; user: UserResponse }>> => {
   const response = await axiosInstance.post("/auth/login", data);
   return response.data;
@@ -88,7 +88,7 @@ export const getCurrentUser = async (): Promise<ApiResponse<UserResponse>> => {
 
 // Change password
 export const changePassword = async (
-  data: ChangePasswordInputType
+  data: ChangePasswordInputType,
 ): Promise<ApiResponse<void>> => {
   const response = await axiosInstance.put("/auth/change-password", data);
   return response.data;

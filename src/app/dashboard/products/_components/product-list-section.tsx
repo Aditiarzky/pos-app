@@ -39,6 +39,7 @@ import { AppPagination } from "@/components/app-pagination";
 import { formatCompactNumber } from "@/lib/format";
 import { ProductResponse } from "@/services/productService";
 import { IconSortAscending, IconSortDescending } from "@tabler/icons-react";
+import { SearchInput } from "@/components/ui/search-input";
 
 interface ProductListSectionProps {
   onEdit: (id: number) => void;
@@ -121,7 +122,7 @@ export function ProductListSection({
       lowStockOnly: stockFilter === "low" ? true : undefined,
       orderBy,
       order,
-      limit: 9999, // Fetch all for printing
+      limit: 9999,
     },
     queryConfig: {
       enabled: isPrinting,
@@ -163,14 +164,10 @@ export function ProductListSection({
       {/* Search & Advanced Filters */}
       <div className="flex flex-col sm:flex-row gap-3 bg-background rounded-md">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
+          <SearchInput
             placeholder="Cari nama produk atau SKU..."
             value={searchInput}
-            onChange={(e) => {
-              setSearchInput(e.target.value);
-            }}
-            className="pl-10 h-10"
+            onChange={setSearchInput}
           />
         </div>
 
@@ -275,7 +272,7 @@ export function ProductListSection({
                 </Badge>
               </h2>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
               {lowStockProducts.map((product: any) => (
                 <ProductCard
                   key={`low-${product.id}`}
@@ -286,19 +283,21 @@ export function ProductListSection({
                 />
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Hanya menampilkan 4 produk terbaru.{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  setStockFilter("low");
-                  setPage(1);
-                }}
-                className="text-primary underline font-medium cursor-pointer"
-              >
-                Lihat Semua
-              </button>
-            </p>
+            {lowStockProducts.length > 4 && (
+              <p className="text-xs text-muted-foreground">
+                Hanya menampilkan 4 produk terbaru.{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStockFilter("low");
+                    setPage(1);
+                  }}
+                  className="text-primary underline font-medium cursor-pointer"
+                >
+                  Lihat Semua
+                </button>
+              </p>
+            )}
             <Separator className="mt-8" />
           </section>
         )}
@@ -307,9 +306,9 @@ export function ProductListSection({
       <section className="space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">Semua produk</h2>
         {isAllProductsLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Card key={i} className="h-64 animate-pulse" />
+              <Card key={i} className="h-48 sm:h-64 animate-pulse" />
             ))}
           </div>
         ) : allProducts.length === 0 ? (
@@ -325,7 +324,7 @@ export function ProductListSection({
             </p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
             {allProducts.map((product: any) => (
               <ProductCard
                 key={product.id}

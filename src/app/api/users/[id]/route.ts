@@ -1,7 +1,6 @@
-// app/api/users/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users } from "@/drizzle/schema";
+import { users, userRoles } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { hash } from "bcryptjs";
 import {
@@ -11,7 +10,7 @@ import {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: rawId } = await params;
@@ -20,25 +19,26 @@ export async function GET(
     if (isNaN(id)) {
       return NextResponse.json(
         { success: false, error: "Invalid user ID" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const userData = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1);
+    const userData = await db.query.users.findFirst({
+      where: eq(users.id, id),
+      with: {
+        roles: true,
+      },
+    });
 
-    if (userData.length === 0) {
+    if (!userData) {
       return NextResponse.json(
         { success: false, error: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = userData[0];
+    const { password: _, ...userWithoutPassword } = userData;
 
     return NextResponse.json({
       success: true,
@@ -48,14 +48,14 @@ export async function GET(
     console.error("fetch detail user error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch user" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: rawId } = await params;
@@ -64,15 +64,13 @@ export async function PUT(
     if (isNaN(id)) {
       return NextResponse.json(
         { success: false, error: "Invalid user ID" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Validasi body
     const body = await request.json();
     const validation = validateUpdateUserData(body);
 
-    // Jika validasi gagal, kirim error detail
     if (!validation.success) {
       return NextResponse.json(
         {
@@ -80,14 +78,12 @@ export async function PUT(
           error: "Validation failed",
           details: validation.error.format() || "Unknown error",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Data yang sudah tervalidasi dan bersih (type-safe)
-    const validatedData = validation.data;
+    const { roles: rolesInput, ...validatedData } = validation.data;
 
-    // Cek apakah user ada
     const existingUser = await db.query.users.findFirst({
       where: eq(users.id, id),
     });
@@ -95,12 +91,11 @@ export async function PUT(
     if (!existingUser) {
       return NextResponse.json(
         { success: false, error: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    // Hanya update kolom yang dikirim oleh user
-    const updatePayload: UpdateUserInputType = {
+    const updatePayload: any = {
       ...validatedData,
       updatedAt: new Date(),
     };
@@ -108,18 +103,35 @@ export async function PUT(
     if (validatedData.password) {
       updatePayload.password = await hash(validatedData.password, 10);
     } else {
-      delete (updatePayload as UpdateUserInputType).password;
+      delete updatePayload.password;
     }
 
-    const [updatedUser] = await db
-      .update(users)
-      .set(updatePayload)
-      .where(eq(users.id, id))
-      .returning();
+    const result = await db.transaction(async (tx) => {
+      // 1. Update user
+      const [updatedUser] = await tx
+        .update(users)
+        .set(updatePayload)
+        .where(eq(users.id, id))
+        .returning();
 
-    // Hapus password dari response
+      // 2. Sync roles
+      if (rolesInput !== undefined) {
+        await tx.delete(userRoles).where(eq(userRoles.userId, id));
+        if (rolesInput.length > 0) {
+          await tx.insert(userRoles).values(
+            rolesInput.map((r) => ({
+              userId: id,
+              role: r as any,
+            })),
+          );
+        }
+      }
+
+      return updatedUser;
+    });
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = updatedUser;
+    const { password: _, ...userWithoutPassword } = result;
 
     return NextResponse.json({
       success: true,
@@ -129,14 +141,14 @@ export async function PUT(
     console.error("Update user error:", error);
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: rawId } = await params;
@@ -145,25 +157,21 @@ export async function DELETE(
     if (isNaN(id)) {
       return NextResponse.json(
         { success: false, error: "Invalid user ID" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    // Cek apakah user exists
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, id))
-      .limit(1);
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.id, id),
+    });
 
-    if (existingUser.length === 0) {
+    if (!existingUser) {
       return NextResponse.json(
         { success: false, error: "User not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
-    // Delete user
     await db.delete(users).where(eq(users.id, id));
 
     return NextResponse.json({
@@ -174,7 +182,7 @@ export async function DELETE(
     console.error("Delete user error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to delete user" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

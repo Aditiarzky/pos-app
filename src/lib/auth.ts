@@ -9,7 +9,7 @@ export interface SessionPayload {
   userId: number;
   email: string;
   name: string;
-  role: "user" | "admin";
+  roles: string[];
   iat: number;
   exp: number;
 }
@@ -19,7 +19,7 @@ export async function createSession(user: {
   id: number;
   email: string;
   name: string;
-  role: "user" | "admin";
+  roles: string[];
 }) {
   const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
@@ -27,7 +27,7 @@ export async function createSession(user: {
     userId: user.id,
     email: user.email,
     name: user.name,
-    role: user.role,
+    roles: user.roles,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -65,7 +65,7 @@ export async function deleteSession() {
 
 // Untuk middleware
 export async function getSessionFromRequest(
-  req: NextRequest
+  req: NextRequest,
 ): Promise<SessionPayload | null> {
   const cookie = req.cookies.get("auth_token")?.value;
   if (!cookie) return null;

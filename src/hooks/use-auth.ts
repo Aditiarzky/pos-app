@@ -6,11 +6,12 @@ export function useAuth() {
     queryKey: ["auth-me"],
     queryFn: authMe,
     retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 
   return {
     user: data?.data,
+    roles: data?.data?.roles?.map((r) => r.role) || [],
     isLoading,
     isAuthenticated: !!data?.data,
     isError: !!error,

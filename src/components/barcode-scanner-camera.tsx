@@ -76,6 +76,8 @@ export default function BarcodeScannerCamera({
   const elementId = "scanner-video-container";
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const hasScannedRef = useRef(false);
+  const isTransitioning = useRef(false);
+  const isMountedRef = useRef(true);
 
   // Toggle Lampu (Torch)
   const toggleTorch = async () => {
@@ -96,58 +98,93 @@ export default function BarcodeScannerCamera({
     }
   };
 
-  const startScanner = async () => {
-    if (scannerRef.current?.isScanning) {
-      await scannerRef.current.stop();
-    }
+  useEffect(() => {
+    isMountedRef.current = true;
+    startScanner();
 
-    scannerRef.current = new Html5Qrcode(elementId);
-    hasScannedRef.current = false;
-    setScanResult(null);
-    setError(null);
-    setIsScanning(true);
-    setIsCameraReady(false);
+    return () => {
+      isMountedRef.current = false;
+      stopScanner();
+    };
+  }, []);
 
+  const stopScanner = async () => {
+    if (isTransitioning.current) return;
+
+    isTransitioning.current = true;
     try {
-      // KONFIGURASI OPTIMAL
+      if (scannerRef.current) {
+        // Hanya stop jika statusnya memang sedang scanning
+        if (scannerRef.current.isScanning) {
+          await scannerRef.current.stop();
+        }
+        await scannerRef.current.clear();
+        scannerRef.current = null;
+      }
+
+      // Pembersihan manual MediaTracks (Paling ampuh mematikan lampu indikator browser)
+      const videoElements = document.querySelectorAll("video");
+      videoElements.forEach((video) => {
+        const stream = video.srcObject as MediaStream;
+        if (stream) {
+          stream.getTracks().forEach((track) => {
+            track.stop();
+            track.enabled = false;
+          });
+          video.srcObject = null;
+        }
+      });
+    } catch (err) {
+      console.error("Gagal menghentikan kamera:", err);
+    } finally {
+      isTransitioning.current = false;
+    }
+  };
+
+  const startScanner = async () => {
+    if (isTransitioning.current || !isMountedRef.current) return;
+
+    isTransitioning.current = true;
+    try {
+      // Pastikan bersih sebelum mulai
+      if (scannerRef.current?.isScanning) {
+        await scannerRef.current.stop();
+      }
+
+      scannerRef.current = new Html5Qrcode(elementId);
+      setScanResult(null);
+      setError(null);
+      setIsScanning(true);
+
       const config: Html5QrcodeCameraScanConfig = {
-        fps: 20, // Naikkan ke 20 untuk responsivitas lebih cepat
-        qrbox: undefined, // <--- HAPUS QRBOX agar Scan Full Frame (Lebih mudah)
+        fps: 20,
+        qrbox: undefined,
         aspectRatio: 1.0,
-        // focusMode: "continuous", // Membantu fokus (opsional)
       };
 
       await scannerRef.current.start(
         { facingMode: "environment" },
         config,
-        (decodedText, decodedResult) => {
-          if (hasScannedRef.current) return;
-
-          // Bunyikan beep
+        async (decodedText) => {
+          // Stop kamera segera setelah sukses
           playBeep();
-
-          hasScannedRef.current = true;
           setScanResult(decodedText);
           setIsScanning(false);
 
-          if (scannerRef.current) {
-            scannerRef.current
-              .stop()
-              .catch((err) => console.error("Stop error", err));
-          }
-
+          // Penting: panggil stop secara eksplisit
+          await stopScanner();
           onScanSuccess(decodedText);
         },
-        (errorMessage) => {
-          // Silent failure
-        },
+        () => {},
       );
 
       setIsCameraReady(true);
     } catch (err) {
       console.error("Error starting scanner:", err);
-      setError("Gagal mengakses kamera. Pastikan izin kamera diberikan.");
+      setError("Gagal mengakses kamera.");
       setIsScanning(false);
+    } finally {
+      isTransitioning.current = false;
     }
   };
 
@@ -155,9 +192,7 @@ export default function BarcodeScannerCamera({
     startScanner();
 
     return () => {
-      if (scannerRef.current?.isScanning) {
-        scannerRef.current.stop().catch(console.error);
-      }
+      stopScanner();
     };
   }, []);
 
@@ -165,10 +200,8 @@ export default function BarcodeScannerCamera({
     startScanner();
   };
 
-  const handleClose = () => {
-    if (scannerRef.current?.isScanning) {
-      scannerRef.current.stop().catch(console.error);
-    }
+  const handleClose = async () => {
+    await stopScanner();
     onClose?.();
   };
 

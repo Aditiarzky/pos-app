@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { users } from "@/drizzle/schema";
+import { users, userRoles } from "@/drizzle/schema";
 import { eq, desc, sql } from "drizzle-orm";
 import { hash } from "bcryptjs";
 import { validateUserData } from "@/lib/validations/user";
@@ -12,14 +12,19 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const offset = (page - 1) * limit;
 
-    const usersData = await db
-      .select()
-      .from(users)
-      .orderBy(desc(users.createdAt))
-      .limit(limit)
-      .offset(offset);
+    const usersData = await db.query.users.findMany({
+      with: {
+        roles: true,
+      },
+      orderBy: [desc(users.createdAt)],
+      limit: limit,
+      offset: offset,
+    });
 
-    const total = await db.select({ count: sql<number>`count(*)` }).from(users);
+    const totalRes = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users);
+    const totalCount = Number(totalRes[0]?.count || 0);
 
     return NextResponse.json({
       success: true,
@@ -27,15 +32,15 @@ export async function GET(request: NextRequest) {
       pagination: {
         page,
         limit,
-        total: total[0]?.count || 0,
-        totalPages: Math.ceil((total[0]?.count || 0) / limit),
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
       },
     });
   } catch (error) {
     console.error("fetch users error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch users" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -52,62 +57,64 @@ export async function POST(req: NextRequest) {
           error: "Validation failed",
           details: validation.error.format() || "Unknown error",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const { email, name, password, role = "user" } = validation.data;
-
-    // Validasi password
-    if (!password) {
-      return NextResponse.json(
-        { success: false, error: "Missing password" },
-        { status: 400 }
-      );
-    }
+    const { email, name, password, roles: rolesInput } = validation.data;
 
     // Cek apakah email sudah terdaftar
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    const existingUser = await db.query.users.findFirst({
+      where: eq(users.email, email),
+    });
 
-    if (existingUser.length > 0) {
+    if (existingUser) {
       return NextResponse.json(
         { success: false, error: "Email already registered" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     // Hash password
     const hashedPassword = await hash(password, 10);
 
-    // Insert user
-    const [newUser] = await db
-      .insert(users)
-      .values({
-        email,
-        name,
-        password: hashedPassword,
-        role: role,
-        updatedAt: new Date(),
-      })
-      .returning();
+    const result = await db.transaction(async (tx) => {
+      // 1. Insert user
+      const [newUser] = await tx
+        .insert(users)
+        .values({
+          email,
+          name,
+          password: hashedPassword,
+          updatedAt: new Date(),
+        })
+        .returning();
 
-    // Hapus password dari response
+      // 2. Insert roles
+      if (rolesInput && rolesInput.length > 0) {
+        await tx.insert(userRoles).values(
+          rolesInput.map((r) => ({
+            userId: newUser.id,
+            role: r as any,
+          })),
+        );
+      }
+
+      return newUser;
+    });
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = newUser;
+    const { password: _, ...userWithoutPassword } = result;
 
     return NextResponse.json(
       { success: true, data: userWithoutPassword },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Create user error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to create user" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

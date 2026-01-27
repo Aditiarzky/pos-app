@@ -6,6 +6,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"; // Import Dialog
 import { Trash2, QrCode } from "lucide-react"; // Import Icon QrCode
 import { InsertProductBarcodeType } from "@/drizzle/type";
 import BarcodeScannerCamera from "@/components/barcode-scanner-camera";
+import { DialogTitle } from "@radix-ui/react-dialog";
+import { cn } from "@/lib/utils";
 
 export function BarcodesTab({
   register,
@@ -25,8 +27,8 @@ export function BarcodesTab({
     <div className="space-y-4">
       <TabsContent value="barcodes" className="mt-4 space-y-3">
         {barcodeFields.map((field: InsertProductBarcodeType, index: number) => (
-          <div key={field.id} className="flex gap-2">
-            <div>
+          <div key={field.id} className="flex w-full gap-2">
+            <div className="w-full">
               <Input
                 placeholder="Masukkan barcode (contoh: 8991234567890)"
                 {...register(`barcodes.${index}.barcode` as const)}
@@ -37,16 +39,18 @@ export function BarcodesTab({
                 </p>
               )}
             </div>
-            {barcodeFields.length > 1 && (
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => removeBarcode(index)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className={cn(
+                "hidden w-fit p-2 h-fit text-destructive",
+                barcodeFields.length > 1 && "block",
+              )}
+              onClick={() => removeBarcode(index)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         ))}
 
@@ -72,6 +76,7 @@ export function BarcodesTab({
       </TabsContent>
 
       <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+        <DialogTitle hidden>Scan Barcode Barang</DialogTitle>
         <DialogContent className="p-0 border-none max-w-lg max-h-[90vh]">
           <BarcodeScannerCamera
             onScanSuccess={handleScanSuccess}

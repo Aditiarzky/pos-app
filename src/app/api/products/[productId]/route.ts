@@ -6,6 +6,7 @@ import {
   productBarcodes,
   products,
   productVariants,
+  stockMutations,
   units,
 } from "@/drizzle/schema";
 import {
@@ -13,6 +14,7 @@ import {
   validateProductData,
   validateUpdateProductData,
 } from "@/lib/validations/product";
+import { variantAdjustmentSchema } from "@/lib/validations/stock-adjustment";
 import { handleApiError } from "@/lib/api-utils";
 import { getInitial } from "@/lib/utils";
 
@@ -243,6 +245,92 @@ export async function DELETE(
       success: true,
       data: deletedProduct,
       message: "Produk berhasil dipindahkan ke tempat sampah",
+    });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+// PATCH adjust stock via multiple variants
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ productId: string }> },
+) {
+  try {
+    const { productId } = await params;
+    const idNum = Number(productId);
+    const body = await request.json();
+
+    const validation = variantAdjustmentSchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { success: false, details: validation.error.format() },
+        { status: 400 },
+      );
+    }
+
+    const { variants: adjustments, userId } = validation.data;
+
+    const result = await db.transaction(async (tx) => {
+      // 1. Get product and variants
+      const product = await tx.query.products.findFirst({
+        where: eq(products.id, idNum),
+        with: {
+          variants: true,
+        },
+      });
+
+      if (!product) {
+        throw new Error("Product not found");
+      }
+
+      // 2. Calculate new total stock in base unit
+      let newTotalStockBase = 0;
+      for (const adj of adjustments) {
+        const variant = product.variants.find((v) => v.id === adj.variantId);
+        if (!variant) {
+          throw new Error(
+            `Variant ${adj.variantId} not found for this product`,
+          );
+        }
+        newTotalStockBase += Number(adj.qty) * Number(variant.conversionToBase);
+      }
+
+      const currentStockBase = Number(product.stock);
+      const diff = newTotalStockBase - currentStockBase;
+
+      // 3. Update product stock
+      const [updatedProduct] = await tx
+        .update(products)
+        .set({
+          stock: newTotalStockBase.toFixed(3),
+        })
+        .where(eq(products.id, idNum))
+        .returning();
+
+      // 4. Record mutation if there's a difference
+      if (diff !== 0) {
+        await tx.insert(stockMutations).values({
+          productId: idNum,
+          variantId: product.variants[0].id, // Attach to first variant as primary ref
+          type: "adjustment",
+          qtyBaseUnit: diff.toFixed(4),
+          reference: "Stock Adjustment (Manual)",
+          userId: userId,
+        });
+      }
+
+      return {
+        previousStock: currentStockBase,
+        newStock: newTotalStockBase,
+        diff: diff,
+        product: updatedProduct,
+      };
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: result,
+      message: "Stok berhasil disesuaikan",
     });
   } catch (error) {
     return handleApiError(error);

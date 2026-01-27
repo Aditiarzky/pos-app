@@ -3,14 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Package,
-  Settings,
-  ChevronLeft,
-  RotateCcw,
-  FileText,
-  History,
-} from "lucide-react";
+import { Package, Settings, ChevronLeft, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import LogoNav from "@/assets/logo-nav/logo-nav";
@@ -20,68 +13,83 @@ import {
   IconCalculator,
   IconTrolley,
   IconUsers,
+  IconShieldLock,
 } from "@tabler/icons-react";
+import { useAuth } from "@/hooks/use-auth";
+
 interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  roles: Array<"admin toko" | "admin sistem">;
 }
+
 const navItems: NavItem[] = [
   {
     label: "Beranda",
     href: "/dashboard",
     icon: <IconLayout className="w-5 h-5" />,
+    roles: ["admin toko", "admin sistem"],
   },
   {
     label: "Kasir",
     href: "/dashboard/sales",
     icon: <IconCalculator className="w-5 h-5" />,
+    roles: ["admin toko"],
   },
   {
     label: "Produk & Stok",
     href: "/dashboard/products",
     icon: <Package className="w-5 h-5" />,
+    roles: ["admin toko"],
   },
   {
     label: "Pembelian & Supplier",
     href: "/dashboard/purchases",
     icon: <IconTrolley className="w-5 h-5" />,
+    roles: ["admin toko"],
   },
   {
     label: "Pelanggan & Saldo",
     href: "/dashboard/customer",
     icon: <IconUsers className="w-5 h-5" />,
+    roles: ["admin toko"],
   },
   {
     label: "Laporan",
     href: "/dashboard/report",
     icon: <FileText className="w-5 h-5" />,
+    roles: ["admin toko"],
+  },
+  {
+    label: "User & Akses",
+    href: "/dashboard/users",
+    icon: <IconShieldLock className="w-5 h-5" />,
+    roles: ["admin sistem"],
   },
   {
     label: "Pengaturan",
     href: "/dashboard/setting",
     icon: <Settings className="w-5 h-5" />,
+    roles: ["admin toko", "admin sistem"],
   },
 ];
+
 interface SidebarProps {
   isOpen: boolean;
   onToggle: () => void;
 }
+
 export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const { roles } = useAuth();
+
+  const filteredNavItems = navItems.filter((item) =>
+    item.roles.some((role) => (roles as string[]).includes(role)),
+  );
+
   return (
     <>
-      {/* Sidebar */}
-      <div className="md:block hidden absolute right-4 left-4 top-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggle}
-          className="text-sidebar-foreground hover:bg-sidebar-accent"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
-      </div>
       <div
         className={cn(
           "fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border transition-transform duration-300 z-40",
@@ -107,13 +115,12 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
         </div>
         {/* Navigation */}
         <nav className="p-4">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link key={item.href} href={item.href}>
                 <button
                   onClick={() => {
-                    // Close sidebar on mobile when navigating
                     if (window.innerWidth < 768) {
                       onToggle();
                     }

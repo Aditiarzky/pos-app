@@ -20,6 +20,7 @@ import { useProduct } from "@/hooks/products/use-product";
 import { BasicInfoTab } from "./tabs/basic-info-tab";
 import { VariantsTab } from "./tabs/variants-tab";
 import { BarcodesTab } from "./tabs/barcodes-tab";
+import { ErrorIndicator } from "@/components/ui/error-indicator";
 
 export function ProductFormModal({
   open,
@@ -122,24 +123,17 @@ export function ProductFormModal({
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger type="button" value="basic" className="relative">
                 Informasi
-                {hasBasicError && (
-                  <Circle className="absolute top-2 right-2 h-2 w-2 fill-red-500 text-red-500 animate-pulse" />
-                )}
+                <ErrorIndicator show={hasBasicError} />
               </TabsTrigger>
 
               <TabsTrigger type="button" value="variants" className="relative">
                 Variants
-                {/* Titik merah muncul otomatis jika ada error di formState */}
-                {hasVariantError && (
-                  <Circle className="absolute top-2 right-2 h-2 w-2 fill-red-500 text-red-500 animate-pulse" />
-                )}
+                <ErrorIndicator show={hasVariantError} />
               </TabsTrigger>
 
               <TabsTrigger type="button" value="barcodes" className="relative">
                 Barcodes
-                {hasBarcodeError && (
-                  <Circle className="absolute top-2 right-2 h-2 w-2 fill-red-500 text-red-500 animate-pulse" />
-                )}
+                <ErrorIndicator show={hasBarcodeError} />
               </TabsTrigger>
             </TabsList>
 
@@ -169,6 +163,7 @@ export function ProductFormModal({
                 appendVariant={appendVariant}
                 removeVariant={removeVariant}
                 isEditMode={isEdit}
+                averageCost={productData?.data?.averageCost}
               />
             </TabsContent>
 

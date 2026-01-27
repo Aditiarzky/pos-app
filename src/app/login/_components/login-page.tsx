@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useRouter } from "nextjs-toploader/app";
 import { toast } from "sonner";
-import { ApiResponse, authLogin } from "@/services/authService";
+import { ApiResponse, authLogin, authRegister } from "@/services/authService";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -54,19 +54,23 @@ export default function LoginPage() {
     }
 
     try {
-      // Panggil API register di sini
-      // const response = await authRegister({ name, email, password });
+      const response = await authRegister({
+        name,
+        email,
+        password,
+        roles: ["admin toko"], // Default role for public registration
+      } as any);
 
-      // Untuk sementara, simulasi berhasil
-      toast.success("Registrasi berhasil! Silakan login.");
-      setCurrentView("login");
-      // Reset form
-      setName("");
-      setPassword("");
-      setConfirmPassword("");
-    } catch (error: unknown) {
+      if (response.success) {
+        toast.success("Registrasi berhasil! Silakan login.");
+        setCurrentView("login");
+        setName("");
+        setPassword("");
+        setConfirmPassword("");
+      }
+    } catch (error: any) {
       console.error("Register error:", error);
-      toast.error("Registrasi gagal");
+      toast.error(error.response?.data?.error || "Registrasi gagal");
     } finally {
       setLoading(false);
     }

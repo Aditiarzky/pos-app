@@ -3,7 +3,10 @@ import {
   InsertProductInputType,
   UpdateProductInputType,
 } from "@/lib/validations/product";
-import { StockAdjustmentInput } from "@/lib/validations/stock-adjustment";
+import {
+  StockAdjustmentInput,
+  VariantAdjustmentInput,
+} from "@/lib/validations/stock-adjustment";
 
 export type ProductResponse = {
   id: number;
@@ -141,5 +144,14 @@ export const createStockAdjustment = async (
   data: StockAdjustmentInput & { productId: number; userId: number },
 ): Promise<ApiResponse<void>> => {
   const response = await axiosInstance.post("/stock-adjustments", data);
+  return response.data;
+};
+
+// Adjust stock via variants
+export const adjustProductStock = async ({
+  id,
+  ...data
+}: { id: number } & VariantAdjustmentInput): Promise<ApiResponse<any>> => {
+  const response = await axiosInstance.patch(`/products/${id}`, data);
   return response.data;
 };

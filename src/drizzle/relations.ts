@@ -153,6 +153,21 @@ export const customerReturnItemsRelations = relations(
   }),
 );
 
+export const usersRelations = relations(schema.users, ({ many }) => ({
+  roles: many(schema.userRoles),
+  purchaseOrders: many(schema.purchaseOrders),
+  sales: many(schema.sales),
+  customerReturns: many(schema.customerReturns),
+  stockMutations: many(schema.stockMutations),
+}));
+
+export const userRolesRelations = relations(schema.userRoles, ({ one }) => ({
+  user: one(schema.users, {
+    fields: [schema.userRoles.userId],
+    references: [schema.users.id],
+  }),
+}));
+
 export const stockMutationsRelations = relations(
   schema.stockMutations,
   ({ one }) => ({

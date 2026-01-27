@@ -19,12 +19,19 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const params = parsePagination(request);
-    const { searchFilter, searchOrder } = getSearchAndOrderBasic(
+    const { searchOrder } = getSearchAndOrderBasic(
       params.search,
       params.order,
       params.orderBy,
       purchaseOrders.orderNumber,
     );
+
+    let searchFilter = undefined;
+    if (params.search) {
+      searchFilter = sql`(${purchaseOrders.orderNumber} ILIKE ${`%${params.search}%`} OR EXISTS (
+        SELECT 1 FROM suppliers WHERE suppliers.id = ${purchaseOrders.supplierId} AND suppliers.name ILIKE ${`%${params.search}%`}
+      ))`;
+    }
 
     const [purchasesData, totalRes] = await Promise.all([
       db.query.purchaseOrders.findMany({
@@ -81,6 +88,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: purchasesData,
+      analytics: {
+        totalPurchases: totalCount,
+      },
       meta: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {
