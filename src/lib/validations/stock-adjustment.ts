@@ -15,7 +15,7 @@ export const variantAdjustmentSchema = z.object({
   variants: z.array(
     z.object({
       variantId: z.number(),
-      qty: z.coerce.number().nonnegative("Jumlah tidak boleh negatif"),
+      qty: z.number().nonnegative("Jumlah tidak boleh negatif"),
     }),
   ),
   userId: z.number(),

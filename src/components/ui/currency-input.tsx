@@ -7,8 +7,10 @@ interface CurrencyInputProps extends Omit<
   React.ComponentProps<"input">,
   "onChange" | "value"
 > {
-  value: string | number;
-  onChange: (value: string) => void;
+  // Ubah value menjadi number agar sinkron dengan state form
+  value: number | undefined | null;
+  // Ubah onChange untuk mengembalikan number
+  onChange: (value: number) => void;
 }
 
 export function CurrencyInput({
@@ -20,7 +22,8 @@ export function CurrencyInput({
   const [displayValue, setDisplayValue] = React.useState("");
 
   React.useEffect(() => {
-    if (value !== undefined && value !== null && value !== "") {
+    // Jika value adalah 0 atau angka, format untuk tampilan
+    if (typeof value === "number") {
       const formatted = formatCurrency(value).replace("Rp", "").trim();
       setDisplayValue(formatted);
     } else {
@@ -29,10 +32,13 @@ export function CurrencyInput({
   }, [value]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = parseCurrency(e.target.value);
-    if (rawValue === "" || !isNaN(Number(rawValue))) {
-      onChange(rawValue);
-    }
+    const rawString = e.target.value;
+    // Ambil angka saja dari string (menghapus titik ribuan)
+    const numericString = rawString.replace(/[^0-9]/g, "");
+
+    // Kirim sebagai number ke parent/form
+    const numericValue = numericString === "" ? 0 : parseInt(numericString, 10);
+    onChange(numericValue);
   };
 
   return (
@@ -46,6 +52,8 @@ export function CurrencyInput({
         value={displayValue}
         onChange={handleChange}
         placeholder="0"
+        // Tambahkan inputMode agar keyboard mobile memunculkan angka
+        inputMode="numeric"
       />
     </div>
   );

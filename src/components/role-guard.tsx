@@ -1,8 +1,8 @@
 "use client";
 
 import { useAuth } from "@/hooks/use-auth";
-import { ReactNode } from "react";
-import { redirect } from "next/navigation";
+import { ReactNode, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import LogoNav from "@/assets/logo-nav/logo-nav";
 
 interface RoleGuardProps {
@@ -19,6 +19,13 @@ export function RoleGuard({
   redirectTo,
 }: RoleGuardProps) {
   const { roles, isLoading, isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && redirectTo) {
+      router.push(redirectTo);
+    }
+  }, [isLoading, isAuthenticated, redirectTo, router]);
 
   if (isLoading) {
     return (
@@ -29,7 +36,6 @@ export function RoleGuard({
   }
 
   if (!isAuthenticated) {
-    if (redirectTo) redirect(redirectTo);
     return fallback;
   }
 
@@ -38,7 +44,6 @@ export function RoleGuard({
   );
 
   if (!hasAccess) {
-    if (redirectTo) redirect(redirectTo);
     return fallback;
   }
 

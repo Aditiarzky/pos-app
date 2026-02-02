@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Camera,
@@ -32,7 +31,9 @@ interface BarcodeScannerCameraProps {
 const playBeep = () => {
   try {
     const AudioContext =
-      window.AudioContext || (window as any).webkitAudioContext;
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: AudioContext })
+        .webkitAudioContext;
     if (!AudioContext) return;
 
     const audioCtx = new AudioContext();
@@ -75,7 +76,6 @@ export default function BarcodeScannerCamera({
 
   const elementId = "scanner-video-container";
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const hasScannedRef = useRef(false);
   const isTransitioning = useRef(false);
   const isMountedRef = useRef(true);
 
@@ -88,7 +88,7 @@ export default function BarcodeScannerCamera({
 
       // Apply constraints ke kamera
       await scannerRef.current.applyVideoConstraints({
-        advanced: [{ torch: newState } as any],
+        advanced: [{ torch: newState } as unknown as MediaTrackConstraints],
       });
 
       setTorchEnabled(newState);

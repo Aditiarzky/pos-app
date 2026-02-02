@@ -29,33 +29,13 @@ import { cn } from "@/lib/utils";
 import { useConfirm } from "@/contexts/ConfirmDialog";
 import { formatCompactNumber } from "@/lib/format";
 import { calculateVariantMargin } from "@/lib/product-utils";
-
-interface ProductVariant {
-  id: number;
-  name: string;
-  sku: string;
-  sellPrice: string;
-  conversionToBase: string;
-  unit?: { name: string };
-}
+import { ProductResponse } from "@/services/productService";
 
 interface ProductCardProps {
-  product: {
-    id: number;
-    name: string;
-    sku: string;
-    image?: string | null;
-    stock: string;
-    minStock: string;
-    category?: { name: string };
-    unit?: { name: string };
-    variants: ProductVariant[];
-    barcodes?: { barcode: string }[];
-    averageCost?: string;
-  };
+  product: ProductResponse;
   onEdit?: (id: number) => void;
   onDelete?: (id: number) => void;
-  onAdjust?: (product: any) => void;
+  onAdjust?: (product: ProductResponse) => void;
 }
 
 export function ProductCard({

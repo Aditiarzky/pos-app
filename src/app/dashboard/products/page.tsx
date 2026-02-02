@@ -11,16 +11,15 @@ import {
   LayoutPanelTopIcon,
   Loader2,
   PackageIcon,
-  PanelTopOpen,
   Plus,
   Table,
 } from "lucide-react";
 
 import { useProducts } from "@/hooks/products/use-products";
 import { ProductFormModal } from "./_components/product-form/product-form-modal";
-import { StockMutationsSection } from "./_components/stock-mutations-section";
+import { StockMutationsSection } from "./_components/sections/stock-mutations-section";
 import { StockAdjustmentModal } from "./_components/stock-adjustment-modal";
-import { ProductListSection } from "./_components/product-list-section";
+import { ProductListSection } from "./_components/sections/product-list-section";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import {
   Tooltip,
@@ -28,15 +27,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useQueryState } from "@/hooks/use-query-state";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { CardBg, OrnamentCard } from "@/assets/card-background/card-bg";
+import { CardBg } from "@/assets/card-background/card-bg";
+import { ProductResponse } from "@/services/productService";
 
 function ProductsContent() {
   const [tab, setTab] = useQueryState<string>("tab", "list");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
-  const [adjustmentProduct, setAdjustmentProduct] = useState<any | null>(null);
+  const [adjustmentProduct, setAdjustmentProduct] =
+    useState<ProductResponse | null>(null);
 
   // Still need analytics for the top cards
   const { data: productsData } = useProducts({
@@ -46,7 +45,7 @@ function ProductsContent() {
 
   return (
     <>
-      <header className="flex flex-row px-4 justify-between w-full items-center gap-4">
+      <header className="sticky top-0 mx-auto container z-0 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
         <div className="overflow-hidden">
           <h1 className="text-3xl text-primary font-geist font-semibold truncate">
             Produk
@@ -60,7 +59,7 @@ function ProductsContent() {
           <p className="hidden sm:block">Tambah Produk</p>
         </Button>
       </header>
-      <main className="container bg-background box-shadow shadow-primary rounded-t-4xl mx-auto p-4 space-y-6">
+      <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="relative overflow-hidden">

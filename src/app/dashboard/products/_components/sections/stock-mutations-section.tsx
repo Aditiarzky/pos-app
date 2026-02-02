@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useStockMutations } from "@/hooks/products/use-stock-mutations";
+import { useStockMutations } from "@/hooks/stock-mutations/use-stock-mutations";
 import {
   Table,
   TableBody,
@@ -16,38 +16,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Filter,
-  LayoutGrid,
-  Loader2,
-  Search,
-  SearchX,
-  Table2,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { LayoutGrid, Loader2, SearchX, Table2 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
-import { IconSortAscending, IconSortDescending } from "@tabler/icons-react";
 import { SearchInput } from "@/components/ui/search-input";
+import { formatCompactNumber } from "@/lib/format";
+import { StockMutationEnumType } from "@/drizzle/type";
+import { FilterWrap } from "@/components/filter-wrap";
+import { MutationFilterForm } from "../ui/mutation-filter-form";
 
 type ViewMode = "table" | "card";
 
@@ -98,7 +73,7 @@ export function StockMutationsSection() {
     }
   };
 
-  const getTypeName = (type: string) => {
+  const getTypeName = (type: StockMutationEnumType) => {
     switch (type) {
       case "purchase":
         return "Pembelian";
@@ -131,69 +106,17 @@ export function StockMutationsSection() {
         </div>
 
         <div className="flex justify-between gap-2">
-          {/* Mobile Filter */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="h-10 sm:hidden relative">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-                {hasActiveFilters && (
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                  </span>
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent
-              side="bottom"
-              className="px-4 py-6 sm:hidden rounded-t-[20px]"
-            >
-              <SheetHeader className="mb-4">
-                <SheetTitle>Filter Mutasi</SheetTitle>
-              </SheetHeader>
-              <MutationFilterForm
-                typeFilter={typeFilter}
-                setTypeFilter={setTypeFilter}
-                orderBy={orderBy}
-                setOrderBy={setOrderBy}
-                order={order}
-                setOrder={setOrder}
-                setPage={setPage}
-              />
-            </SheetContent>
-          </Sheet>
-
-          {/* Desktop Filter */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="h-10 hidden sm:flex relative"
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                Filter Lanjutan
-                {hasActiveFilters && (
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                  </span>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-80 p-4" align="end">
-              <MutationFilterForm
-                typeFilter={typeFilter}
-                setTypeFilter={setTypeFilter}
-                orderBy={orderBy}
-                setOrderBy={setOrderBy}
-                order={order}
-                setOrder={setOrder}
-                setPage={setPage}
-                isDropdown
-              />
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <FilterWrap hasActiveFilters={hasActiveFilters}>
+            <MutationFilterForm
+              typeFilter={typeFilter}
+              setTypeFilter={setTypeFilter}
+              orderBy={orderBy}
+              setOrderBy={setOrderBy}
+              order={order}
+              setOrder={setOrder}
+              setPage={setPage}
+            />
+          </FilterWrap>
 
           <div className="h-10 w-[1px] bg-border mx-1 hidden sm:block" />
           <div className="flex gap-2">
@@ -272,17 +195,17 @@ export function StockMutationsSection() {
                     <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2">
                       <div className="flex flex-col">
                         <span className="sm:hidden text-[9px] text-muted-foreground">
-                          {format(new Date(mutation.createdAt), "dd/MM/yy", {
+                          {format(mutation.createdAt!, "dd/MM/yy", {
                             locale: id,
                           })}
                         </span>
                         <span>
-                          {format(new Date(mutation.createdAt), "HH:mm", {
+                          {format(mutation.createdAt!, "HH:mm", {
                             locale: id,
                           })}
                         </span>
                         <span className="hidden sm:block">
-                          {format(new Date(mutation.createdAt), "dd MMM yyyy", {
+                          {format(mutation.createdAt!, "dd MMM yyyy", {
                             locale: id,
                           })}
                         </span>
@@ -297,20 +220,23 @@ export function StockMutationsSection() {
                           {mutation.product.name}
                         </span>
                         <span className="text-[9px] sm:text-xs text-muted-foreground whitespace-nowrap">
-                          {mutation.variant.name}
+                          {mutation.productVariant.name}
                         </span>
                       </div>
                     </TableCell>
                     <TableCell className="px-2 sm:px-4 py-2">
                       <Badge
-                        variant={getTypeColor(mutation.type) as any}
+                        variant={getTypeColor(mutation.type)}
                         className="text-[8px] sm:text-[12px] px-1 py-0 h-4 sm:h-5 sm:px-2"
                       >
                         {getTypeName(mutation.type)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right font-black text-primary text-[12px] sm:text-sm px-2 sm:px-4 py-2">
-                      {mutation.qty}
+                      {formatCompactNumber(mutation.qtyBaseUnit)}
+                      <p className="text-[9px] sm:text-xs font-medium text-muted-foreground truncate">
+                        {mutation.productVariant.unit.name}
+                      </p>
                     </TableCell>
                     <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2">
                       {mutation.user?.name?.split(" ")[0] || "System"}
@@ -341,7 +267,7 @@ export function StockMutationsSection() {
               {mutations.map((mutation) => (
                 <Card
                   key={mutation.id}
-                  className="overflow-hidden border-muted/50"
+                  className="overflow-hidden py-2 border-muted/50"
                 >
                   <CardContent className="p-2.5 sm:p-4 space-y-2 sm:space-y-3">
                     <div className="flex justify-between items-start gap-1.5">
@@ -352,12 +278,12 @@ export function StockMutationsSection() {
                         <div className="text-[9px] sm:text-xs text-muted-foreground font-mono truncate">
                           {mutation.product.sku}
                         </div>
-                        <div className="text-[9px] sm:text-xs text-muted-foreground italic truncate">
-                          {mutation.variant.name}
+                        <div className="text-[9px] sm:text-xs text-muted-foreground truncate">
+                          {mutation.productVariant.name}
                         </div>
                       </div>
                       <Badge
-                        variant={getTypeColor(mutation.type) as any}
+                        variant={getTypeColor(mutation.type)}
                         className="shrink-0 text-[8px] sm:text-[12px] px-1 py-0 h-4 sm:h-5 sm:px-2 sm:py-0.5"
                       >
                         {getTypeName(mutation.type)}
@@ -370,7 +296,10 @@ export function StockMutationsSection() {
                           Jumlah
                         </div>
                         <div className="font-black text-primary">
-                          {mutation.qty}
+                          {formatCompactNumber(mutation.qtyBaseUnit)}
+                          <p className="text-[9px] sm:text-xs font-medium text-muted-foreground truncate">
+                            {mutation.productVariant.unit.name}
+                          </p>
                         </div>
                       </div>
                       <div>
@@ -395,13 +324,9 @@ export function StockMutationsSection() {
                           Waktu
                         </span>
                         <span className="truncate text-right ml-1">
-                          {format(
-                            new Date(mutation.createdAt),
-                            "dd/MM/yy HH:mm",
-                            {
-                              locale: id,
-                            },
-                          )}
+                          {format(mutation.createdAt!, "dd/MM/yy HH:mm", {
+                            locale: id,
+                          })}
                         </span>
                       </div>
                     </div>
@@ -427,116 +352,6 @@ export function StockMutationsSection() {
           />
         </div>
       )}
-    </div>
-  );
-}
-
-interface MutationFilterFormProps {
-  typeFilter: string;
-  setTypeFilter: (v: string) => void;
-  orderBy: string;
-  setOrderBy: (v: string) => void;
-  order: string;
-  setOrder: (v: any) => void;
-  setPage: (p: number) => void;
-  isDropdown?: boolean;
-}
-
-function MutationFilterForm({
-  typeFilter,
-  setTypeFilter,
-  orderBy,
-  setOrderBy,
-  order,
-  setOrder,
-  setPage,
-  isDropdown,
-}: MutationFilterFormProps) {
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <h4 className="font-medium leading-none text-xs text-muted-foreground uppercase tracking-wider">
-          Tipe Mutasi
-        </h4>
-        <Select
-          value={typeFilter}
-          onValueChange={(v) => {
-            setTypeFilter(v);
-            setPage(1);
-          }}
-        >
-          <SelectTrigger className="w-full h-10 px-3 bg-muted/50 border-none shadow-none">
-            <SelectValue placeholder="Semua Tipe" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Tipe</SelectItem>
-            <SelectItem value="purchase">Pembelian</SelectItem>
-            <SelectItem value="sale">Penjualan</SelectItem>
-            <SelectItem value="adjustment">Penyesuaian</SelectItem>
-            <SelectItem value="waste">Terbuang/Rusak</SelectItem>
-            <SelectItem value="return_restock">Retur (Restock)</SelectItem>
-            <SelectItem value="supplier_return">Retur ke Supplier</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <h4 className="font-medium leading-none text-xs text-muted-foreground uppercase tracking-wider">
-          Urutkan
-        </h4>
-        <div className="grid grid-cols-2 gap-2">
-          <Select
-            value={orderBy}
-            onValueChange={(v) => {
-              setOrderBy(v);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="h-10 px-3 bg-muted/50 border-none shadow-none">
-              <SelectValue placeholder="Urutkan" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="createdAt">Tanggal</SelectItem>
-              <SelectItem value="name">Nama Produk</SelectItem>
-              <SelectItem value="qty">Jumlah</SelectItem>
-              <SelectItem value="reference">Referensi</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={order}
-            onValueChange={(v: any) => {
-              setOrder(v);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="h-10 px-3 bg-muted/50 border-none shadow-none">
-              <SelectValue placeholder="A-Z" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="asc">
-                Ascending <IconSortAscending className="h-4 w-4" />
-              </SelectItem>
-              <SelectItem value="desc">
-                Descending <IconSortDescending className="h-4 w-4" />
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {isDropdown && <DropdownMenuSeparator />}
-      <Button
-        variant="ghost"
-        className="w-full h-10 text-xs font-semibold text-muted-foreground"
-        onClick={() => {
-          setTypeFilter("all");
-          setOrderBy("createdAt");
-          setOrder("desc");
-          setPage(1);
-        }}
-      >
-        Reset Filter
-      </Button>
     </div>
   );
 }

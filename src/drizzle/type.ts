@@ -2,7 +2,10 @@ import { InferInsertModel, InferSelectModel } from "drizzle-orm";
 import * as schema from "./schema";
 
 export type UserType = InferSelectModel<typeof schema.users>;
+export type UserRolesType = InferSelectModel<typeof schema.userRoles>;
 export type InsertUserType = InferInsertModel<typeof schema.users>;
+export type InsertUserRolesType = InferInsertModel<typeof schema.userRoles>;
+export type UserRoleEnumType = (typeof schema.userRole.enumValues)[number];
 export type CategoryType = InferSelectModel<typeof schema.categories>;
 export type InsertCategoryType = InferInsertModel<typeof schema.categories>;
 export type UnitType = InferSelectModel<typeof schema.units>;
@@ -33,6 +36,8 @@ export type StockMutationType = InferSelectModel<typeof schema.stockMutations>;
 export type InsertStockMutationType = InferInsertModel<
   typeof schema.stockMutations
 >;
+export type StockMutationTypeEnumType =
+  (typeof schema.stockMutationType.enumValues)[number];
 export type ProductBarcodeType = InferSelectModel<
   typeof schema.productBarcodes
 >;

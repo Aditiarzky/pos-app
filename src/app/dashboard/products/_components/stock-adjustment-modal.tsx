@@ -31,22 +31,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { ProductResponse } from "@/services/productService";
+import { parseNumberToFloat } from "@/lib/format";
 
 interface StockAdjustmentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  product: {
-    id: number;
-    name: string;
-    stock: string | number;
-    unit?: { name: string };
-    variants: Array<{
-      id: number;
-      name: string;
-      conversionToBase: string | number;
-      unit?: { name: string };
-    }>;
-  } | null;
+  product: ProductResponse | null;
 }
 
 export function StockAdjustmentModal({
@@ -59,7 +50,7 @@ export function StockAdjustmentModal({
   const adjustMutation = useAdjustStock();
 
   const form = useForm<VariantAdjustmentInput>({
-    resolver: zodResolver(variantAdjustmentSchema) as any,
+    resolver: zodResolver(variantAdjustmentSchema),
     defaultValues: {
       variants: [],
       userId: user?.id || 0,
@@ -92,10 +83,10 @@ export function StockAdjustmentModal({
     if (!product || !watchedVariants) return { newTotal: 0, deficit: 0 };
 
     let newTotal = 0;
-    watchedVariants.forEach((adj: any) => {
-      const variant = product.variants.find((v) => v.id === adj?.variantId);
+    watchedVariants.forEach((adj) => {
+      const variant = product.variants.find((v) => v.id === adj.variantId);
       if (variant) {
-        const inputQty = Number(adj?.qty) || 0;
+        const inputQty = Number(adj.qty) || 0;
         newTotal += inputQty * Number(variant.conversionToBase);
       }
     });
@@ -112,14 +103,15 @@ export function StockAdjustmentModal({
 
     const ok = await confirm({
       title: "Konfirmasi Penyesuaian Stok",
+      // FIX: Gunakan div wrapper, hindari nested <p> tags
       description: (
         <div className="space-y-3">
-          <p>
+          <div className="text-sm">
             Apakah Anda yakin data stok yang dimasukkan sudah benar?{" "}
             <strong>
               Stok lama akan dihapus dan diganti dengan total input baru.
             </strong>
-          </p>
+          </div>
           <div className="bg-muted p-3 rounded-md text-sm space-y-1">
             <div className="flex justify-between">
               <span>Stok Saat Ini:</span>
@@ -130,7 +122,8 @@ export function StockAdjustmentModal({
             <div className="flex justify-between text-primary">
               <span>Stok Baru (Hasil Konversi):</span>
               <span className="font-bold">
-                {results.newTotal.toFixed(2)} {product?.unit?.name}
+                {parseNumberToFloat(results.newTotal.toFixed(2))}{" "}
+                {product?.unit?.name}
               </span>
             </div>
             <Separator />
@@ -142,7 +135,8 @@ export function StockAdjustmentModal({
                 }
               >
                 {results.deficit >= 0 ? "+" : ""}
-                {results.deficit.toFixed(2)} {product?.unit?.name}
+                {parseNumberToFloat(results.deficit.toFixed(2))}{" "}
+                {product?.unit?.name}
               </span>
             </div>
           </div>
@@ -173,11 +167,8 @@ export function StockAdjustmentModal({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...(form as any)}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit as any)}
-            className="space-y-6"
-          >
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2 text-primary">
               {fields.map((field, index) => {
                 const variant = product.variants.find(
@@ -193,8 +184,8 @@ export function StockAdjustmentModal({
                         {variant?.name}
                       </FormLabel>
                       <div className="text-[10px] text-muted-foreground pb-1">
-                        Konversi: 1 {variant?.unit?.name} ={" "}
-                        {variant?.conversionToBase} {product.unit?.name}
+                        Konversi: 1 produk isi {variant?.conversionToBase}{" "}
+                        {product.unit?.name}
                       </div>
                       <FormField
                         control={form.control}
@@ -207,6 +198,10 @@ export function StockAdjustmentModal({
                                 placeholder="0"
                                 {...field}
                                 autoFocus={index === 0}
+                                value={(field.value as number) ?? ""}
+                                onChange={(e) =>
+                                  field.onChange(e.target.valueAsNumber || 0)
+                                }
                               />
                             </FormControl>
                             <FormMessage />
@@ -230,7 +225,7 @@ export function StockAdjustmentModal({
                     Total Stok Baru
                   </p>
                   <p className="text-xl font-bold font-mono">
-                    {results.newTotal.toFixed(2)}
+                    {parseNumberToFloat(results.newTotal.toFixed(2))}
                     <span className="text-xs ml-1 text-muted-foreground">
                       {product.unit?.name}
                     </span>
@@ -245,7 +240,8 @@ export function StockAdjustmentModal({
                     className="font-mono"
                   >
                     {results.deficit >= 0 ? "+" : ""}
-                    {results.deficit.toFixed(2)} {product.unit?.name}
+                    {parseNumberToFloat(results.deficit.toFixed(2))}{" "}
+                    {product.unit?.name}
                   </Badge>
                 </div>
               </div>

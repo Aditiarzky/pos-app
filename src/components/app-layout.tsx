@@ -6,11 +6,13 @@ import { useState, useEffect } from "react";
 import { AppSidebar } from "./app-sidebar";
 import { TopNavbar } from "./top-navbar";
 import { BottomNavbar } from "./bottom-navbar";
+import { useAuth } from "@/hooks/use-auth";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const { logout } = useAuth();
 
   useEffect(() => {
     // Check if mobile on initial load
@@ -49,7 +51,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <AppSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
 
       <div className="flex-1 flex flex-col md:ml-0">
-        <TopNavbar onToggleSidebar={toggleSidebar} sidebarOpen={sidebarOpen} />
+        <TopNavbar
+          onLogout={logout}
+          onToggleSidebar={toggleSidebar}
+          sidebarOpen={sidebarOpen}
+        />
 
         <main
           onScroll={handleScroll}

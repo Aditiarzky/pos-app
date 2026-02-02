@@ -2,18 +2,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TabsContent } from "@/components/ui/tabs";
 import { Upload, X, Loader2 } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { CategoryType, UnitType } from "@/drizzle/type";
 import { NumericInput } from "@/components/ui/numeric-input";
-import { Controller } from "react-hook-form";
+import {
+  Control,
+  Controller,
+  UseFormRegister,
+  UseFormSetValue,
+  UseFormWatch,
+} from "react-hook-form";
 import { UnitSelect } from "@/components/ui/unit-select";
 import { CategorySelect } from "@/components/ui/category-select";
+import Image from "next/image";
+import {
+  InsertProductInputType,
+  UpdateProductInputType,
+} from "@/lib/validations/product";
+import { FormFieldErrors } from "../../../_hooks/use-product-form";
 
 export function BasicInfoTab({
   register,
@@ -28,7 +33,20 @@ export function BasicInfoTab({
   uploadImage,
   clearImage,
   control,
-}: any) {
+}: {
+  register: UseFormRegister<InsertProductInputType | UpdateProductInputType>;
+  errors: FormFieldErrors;
+  categories: CategoryType[];
+  units: UnitType[];
+  setValue: UseFormSetValue<InsertProductInputType | UpdateProductInputType>;
+  watch: UseFormWatch<InsertProductInputType | UpdateProductInputType>;
+  imagePreview: string | null;
+  uploading: boolean;
+  inputRef: React.RefObject<HTMLInputElement>;
+  uploadImage: (file: File) => void;
+  clearImage: () => void;
+  control: Control<InsertProductInputType | UpdateProductInputType>;
+}) {
   const selectedUnitId = watch("baseUnitId");
   const selectedUnitName = units.find(
     (u: UnitType) => u.id === selectedUnitId,
@@ -64,7 +82,7 @@ export function BasicInfoTab({
             <Label>Kategori</Label>
             <CategorySelect
               categories={categories}
-              value={watch("categoryId")}
+              value={watch("categoryId") ?? undefined}
               onValueChange={(v: number) =>
                 setValue("categoryId", v, {
                   shouldDirty: true,
@@ -109,6 +127,7 @@ export function BasicInfoTab({
               render={({ field }) => (
                 <NumericInput
                   {...field}
+                  value={field.value ?? ""}
                   placeholder="Contoh: 10"
                   min={0}
                   suffix={selectedUnitName}
@@ -131,10 +150,12 @@ export function BasicInfoTab({
             <div className="relative w-32 h-32 border-2 border-dashed rounded-xl overflow-hidden bg-muted flex-shrink-0">
               {imagePreview ? (
                 <>
-                  <img
+                  <Image
                     src={imagePreview}
                     alt="preview"
-                    className="object-cover w-full h-full"
+                    width={128}
+                    height={128}
+                    className="object-cover"
                   />
                   <button
                     type="button"

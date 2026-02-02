@@ -1,78 +1,128 @@
+/**
+ * CUSTOM HOOK: usePurchaseForm
+ * Mengelola state dan logic untuk purchase form
+ */
+
 "use client";
 
-import { useFieldArray, useForm } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useAuth } from "@/hooks/use-auth";
+import { UseMutationResult } from "@tanstack/react-query";
 import {
   insertPurchaseSchema,
   insertPurchaseType,
 } from "@/lib/validations/purchase";
-import { useAuth } from "@/hooks/use-auth";
-import { useEffect } from "react";
+import {
+  PurchaseFormData,
+  PurchaseFormItem,
+  PurchaseResponse,
+} from "../_types/purchase-type";
+import { ApiResponse } from "@/services/productService";
+import { toast } from "sonner";
 
-interface usePurchaseFormProps {
+// ============================================
+// HOOK PROPS TYPE
+// ============================================
+
+interface UsePurchaseFormProps {
   onSuccess?: () => void;
-  createMutation?: any;
-  updateMutation?: any;
-  initialData?: any;
+  createMutation: UseMutationResult<
+    ApiResponse<PurchaseResponse>,
+    Error,
+    insertPurchaseType
+  >;
+  updateMutation?: UseMutationResult<
+    ApiResponse<PurchaseResponse>,
+    Error,
+    { id: number } & insertPurchaseType
+  >;
+  initialData?: PurchaseResponse | null;
 }
+
+// ============================================
+// HOOK RETURN TYPE
+// ============================================
+
+interface UsePurchaseFormReturn {
+  form: ReturnType<typeof useForm<PurchaseFormData>>;
+  fields: PurchaseFormItem[];
+  append: (item: PurchaseFormItem) => void;
+  remove: (index: number) => void;
+  update: (index: number, item: PurchaseFormItem) => void;
+  total: number;
+  isEdit: boolean;
+  isSubmitting: boolean;
+  onSubmit: (e?: React.BaseSyntheticEvent) => Promise<void>;
+}
+
+// ============================================
+// HOOK IMPLEMENTATION
+// ============================================
 
 export function usePurchaseForm({
   onSuccess,
   createMutation,
   updateMutation,
   initialData,
-}: usePurchaseFormProps) {
+}: UsePurchaseFormProps): UsePurchaseFormReturn {
   const { user } = useAuth();
   const isEdit = !!initialData?.id;
+  const isEditInitialized = useRef(false);
 
-  const form = useForm<insertPurchaseType>({
-    resolver: zodResolver(insertPurchaseSchema) as any,
+  // Initialize form
+  const form = useForm<PurchaseFormData>({
+    resolver: zodResolver(insertPurchaseSchema),
     defaultValues: {
-      supplierId: initialData?.supplierId || (undefined as any),
+      supplierId: initialData?.supplierId || undefined,
       userId: user?.id,
       items:
-        initialData?.items?.map((item: any) => ({
+        initialData?.items?.map((item) => ({
           productId: item.productId,
           variantId: item.variantId,
-          qty: Number(item.qty),
-          price: Number(item.price),
-          productName: item.product?.name,
-          variantName: item.productVariant?.name,
+          qty: Number(item.qty) || 0,
+          price: Number(item.price) || 0,
+          productName: item.product?.name ?? null,
+          variantName: item.productVariant?.name ?? null,
         })) || [],
     },
   });
 
-  // Reset form when initialData changes (for Edit mode)
-  useEffect(() => {
-    if (initialData) {
-      form.reset({
-        supplierId: initialData.supplierId,
-        userId: user?.id,
-        items:
-          initialData.items?.map((item: any) => ({
-            productId: item.productId,
-            variantId: item.variantId,
-            qty: Number(item.qty),
-            price: Number(item.price),
-            productName: item.product?.name,
-            variantName: item.productVariant?.name,
-          })) || [],
-      });
-    } else {
-      form.reset({
-        supplierId: undefined as any,
-        userId: user?.id,
-        items: [],
-      });
-    }
-  }, [initialData, user?.id, form]);
-
+  // Field array untuk manage items
   const { fields, append, remove, update } = useFieldArray({
     control: form.control,
     name: "items",
   });
 
-  // Calculate total amount
+  // Reset form ketika initialData berubah (edit mode)
+  useEffect(() => {
+    // Hanya reset jika benar-benar ada perubahan pada initialData
+    if (initialData && !isEditInitialized.current) {
+      form.reset({
+        supplierId: initialData.supplierId,
+        userId: user?.id,
+        items:
+          initialData.items?.map((item) => ({
+            productId: item.productId,
+            variantId: item.variantId,
+            qty: Number(item.qty),
+            price: Number(item.price),
+            productName: item.product?.name ?? null,
+            variantName: item.productVariant?.name ?? null,
+          })) || [],
+      });
+
+      isEditInitialized.current = true;
+    }
+
+    // Reset flag ketika tidak dalam mode edit
+    if (!initialData) {
+      isEditInitialized.current = false;
+    }
+  }, [initialData, user?.id, form]);
+
+  // Calculate total
   const items = form.watch("items") || [];
   const total = items.reduce((acc, item) => {
     const price = Number(item.price) || 0;
@@ -80,34 +130,65 @@ export function usePurchaseForm({
     return acc + price * qty;
   }, 0);
 
-  const onSubmit = async (data: insertPurchaseType) => {
+  // Submit handler
+  const handleSubmit = async (data: PurchaseFormData) => {
     try {
-      if (isEdit) {
+      const cleanedItems = data.items.map((item) => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        qty: item.qty,
+        price: item.price,
+      }));
+
+      const payload = {
+        supplierId: data.supplierId,
+        userId: data.userId,
+        items: cleanedItems,
+      };
+
+      if (isEdit && initialData?.id) {
         if (!updateMutation) {
-          throw new Error("Update mutation is not provided");
+          throw new Error("Update mutation tidak tersedia");
         }
-        await updateMutation.mutateAsync({ id: initialData.id, ...data });
+
+        const updatePayload = {
+          id: initialData.id,
+          ...payload,
+        };
+
+        await updateMutation.mutateAsync(updatePayload);
       } else {
-        if (!createMutation) {
-          throw new Error("Create mutation is not provided");
-        }
-        await createMutation.mutateAsync(data);
+        await createMutation.mutateAsync(payload);
       }
+
       form.reset();
       onSuccess?.();
     } catch (error) {
-      console.error(error);
+      console.error("❌ Submit error:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : typeof error === "object" && error !== null && "error" in error
+            ? isEdit
+              ? "Gagal memperbarui data pembelian"
+              : "Gagal menambahkan data pembelian"
+            : "Gagal menambahkan data pembelian";
+      toast.error(errorMessage);
     }
   };
 
+  const isSubmitting =
+    createMutation.isPending || (updateMutation?.isPending ?? false);
+
   return {
     form,
-    fields,
+    fields: fields as PurchaseFormItem[],
     append,
     remove,
     update,
     total,
     isEdit,
-    onSubmit: form.handleSubmit(onSubmit as any),
+    isSubmitting,
+    onSubmit: form.handleSubmit(handleSubmit),
   };
 }

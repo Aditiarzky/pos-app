@@ -30,7 +30,8 @@ export const updateUserSchema = insertSchema.extend({
     .or(z.literal("")),
   roles: z
     .array(z.enum(["admin toko", "admin sistem"]))
-    .min(1, "Minimal pilih satu role"),
+    .min(1, "Minimal pilih satu role")
+    .optional(),
 });
 
 export const userFormSchema = createSelectSchema(users).extend({

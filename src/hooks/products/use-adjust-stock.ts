@@ -14,8 +14,5 @@ export function useAdjustStock() {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["stock-mutations"] });
     },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.error || "Gagal menyesuaikan stok");
-    },
   });
 }

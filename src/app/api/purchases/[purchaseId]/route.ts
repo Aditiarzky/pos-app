@@ -8,12 +8,12 @@ import {
   purchaseOrders,
   stockMutations,
 } from "@/drizzle/schema";
-import { validateInsertPurchaseData } from "@/lib/validations/purchase";
+import { InsertPurchaseItemType } from "@/drizzle/type";
 
 // GET detail purchase
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ purchaseId: string }> }
+  { params }: { params: Promise<{ purchaseId: string }> },
 ) {
   try {
     const purchaseId = (await params).purchaseId;
@@ -21,7 +21,7 @@ export async function GET(
     if (!purchaseId) {
       return NextResponse.json(
         { success: false, error: "Purchase ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,12 +35,6 @@ export async function GET(
           },
         },
         items: {
-          columns: {
-            id: true,
-            price: true,
-            qty: true,
-            subtotal: true,
-          },
           with: {
             product: {
               columns: {
@@ -70,7 +64,7 @@ export async function GET(
     if (!purchase) {
       return NextResponse.json(
         { success: false, error: "Purchase not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
     return NextResponse.json({ success: true, data: purchase });
@@ -78,7 +72,7 @@ export async function GET(
     console.error("Error fetching purchase:", error);
     return NextResponse.json(
       { success: false, error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -86,15 +80,17 @@ export async function GET(
 // PUT update purchase
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ purchaseId: string }> }
+  { params }: { params: Promise<{ purchaseId: string }> },
 ) {
   try {
     const poId = Number((await params).purchaseId);
     const { supplierId, userId, items: newItems } = await request.json();
 
-    const variantIds = newItems.map((item: any) => item.variantId);
+    const variantIds = newItems.map(
+      (item: InsertPurchaseItemType) => item.variantId,
+    );
     const duplicateVariant = variantIds.find(
-      (id: number, index: number) => variantIds.indexOf(id) !== index
+      (id: number, index: number) => variantIds.indexOf(id) !== index,
     );
 
     if (duplicateVariant) {
@@ -103,7 +99,7 @@ export async function PUT(
           success: false,
           error: `Input tidak valid: Varian ID ${duplicateVariant} muncul lebih dari satu kali. Silakan gabungkan kuantitasnya.`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -133,8 +129,11 @@ export async function PUT(
           const qtyToRevert =
             Number(oldItem.qty) * Number(variant.conversionToBase);
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const updateData: any = {
-            stock: sql`${products.stock} - ${qtyToRevert.toFixed(3)}`,
+            stock: Number(
+              sql`${products.stock} - ${qtyToRevert.toFixed(3)}`,
+            ).toFixed(3),
           };
 
           // jika product belum pernah di revert, kembalikan averageCost ke 'costBefore'
@@ -156,7 +155,10 @@ export async function PUT(
       await tx
         .delete(stockMutations)
         .where(
-          eq(stockMutations.reference, `PO-${poId.toString().padStart(6, "0")}`)
+          eq(
+            stockMutations.reference,
+            `PO-${poId.toString().padStart(6, "0")}`,
+          ),
         );
 
       let grandTotal = 0;
@@ -248,11 +250,11 @@ export async function PUT(
       data: result,
       message: "Purchase updated successfully",
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error updating purchase:", error);
     return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
+      { success: false, error: (error as Error).message },
+      { status: 500 },
     );
   }
 }
@@ -260,7 +262,7 @@ export async function PUT(
 // soft delete purchase order
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ purchaseId: string }> }
+  { params }: { params: Promise<{ purchaseId: string }> },
 ) {
   try {
     const { purchaseId } = await params;
@@ -269,7 +271,7 @@ export async function DELETE(
     if (isNaN(poId)) {
       return NextResponse.json(
         { success: false, error: "Invalid ID" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -299,8 +301,11 @@ export async function DELETE(
           const qtyToRevert =
             Number(item.qty) * Number(variant.conversionToBase);
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const updateData: any = {
-            stock: sql`${products.stock} - ${qtyToRevert.toFixed(3)}`,
+            stock: Number(
+              sql`${products.stock} - ${qtyToRevert.toFixed(3)}`,
+            ).toFixed(3),
           };
 
           // jika product belum pernah di revert, kembalikan averageCost ke 'costBefore'
@@ -342,11 +347,11 @@ export async function DELETE(
       message: "Purchase Order archived successfully",
       data: result,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Delete Purchase Error:", error);
     return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
+      { success: false, error: (error as Error).message },
+      { status: 500 },
     );
   }
 }

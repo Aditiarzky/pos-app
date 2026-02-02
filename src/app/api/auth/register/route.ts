@@ -5,6 +5,7 @@ import { users, userRoles } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { hash } from "bcryptjs";
 import { createSession } from "@/lib/auth";
+import { UserRoleEnumType } from "@/drizzle/type";
 
 export async function POST(req: NextRequest) {
   try {
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
       await tx.insert(userRoles).values(
         finalRoles.map((r) => ({
           userId: newUser.id,
-          role: r as any,
+          role: r as UserRoleEnumType,
         })),
       );
 
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
       id: result.id,
       email: result.email,
       name: result.name,
-      roles: result.roles as string[],
+      roles: result.roles as UserRoleEnumType[],
     });
 
     return NextResponse.json(

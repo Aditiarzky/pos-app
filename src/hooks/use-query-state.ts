@@ -26,7 +26,7 @@ export function useQueryState<T extends string | number>(
 
       const updatedValue =
         typeof newValue === "function"
-          ? (newValue as any)(typedValue)
+          ? (newValue as (prev: T) => T)(typedValue)
           : newValue;
 
       if (

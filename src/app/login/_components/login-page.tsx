@@ -1,14 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useRouter } from "nextjs-toploader/app";
 import { toast } from "sonner";
-import { ApiResponse, authLogin, authRegister } from "@/services/authService";
+import {
+  ApiResponse,
+  authLogin,
+  authRegister,
+  UserRegisterInputType,
+} from "@/services/authService";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -22,6 +27,7 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +37,7 @@ export default function LoginPage() {
       const response = await authLogin({ email, password });
 
       if (response.success) {
+        await queryClient.invalidateQueries({ queryKey: ["auth-me"] });
         toast.success("Login berhasil!");
         router.push("/dashboard");
       }
@@ -58,8 +65,8 @@ export default function LoginPage() {
         name,
         email,
         password,
-        roles: ["admin toko"], // Default role for public registration
-      } as any);
+        roles: ["admin toko"],
+      } as UserRegisterInputType);
 
       if (response.success) {
         toast.success("Registrasi berhasil! Silakan login.");
@@ -68,9 +75,11 @@ export default function LoginPage() {
         setPassword("");
         setConfirmPassword("");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Register error:", error);
-      toast.error(error.response?.data?.error || "Registrasi gagal");
+      const apiError = (error as { response?: { data?: ApiResponse } })
+        ?.response?.data;
+      toast.error(apiError?.error || "Registrasi gagal");
     } finally {
       setLoading(false);
     }
@@ -354,7 +363,7 @@ export default function LoginPage() {
             <div className="text-center text-sm text-muted-foreground">
               {currentView === "login" && (
                 <>
-                  Don't Have An Account?{" "}
+                  Belum punya akun?{" "}
                   <Button
                     type="button"
                     variant="link"

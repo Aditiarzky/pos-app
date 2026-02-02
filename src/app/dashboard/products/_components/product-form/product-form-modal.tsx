@@ -1,5 +1,4 @@
-import { useMemo, useState } from "react";
-import { Circle } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useCategories } from "@/hooks/master/use-categories";
 import { useUnits } from "@/hooks/master/use-units";
@@ -21,13 +20,13 @@ import { BasicInfoTab } from "./tabs/basic-info-tab";
 import { VariantsTab } from "./tabs/variants-tab";
 import { BarcodesTab } from "./tabs/barcodes-tab";
 import { ErrorIndicator } from "@/components/ui/error-indicator";
+import { CategoryType, UnitType } from "@/drizzle/type";
 
 export function ProductFormModal({
   open,
   onOpenChange,
   mode,
   productId,
-  allSku,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -64,14 +63,16 @@ export function ProductFormModal({
   } = useProductForm({
     isEdit,
     productData,
-    productId,
+    productId: productId!,
     createMutation,
-    updateMutation,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    updateMutation: updateMutation as any,
     onSuccess: () => onOpenChange(false),
   });
 
   const { imagePreview, setImagePreview, uploading, inputRef, uploadImage } =
-    useProductImage(uploadMutation, form.setValue, open, productData);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    useProductImage(uploadMutation, form.setValue as any, open, productData);
 
   const hasBasicError =
     !!form.formState.errors.name ||
@@ -108,6 +109,13 @@ export function ProductFormModal({
     )();
   };
 
+  const handleClose = () => {
+    onOpenChange(false);
+    form.reset();
+    setActiveTab("basic");
+    setImagePreview(null);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -140,11 +148,13 @@ export function ProductFormModal({
             <TabsContent value="basic">
               <BasicInfoTab
                 {...form}
-                categories={categories}
-                units={units}
+                categories={categories as unknown as CategoryType[]}
+                units={units as unknown as UnitType[]}
                 imagePreview={imagePreview}
                 uploading={uploading}
-                inputRef={inputRef}
+                inputRef={
+                  inputRef as unknown as React.RefObject<HTMLInputElement>
+                }
                 uploadImage={uploadImage}
                 clearImage={() => {
                   setImagePreview(null);
@@ -158,12 +168,12 @@ export function ProductFormModal({
               <VariantsTab
                 {...form}
                 errors={form.formState.errors}
-                units={units}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                units={units as any}
                 variantFields={variantFields}
                 appendVariant={appendVariant}
                 removeVariant={removeVariant}
-                isEditMode={isEdit}
-                averageCost={productData?.data?.averageCost}
+                averageCost={Number(productData?.data?.averageCost ?? 0)}
               />
             </TabsContent>
 
@@ -179,11 +189,7 @@ export function ProductFormModal({
           </Tabs>
 
           <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
+            <Button type="button" variant="outline" onClick={handleClose}>
               Batal
             </Button>
             <Button

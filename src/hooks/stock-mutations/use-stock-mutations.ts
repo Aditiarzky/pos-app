@@ -4,7 +4,7 @@ import { getStockMutations } from "@/services/productService";
 export const stockMutationKeys = {
   all: ["stock-mutations"] as const,
   lists: () => [...stockMutationKeys.all, "list"] as const,
-  list: (params: any) => [...stockMutationKeys.lists(), params] as const,
+  list: (params: unknown) => [...stockMutationKeys.lists(), params] as const,
 };
 
 type UseStockMutationsOptions = {

@@ -15,12 +15,23 @@ export function BarcodesTab({
   barcodeFields,
   appendBarcode,
   removeBarcode,
-}: any) {
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  register: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  errors: any;
+  barcodeFields: InsertProductBarcodeType[];
+  appendBarcode: (barcode: InsertProductBarcodeType) => void;
+  removeBarcode: (index: number) => void;
+}) {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const handleScanSuccess = (barcode: string) => {
     setIsScannerOpen(false);
-    appendBarcode({ barcode });
+    appendBarcode({
+      barcode,
+      productId: 0,
+    });
   };
 
   return (
@@ -58,7 +69,7 @@ export function BarcodesTab({
           <Button
             type="button"
             variant="outline"
-            onClick={() => appendBarcode({ barcode: "" })}
+            onClick={() => appendBarcode({ barcode: "", productId: 0 })}
             className="flex-1"
           >
             Input Manual

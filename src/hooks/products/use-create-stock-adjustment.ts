@@ -20,10 +20,5 @@ export const useCreateStockAdjustment = ({
       toast.success("Stok berhasil disesuaikan");
       mutationConfig?.onSuccess?.(data, variables, context, onMutateResult);
     },
-    onError: (error: any, variables, context, onMutateResult) => {
-      toast.error(error.response?.data?.error || "Gagal menyesuaikan stok");
-      mutationConfig?.onError?.(error, variables, context, onMutateResult);
-    },
-    ...mutationConfig,
   });
 };

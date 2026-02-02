@@ -1,97 +1,100 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import {
-  products,
-  productVariants,
-  stockMutations,
-  users,
-} from "@/drizzle/schema";
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { products, stockMutations } from "@/drizzle/schema";
+import { and, asc, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { formatMeta, parsePagination } from "@/lib/query-helper";
 import { handleApiError } from "@/lib/api-utils";
+import { StockMutationEnumType } from "@/drizzle/type";
 
 export async function GET(request: NextRequest) {
   try {
     const params = parsePagination(request);
-    const search = request.nextUrl.searchParams.get("search");
+    const search = request.nextUrl.searchParams.get("search")?.trim() || "";
     const productId = request.nextUrl.searchParams.get("productId");
     const type = request.nextUrl.searchParams.get("type");
-    const orderBy = request.nextUrl.searchParams.get("orderBy") || "createdAt";
-    const order = request.nextUrl.searchParams.get("order") || "desc";
 
-    let whereClause = undefined;
-    const conditions = [];
-
-    if (search) {
-      conditions.push(
-        or(
-          ilike(products.name, `%${search}%`),
-          ilike(products.sku, `%${search}%`),
-          ilike(stockMutations.reference, `%${search}%`),
-        ),
-      );
-    }
+    const baseConditions = [];
 
     if (productId) {
-      conditions.push(eq(stockMutations.productId, Number(productId)));
+      baseConditions.push(eq(stockMutations.productId, Number(productId)));
     }
 
     if (type && type !== "all") {
-      conditions.push(eq(stockMutations.type, type as any));
+      baseConditions.push(
+        eq(stockMutations.type, type as StockMutationEnumType),
+      );
     }
 
-    if (conditions.length > 0) {
-      whereClause = and(...conditions);
+    let whereClause = undefined;
+
+    if (search) {
+      const searchPattern = `%${search}%`;
+
+      const matchingProducts = await db
+        .select({ id: products.id })
+        .from(products)
+        .where(
+          or(
+            ilike(products.name, searchPattern),
+            ilike(products.sku, searchPattern),
+          ),
+        );
+
+      const matchingProductIds = matchingProducts.map((p) => p.id);
+
+      const searchCondition =
+        matchingProductIds.length > 0
+          ? or(
+              ilike(stockMutations.reference, searchPattern),
+              inArray(stockMutations.productId, matchingProductIds),
+            )
+          : ilike(stockMutations.reference, searchPattern);
+      const allConditions = [...baseConditions, searchCondition];
+      whereClause =
+        allConditions.length > 0 ? and(...allConditions) : undefined;
+    } else {
+      whereClause =
+        baseConditions.length > 0 ? and(...baseConditions) : undefined;
     }
 
-    const { limit, offset } = params;
-
-    // Get Total Count
-    const totalCountResult = await db
-      .select({ count: sql<number>`count(*)` })
+    const [countResult] = await db
+      .select({ value: count() })
       .from(stockMutations)
-      .leftJoin(products, eq(stockMutations.productId, products.id))
       .where(whereClause);
-    const totalCount = Number(totalCountResult[0]?.count || 0);
 
-    const getOrderFn = order === "asc" ? (col: any) => col : desc;
+    const totalCount = Number(countResult?.value || 0);
 
-    let sortColumn: any = stockMutations.createdAt;
-    if (orderBy === "qty") sortColumn = stockMutations.qtyBaseUnit;
-    if (orderBy === "name") sortColumn = products.name;
-    if (orderBy === "reference") sortColumn = stockMutations.reference;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let orderByField: any = stockMutations.createdAt;
+    if (params.orderBy === "qty") orderByField = stockMutations.qtyBaseUnit;
+    else if (params.orderBy === "reference")
+      orderByField = stockMutations.reference;
+    else if (params.orderBy === "type") orderByField = stockMutations.type;
 
-    // Get Data
-    const data = await db
-      .select({
-        id: stockMutations.id,
-        type: stockMutations.type,
-        qty: stockMutations.qtyBaseUnit,
-        reference: stockMutations.reference,
-        createdAt: stockMutations.createdAt,
-        product: {
-          name: products.name,
-          sku: products.sku,
+    const orderFn =
+      params.order === "desc" ? desc(orderByField) : asc(orderByField);
+
+    const data = await db.query.stockMutations.findMany({
+      where: whereClause,
+      limit: params.limit,
+      offset: params.offset,
+      orderBy: orderFn,
+      columns: {
+        id: true,
+        type: true,
+        qtyBaseUnit: true,
+        reference: true,
+        createdAt: true,
+      },
+      with: {
+        product: { columns: { name: true, sku: true } },
+        productVariant: {
+          columns: { name: true, sku: true },
+          with: { unit: { columns: { name: true } } },
         },
-        variant: {
-          name: productVariants.name,
-          sku: productVariants.sku,
-        },
-        user: {
-          name: users.name,
-        },
-      })
-      .from(stockMutations)
-      .leftJoin(products, eq(stockMutations.productId, products.id))
-      .leftJoin(
-        productVariants,
-        eq(stockMutations.variantId, productVariants.id),
-      )
-      .leftJoin(users, eq(stockMutations.userId, users.id))
-      .where(whereClause)
-      .limit(limit)
-      .offset(offset)
-      .orderBy(getOrderFn(sortColumn));
+        user: { columns: { name: true } },
+      },
+    });
 
     return NextResponse.json({
       success: true,

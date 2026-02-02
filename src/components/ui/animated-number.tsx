@@ -1,7 +1,7 @@
 "use client";
 
 import { formatCompactNumber } from "@/lib/format";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface AnimatedNumberProps {
   value: number;
@@ -15,11 +15,13 @@ export function AnimatedNumber({
   className,
 }: AnimatedNumberProps) {
   const [displayValue, setDisplayValue] = useState(0);
+  const startValueRef = useRef(displayValue);
 
   useEffect(() => {
     let startTimestamp: number | null = null;
-    const startValue = displayValue;
+    const startValue = startValueRef.current;
     const endValue = value;
+    let animationFrameId: number;
 
     if (startValue === endValue) return;
 
@@ -33,13 +35,18 @@ export function AnimatedNumber({
       const current = Math.floor(easing * (endValue - startValue) + startValue);
 
       setDisplayValue(current);
+      startValueRef.current = current;
 
       if (progress < 1) {
-        window.requestAnimationFrame(step);
+        animationFrameId = window.requestAnimationFrame(step);
       }
     };
 
-    window.requestAnimationFrame(step);
+    animationFrameId = window.requestAnimationFrame(step);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrameId);
+    };
   }, [value, duration]);
 
   return <span className={className}>{formatCompactNumber(displayValue)}</span>;

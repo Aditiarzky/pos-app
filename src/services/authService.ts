@@ -1,17 +1,22 @@
 // services/userService.ts
+import { InsertUserType } from "@/drizzle/type";
 import { axiosInstance } from "@/lib/axios";
 import { CreateUserInputType, LoginInputType } from "@/lib/validations/user";
 
-export type UserResponse = {
-  id: number;
+export interface UserResponse {
+  id?: number;
   email: string;
   name: string;
-  roles: Array<{
+  roles?: Array<{
     role: "admin toko" | "admin sistem";
   }>;
-  createdAt: string;
-  updatedAt: string;
-};
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UserRegisterInputType extends InsertUserType {
+  roles: ["admin toko" | "admin sistem"];
+}
 
 export type ApiResponse<T = unknown> = {
   success: boolean;
@@ -39,5 +44,11 @@ export const authRegister = async (
   data: CreateUserInputType,
 ): Promise<ApiResponse<UserResponse>> => {
   const response = await axiosInstance.post("/auth/register", data);
+  return response.data;
+};
+
+// Logout
+export const authLogout = async (): Promise<ApiResponse> => {
+  const response = await axiosInstance.post("/auth/logout");
   return response.data;
 };

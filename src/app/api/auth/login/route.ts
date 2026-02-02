@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { users } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { compare } from "bcryptjs";
-import { createSession } from "@/lib/auth";
+import { createSession, createRefreshToken } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,6 +40,8 @@ export async function POST(req: NextRequest) {
       name: userResult.name,
       roles: userRolesList,
     });
+
+    await createRefreshToken(userResult.id);
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _, ...userWithoutPassword } = userResult;

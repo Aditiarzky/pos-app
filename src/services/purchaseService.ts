@@ -4,8 +4,8 @@ import { insertPurchaseType } from "@/lib/validations/purchase";
 import { PurchaseOrderType } from "@/drizzle/type";
 
 export interface PurchaseResponse extends PurchaseOrderType {
-  supplier?: { name: string };
-  user?: { name: string };
+  supplier?: { id: number; name: string };
+  user?: { id: number; name: string };
   items?: Array<{
     id: number;
     productId: number;
@@ -13,10 +13,17 @@ export interface PurchaseResponse extends PurchaseOrderType {
     qty: string;
     price: string;
     subtotal: string;
-    product?: { name: string };
-    variant?: { name: string };
+    product?: {
+      id?: number;
+      name: string;
+      stock?: string;
+      averageCost?: string;
+    };
+    productVariant?: { id?: number; name: string; conversionToBase: string };
   }>;
 }
+
+export type PurchaseResponseItem = PurchaseResponse["items"];
 
 export const getPurchases = async (params?: {
   page?: number;

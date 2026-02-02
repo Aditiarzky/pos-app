@@ -1,11 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { compressImage } from "@/components/compress-image";
 import { ApiResponse, ProductResponse } from "@/services/productService";
 
 export function useProductImage(
-  uploadMutation: any,
-  setValue: any,
+  uploadMutation: {
+    mutateAsync: (file: File) => Promise<{ secureUrl: string }>;
+  },
+  setValue: (
+    field: string,
+    value: string | undefined,
+    { shouldDirty }?: { shouldDirty?: boolean },
+  ) => void,
   open: boolean,
   productData: ApiResponse<ProductResponse> | undefined,
 ) {
@@ -15,29 +21,31 @@ export function useProductImage(
 
   const existingImage = productData?.data?.image || "";
 
-  const uploadImage = async (file?: File) => {
-    if (!file) return;
+  const uploadImage = useCallback(
+    async (file?: File) => {
+      if (!file) return;
 
-    const compressed = await compressImage(file);
+      setUploading(true);
+      try {
+        const compressed = await compressImage(file);
 
-    if (compressed.size > 5 * 1024 * 1024) {
-      toast.error("Ukuran file maksimal 5MB");
-      return;
-    }
+        if (compressed.size > 5 * 1024 * 1024) {
+          toast.error("Ukuran file maksimal 5MB");
+          return;
+        }
 
-    setUploading(true);
-    try {
-      const result = await uploadMutation.mutateAsync(compressed);
-      setImagePreview(result.secureUrl);
-      setValue("image", result.secureUrl);
-      toast.success("Gambar berhasil diupload");
-    } catch {
-      toast.error("Gagal mengupload gambar");
-    } finally {
-      setUploading(false);
-    }
-  };
-
+        const result = await uploadMutation.mutateAsync(compressed);
+        setImagePreview(result.secureUrl);
+        setValue("image", result.secureUrl);
+        toast.success("Gambar berhasil diupload");
+      } catch {
+        toast.error("Gagal mengupload gambar");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [uploadMutation, setValue],
+  );
   useEffect(() => {
     if (!open) return;
 
@@ -73,7 +81,7 @@ export function useProductImage(
 
     document.addEventListener("paste", handler);
     return () => document.removeEventListener("paste", handler);
-  }, [open]);
+  }, [open, uploadImage]);
 
   return {
     imagePreview,

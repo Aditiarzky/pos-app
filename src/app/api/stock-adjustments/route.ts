@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { products, productVariants, stockMutations } from "@/drizzle/schema";
+import { products, stockMutations } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { handleApiError } from "@/lib/api-utils";
 import { z } from "zod";
@@ -25,8 +25,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { productId, actualStock, minStock, reason, userId } =
-      validation.data;
+    const { productId, actualStock, minStock, userId } = validation.data;
 
     const result = await db.transaction(async (tx) => {
       // 1. Get current product stock
@@ -40,7 +39,12 @@ export async function POST(request: NextRequest) {
         with: {
           variants: {
             limit: 1,
-            columns: { id: true },
+            columns: { id: true, name: true },
+            with: {
+              unit: {
+                columns: { name: true },
+              },
+            },
           },
         },
       });
@@ -73,7 +77,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 3. Update Product
-      const updateData: any = {};
+      const updateData: { stock?: string; minStock?: string } = {};
       if (actualStock !== undefined) updateData.stock = actualStock.toString();
       if (minStock !== undefined) updateData.minStock = minStock.toString();
 

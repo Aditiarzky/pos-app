@@ -13,6 +13,7 @@ import {
 import { CategoryType } from "@/drizzle/type";
 import { useCreateCategory } from "@/hooks/master/use-categories";
 import { toast } from "sonner";
+import { ApiResponse } from "@/services/productService";
 
 interface CategorySelectProps {
   categories: CategoryType[];
@@ -60,8 +61,10 @@ export function CategorySelect({
         setOpen(false);
         toast.success(`Kategori "${result.data.name}" berhasil dibuat`);
       }
-    } catch (error: any) {
-      toast.error(error.message || "Gagal membuat kategori baru");
+    } catch (error: unknown) {
+      const errorMessage =
+        (error as ApiResponse)?.error ?? "Gagal membuat kategori baru";
+      toast.error(errorMessage);
     }
   };
 
@@ -135,7 +138,7 @@ export function CategorySelect({
                   ) : (
                     <Plus className="mr-2 h-4 w-4" />
                   )}
-                  Tambah "{search}"
+                  Tambah &quot;{search}&quot;
                 </div>
               </DropdownMenuItem>
             )}

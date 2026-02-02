@@ -58,9 +58,54 @@ export async function verifySession(): Promise<SessionPayload | null> {
   }
 }
 
+import { db } from "@/lib/db";
+import { refreshTokens } from "@/drizzle/schema";
+import { eq } from "drizzle-orm";
+
 // Hapus session (logout)
 export async function deleteSession() {
-  (await cookies()).delete("auth_token");
+  const cookieStore = await cookies();
+  const refreshToken = cookieStore.get("refresh_token")?.value;
+
+  if (refreshToken) {
+    await db.delete(refreshTokens).where(eq(refreshTokens.token, refreshToken));
+    cookieStore.delete("refresh_token");
+  }
+  cookieStore.delete("auth_token");
+}
+
+export async function createRefreshToken(userId: number) {
+  const token = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  await db.insert(refreshTokens).values({
+    token,
+    userId,
+    expiresAt,
+  });
+
+  (await cookies()).set("refresh_token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    expires: expiresAt,
+    path: "/",
+  });
+}
+
+export async function verifyRefreshToken() {
+  const token = (await cookies()).get("refresh_token")?.value;
+  if (!token) return null;
+
+  const savedToken = await db.query.refreshTokens.findFirst({
+    where: eq(refreshTokens.token, token),
+  });
+
+  if (!savedToken || savedToken.expiresAt < new Date()) {
+    return null;
+  }
+
+  return savedToken;
 }
 
 // Untuk middleware

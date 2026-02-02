@@ -3,15 +3,24 @@ import { z } from "zod";
 export const supplierSchema = z.object({
   name: z
     .string()
-    .min(1, "Name is required")
-    .max(255, "Name must be at most 255 characters long"),
-  address: z
-    .string()
-    .max(255, "Address must be at most 255 characters long")
-    .optional(),
+    .min(1, "Nama supplier harus diisi")
+    .max(255, "Nama supplier maksimal 255 karakter"),
   phone: z
     .string()
-    .max(255, "Phone must be at most 255 characters long")
+    .max(255, "Nomor telepon maksimal 255 karakter")
+    .optional(),
+  email: z
+    .string()
+    .email("Format email tidak valid")
+    .max(255, "Email maksimal 255 karakter")
+    .optional(),
+  address: z
+    .string()
+    .max(500, "Alamat maksimal 500 karakter")
+    .optional(),
+  description: z
+    .string()
+    .max(1000, "Deskripsi maksimal 1000 karakter")
     .optional(),
 });
 

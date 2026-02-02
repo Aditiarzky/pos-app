@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { and, eq, notInArray } from "drizzle-orm";
@@ -11,7 +12,6 @@ import {
 } from "@/drizzle/schema";
 import {
   ProductVariantInputType,
-  validateProductData,
   validateUpdateProductData,
 } from "@/lib/validations/product";
 import { variantAdjustmentSchema } from "@/lib/validations/stock-adjustment";
@@ -202,7 +202,7 @@ export async function PUT(
     });
 
     return NextResponse.json({ success: true, data: result });
-  } catch (error: any) {
+  } catch (error: Error | unknown) {
     return handleApiError(error);
   }
 }

@@ -35,7 +35,6 @@ export async function GET(request: NextRequest) {
 
     let finalFilter = and(searchFilter, eq(products.isActive, true));
 
-    // If search is provided, also try to match barcodes
     if (params.search) {
       finalFilter = and(
         eq(products.isActive, true),
@@ -162,7 +161,7 @@ export async function POST(request: NextRequest) {
         .where(eq(products.id, newProduct.id));
 
       // 2. Insert Barcodes
-      let newBarcodes: any[] = [];
+      let newBarcodes: unknown = [];
       if (barcodes?.length) {
         newBarcodes = await tx
           .insert(productBarcodes)
@@ -197,7 +196,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: result }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     return handleApiError(error);
   }
 }

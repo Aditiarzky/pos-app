@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { FieldError, useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
@@ -14,7 +14,18 @@ import {
   defaultProductValues,
   mapProductToForm,
 } from "../_utils/product-form.utils";
-import { ApiResponse } from "@/services/productService";
+import { ApiResponse, ProductResponse } from "@/services/productService";
+import { UseMutationResult } from "@tanstack/react-query";
+import { InsertProductVariantInputType } from "@/lib/validations/product-variant";
+import { InsertProductBarcodeType } from "@/drizzle/type";
+
+interface BaseError {
+  message?: string;
+}
+
+export interface FormFieldErrors {
+  [key: string]: BaseError | FieldError | undefined;
+}
 
 export function useProductForm({
   isEdit,
@@ -23,7 +34,22 @@ export function useProductForm({
   createMutation,
   updateMutation,
   productId,
-}: any) {
+}: {
+  isEdit: boolean;
+  productData?: ApiResponse<ProductResponse>;
+  onSuccess: () => void;
+  createMutation: UseMutationResult<
+    ApiResponse<ProductResponse>,
+    Error,
+    InsertProductInputType
+  >;
+  updateMutation: UseMutationResult<
+    ApiResponse<ProductResponse>,
+    Error,
+    InsertProductInputType & { id: number }
+  >;
+  productId?: number;
+}) {
   const form = useForm<InsertProductInputType | UpdateProductInputType>({
     resolver: zodResolver(isEdit ? updateProductSchema : insertProductSchema),
     defaultValues: defaultProductValues,
@@ -69,13 +95,18 @@ export function useProductForm({
 
     if (isEdit && productId) {
       updateMutation.mutate(
-        { id: productId, ...cleanedData },
-        { onSuccess: onSuccessToast, onError: onErrorToast },
+        { ...cleanedData, id: productId } as InsertProductInputType & {
+          id: number;
+        },
+        {
+          onSuccess: onSuccessToast,
+          onError: onErrorToast as unknown as (error: Error) => void,
+        },
       );
     } else {
-      createMutation.mutate(cleanedData, {
+      createMutation.mutate(cleanedData as InsertProductInputType, {
         onSuccess: onSuccessToast,
-        onError: onErrorToast,
+        onError: onErrorToast as unknown as (error: Error) => void,
       });
     }
   };
@@ -101,8 +132,8 @@ export function useProductForm({
   return {
     form,
     submitHandler,
-    variantFields,
-    barcodeFields,
+    variantFields: variantFields as InsertProductVariantInputType[],
+    barcodeFields: barcodeFields as unknown as InsertProductBarcodeType[],
     appendVariant,
     appendBarcode,
     removeVariant,

@@ -7,6 +7,7 @@ import {
   UpdateUserInputType,
   validateUpdateUserData,
 } from "@/lib/validations/user";
+import { UserRoleEnumType } from "@/drizzle/type";
 
 export async function GET(
   req: NextRequest,
@@ -95,7 +96,7 @@ export async function PUT(
       );
     }
 
-    const updatePayload: any = {
+    const updatePayload: UpdateUserInputType = {
       ...validatedData,
       updatedAt: new Date(),
     };
@@ -121,7 +122,7 @@ export async function PUT(
           await tx.insert(userRoles).values(
             rolesInput.map((r) => ({
               userId: id,
-              role: r as any,
+              role: r as UserRoleEnumType,
             })),
           );
         }

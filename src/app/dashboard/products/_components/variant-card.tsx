@@ -3,23 +3,34 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Controller } from "react-hook-form";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { NumericInput } from "@/components/ui/numeric-input";
 import { UnitSelect } from "@/components/ui/unit-select";
 import { CommonVariantButtons } from "./common-variant-buttons";
 import { InsertProductVariantInputType } from "@/lib/validations/product-variant";
 import { UnitType } from "@/drizzle/type";
+import {
+  Control,
+  Controller,
+  UseFormRegister,
+  UseFormSetValue,
+  UseFormWatch,
+} from "react-hook-form";
+import {
+  InsertProductInputType,
+  UpdateProductInputType,
+} from "@/lib/validations/product";
 
 type VariantCardProps = {
   field: InsertProductVariantInputType;
   index: number;
   units: UnitType[];
-  watch: any;
-  register: any;
+  watch: UseFormWatch<InsertProductInputType | UpdateProductInputType>;
+  register: UseFormRegister<InsertProductInputType | UpdateProductInputType>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   errors: any;
-  setValue: any;
-  control: any;
+  setValue: UseFormSetValue<InsertProductInputType | UpdateProductInputType>;
+  control: Control<InsertProductInputType | UpdateProductInputType>;
   baseUnitName: string;
   handleRemoveVariant: (index: number) => void;
   variantFieldsLength: number;
@@ -50,7 +61,7 @@ export function VariantCard({
         <div className="space-y-2">
           <Label>Nama Variant</Label>
           <div className="space-y-2">
-            <Input {...register(`variants.${index}.name` as const)} />
+            <Input {...register(`variants.${index}.name`)} />
             <CommonVariantButtons index={index} setValue={setValue} />
           </div>
           {errors.variants?.[index]?.name && (
@@ -101,7 +112,7 @@ export function VariantCard({
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <Label>Harga Jual</Label>
-            {averageCost && (
+            {Number(averageCost) > 0 && (
               <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-sm">
                 Modal: Rp{" "}
                 {Math.round(
@@ -114,31 +125,36 @@ export function VariantCard({
           <Controller
             name={`variants.${index}.sellPrice`}
             control={control}
-            render={({ field }) => (
+            render={({ field: { value, onChange, ...fieldProps } }) => (
               <div className="space-y-1.5">
-                <CurrencyInput {...field} placeholder="0" />
-                {averageCost && Number(field.value) > 0 && (
+                <CurrencyInput
+                  {...fieldProps}
+                  placeholder="0"
+                  value={Number(value) ?? 0}
+                  onChange={onChange}
+                />
+                {Number(averageCost) > 0 && Number(value) > 0 && (
                   <div className="flex justify-between items-center px-1 text-xs">
                     <span className="uppercase font-bold tracking-tighter text-muted-foreground">
                       Estimasi Margin
                     </span>
                     <span
-                      className={`font-black ${Number(field.value) - Number(averageCost) * Number(watch(`variants.${index}.conversionToBase`)) > 0 ? "text-emerald-600" : "text-red-500"}`}
+                      className={`font-black ${Number(value) - Number(averageCost) * Number(watch(`variants.${index}.conversionToBase`)) > 0 ? "text-emerald-600" : "text-red-500"}`}
                     >
                       Rp{" "}
                       {(
-                        Number(field.value) -
+                        Number(value) -
                         Number(averageCost) *
                           Number(watch(`variants.${index}.conversionToBase`))
                       ).toLocaleString("id-ID")}{" "}
                       (
                       {Math.round(
-                        ((Number(field.value) -
+                        ((Number(value) -
                           Number(averageCost) *
                             Number(
                               watch(`variants.${index}.conversionToBase`),
                             )) /
-                          Number(field.value)) *
+                          Number(value)) *
                           100,
                       )}
                       %)
@@ -166,9 +182,11 @@ export function VariantCard({
           <Controller
             name={`variants.${index}.conversionToBase`}
             control={control}
-            render={({ field }) => (
+            render={({ field: { value, onChange, ...fieldProps } }) => (
               <NumericInput
-                {...field}
+                value={value ?? ""}
+                onChange={onChange}
+                {...fieldProps}
                 className="flex-1"
                 suffix={baseUnitName}
                 placeholder="Jumlah unit"

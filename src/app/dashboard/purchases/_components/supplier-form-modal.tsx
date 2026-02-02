@@ -22,6 +22,7 @@ import {
 } from "@/hooks/master/use-suppliers";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { ApiResponse } from "@/services/productService";
 
 interface SupplierFormModalProps {
   open: boolean;
@@ -78,8 +79,9 @@ export function SupplierFormModal({
         toast.success("Supplier berhasil ditambahkan");
       }
       onOpenChange(false);
-    } catch (error: any) {
-      toast.error(error.message || "Terjadi kesalahan");
+    } catch (error: unknown) {
+      const apiError = error as ApiResponse;
+      toast.error(apiError.error || "Terjadi kesalahan");
     }
   };
 

@@ -1,37 +1,22 @@
-import { Trash2, Plus, Upload, X, Loader2 } from "lucide-react";
-import { CurrencyInput } from "@/components/ui/currency-input";
-import { NumericInput } from "@/components/ui/numeric-input";
-import { Controller } from "react-hook-form";
+import { Plus } from "lucide-react";
 import { UnitType } from "@/drizzle/type";
 import { TabsContent } from "@/components/ui/tabs";
 import { InsertProductVariantInputType } from "@/lib/validations/product-variant";
-import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { UnitSelect } from "@/components/ui/unit-select";
 import { useConfirm } from "@/contexts/ConfirmDialog";
 import { VariantCard } from "../../variant-card";
-
-const COMMON_VARIANT_NAMES = [
-  "Dus",
-  "Rentengan",
-  "Pack",
-  "Lusin",
-  "Box",
-  "Karton",
-  "Ikat",
-  "Pcs",
-  "Bungkus",
-  "Karung",
-];
+import {
+  Control,
+  UseFormRegister,
+  UseFormSetValue,
+  UseFormWatch,
+} from "react-hook-form";
+import {
+  InsertProductInputType,
+  ProductVariantInputType,
+  UpdateProductInputType,
+} from "@/lib/validations/product";
+import { FormFieldErrors } from "../../../_hooks/use-product-form";
 
 export function VariantsTab({
   register,
@@ -44,7 +29,18 @@ export function VariantsTab({
   removeVariant,
   control,
   averageCost,
-}: any) {
+}: {
+  register: UseFormRegister<InsertProductInputType | UpdateProductInputType>;
+  errors: FormFieldErrors;
+  units: UnitType[];
+  setValue: UseFormSetValue<InsertProductInputType | UpdateProductInputType>;
+  watch: UseFormWatch<InsertProductInputType | UpdateProductInputType>;
+  variantFields: InsertProductVariantInputType[];
+  appendVariant: (value: ProductVariantInputType) => void;
+  removeVariant: (index: number) => void;
+  control: Control<InsertProductInputType | UpdateProductInputType>;
+  averageCost: number;
+}) {
   const confirm = useConfirm();
 
   const handleRemoveVariant = async (index: number) => {
@@ -104,7 +100,7 @@ export function VariantsTab({
           }
         >
           <Plus className="mr-2 h-4 w-4" />
-          Tambah Variant
+          Tambah Jenis Variant
         </Button>
       </TabsContent>
     </div>

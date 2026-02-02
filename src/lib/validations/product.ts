@@ -18,7 +18,11 @@ export const productVariantSchema = baseVariantInsert
       (v) => Number(v) >= 1,
       "Konversi ke satuan dasar harus lebih dari 1",
     ),
-    unitId: baseVariantInsert.shape.unitId,
+    unitId: z.number({
+      error: () => ({
+        message: "Satuan dasar harus diisi",
+      }),
+    }),
   })
   .strip();
 
@@ -28,12 +32,6 @@ export const insertProductSchema = baseInsertSchema
   .extend({
     name: baseInsertSchema.shape.name.min(3, "Nama harus diisi"),
     sku: baseInsertSchema.shape.sku.optional(),
-    minStock: baseInsertSchema.shape.minStock
-      .default("0")
-      .refine((v) => Number(v) >= 0, "Stok minimum tidak boleh negatif"),
-    stock: baseInsertSchema.shape.stock
-      .default("0")
-      .refine((v) => Number(v) >= 0, "Stok tidak boleh negatif"),
     baseUnitId: z.number({
       error: () => ({
         message: "Satuan dasar harus diisi",

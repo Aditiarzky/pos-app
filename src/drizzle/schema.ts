@@ -43,6 +43,17 @@ export const users = p.pgTable(
   (t) => [p.uniqueIndex("users_email_key").on(t.email)],
 );
 
+export const refreshTokens = p.pgTable("refresh_tokens", {
+  id: p.serial("id").primaryKey(),
+  token: p.text("token").notNull().unique(),
+  userId: p
+    .integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: p.timestamp("expires_at").notNull(),
+  createdAt: p.timestamp("created_at").defaultNow(),
+});
+
 export const userRoles = p.pgTable(
   "user_roles",
   {

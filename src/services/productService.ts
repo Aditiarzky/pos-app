@@ -1,3 +1,4 @@
+import { ProductType, StockMutationType } from "@/drizzle/type";
 import { axiosInstance } from "@/lib/axios";
 import {
   InsertProductInputType,
@@ -8,22 +9,7 @@ import {
   VariantAdjustmentInput,
 } from "@/lib/validations/stock-adjustment";
 
-export type ProductResponse = {
-  id: number;
-  sku: string;
-  name: string;
-  image?: string;
-  minStock: string;
-  unitId: number;
-  categoryId: number;
-  stock: string;
-  baseUnitId: number;
-  averageCost?: string;
-  lastPurchaseCost?: string;
-  createdAt: string;
-  updatedAt: string;
-  isActive: boolean;
-  deletedAt?: string;
+export interface ProductResponse extends ProductType {
   category?: { name: string };
   unit?: { name: string };
   barcodes?: Array<{
@@ -37,29 +23,29 @@ export type ProductResponse = {
     unitId: number;
     conversionToBase: string;
     sellPrice: string;
-    isArchived: boolean;
+    isArchived?: boolean;
     unit?: { id: number; name: string };
   }>;
-};
+}
 
-export type StockMutationResponse = {
-  id: number;
-  type: string;
-  qty: string;
-  reference: string;
-  createdAt: string;
+export type ProductVariantResponse = ProductResponse["variants"];
+
+export interface StockMutationResponse extends StockMutationType {
   product: {
     name: string;
     sku: string;
   };
-  variant: {
+  productVariant: {
     name: string;
     sku: string;
+    unit: {
+      name: string;
+    };
   };
   user: {
     name: string;
   };
-};
+}
 
 export type ApiResponse<T = unknown> = {
   success: boolean;
@@ -151,7 +137,7 @@ export const createStockAdjustment = async (
 export const adjustProductStock = async ({
   id,
   ...data
-}: { id: number } & VariantAdjustmentInput): Promise<ApiResponse<any>> => {
+}: { id: number } & VariantAdjustmentInput): Promise<ApiResponse<unknown>> => {
   const response = await axiosInstance.patch(`/products/${id}`, data);
   return response.data;
 };

@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest } from "next/server";
-import { ilike, sql } from "drizzle-orm";
+import { ilike, or, SQL, sql } from "drizzle-orm";
+import { PgColumn } from "drizzle-orm/pg-core";
 
 export function parsePagination(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -17,7 +19,7 @@ export function getSearchAndOrderFTS(
   search: string,
   order: "asc" | "desc",
   orderBy: string,
-  table: any
+  table: any,
 ) {
   if (!search) {
     return {
@@ -49,7 +51,7 @@ export function getSearchAndOrderBasic(
   search: string,
   order: "asc" | "desc",
   orderBy: string,
-  column: any
+  column: any,
 ) {
   if (!search) {
     return {
@@ -66,6 +68,18 @@ export function getSearchAndOrderBasic(
       order === "asc" ? asc(fields[orderBy]) : desc(fields[orderBy]),
     ],
   };
+}
+
+export function getSearchFilter(
+  search: string,
+  columns: PgColumn | PgColumn[],
+): SQL | undefined {
+  if (!search) return undefined;
+
+  const columnArray = Array.isArray(columns) ? columns : [columns];
+  const filters = columnArray.map((col) => ilike(col, `%${search}%`));
+
+  return filters.length > 1 ? or(...filters) : filters[0];
 }
 
 export function formatMeta(totalCount: number, page: number, limit: number) {

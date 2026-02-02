@@ -1,11 +1,16 @@
 import { Button } from "@/components/ui/button"; // menggunakan <button> biasa agar ringan
+import {
+  InsertProductInputType,
+  UpdateProductInputType,
+} from "@/lib/validations/product";
+import { UseFormSetValue } from "react-hook-form";
 
 const COMMON_VARIANT_NAMES = [
   "Dus",
   "Rentengan",
   "Pack",
   "Lusin",
-  "Box",
+  "Krat",
   "Karton",
   "Ikat",
   "Pcs",
@@ -15,7 +20,7 @@ const COMMON_VARIANT_NAMES = [
 
 type CommonVariantButtonsProps = {
   index: number;
-  setValue: any;
+  setValue: UseFormSetValue<InsertProductInputType | UpdateProductInputType>;
 };
 
 export function CommonVariantButtons({

@@ -8,12 +8,16 @@ import {
   productVariants,
 } from "@/drizzle/schema";
 import { and, eq, not, sql } from "drizzle-orm";
-import { validateInsertPurchaseData } from "@/lib/validations/purchase";
+import {
+  insertPurchaseItemType,
+  validateInsertPurchaseData,
+} from "@/lib/validations/purchase";
 import {
   formatMeta,
   getSearchAndOrderBasic,
   parsePagination,
 } from "@/lib/query-helper";
+import { handleApiError } from "@/lib/api-utils";
 
 // GET all purchase with search, pagination, and sorting
 export async function GET(request: NextRequest) {
@@ -50,12 +54,6 @@ export async function GET(request: NextRequest) {
             },
           },
           items: {
-            columns: {
-              id: true,
-              qty: true,
-              price: true,
-              subtotal: true,
-            },
             with: {
               product: {
                 columns: {
@@ -94,11 +92,7 @@ export async function GET(request: NextRequest) {
       meta: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {
-    console.error("Error fetching purchases:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -109,7 +103,7 @@ export async function POST(request: NextRequest) {
     const validation = await validateInsertPurchaseData(body);
     const { supplierId, userId, items } = validation;
 
-    const variantIds = items.map((i: any) => i.variantId);
+    const variantIds = items.map((i: insertPurchaseItemType) => i.variantId);
     if (new Set(variantIds).size !== variantIds.length) {
       throw new Error("Same variant cannot be added multiple times");
     }
@@ -158,7 +152,7 @@ export async function POST(request: NextRequest) {
         const costBefore = currentAvgCost;
 
         const newStock = currentStock + qtyInBaseUnit;
-        let newAvgCost =
+        const newAvgCost =
           currentStock > 0
             ? (currentStock * currentAvgCost +
                 qtyInBaseUnit * pricePerBaseUnit) /
@@ -227,11 +221,7 @@ export async function POST(request: NextRequest) {
       { success: true, data: result, message: "Purchase created successfully" },
       { status: 201 },
     );
-  } catch (error: any) {
-    console.error("Purchase Error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message || "Internal Server Error" },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

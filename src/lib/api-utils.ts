@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 
-export function handleApiError(error: any) {
-  const errorCode = error.code || error.cause?.code;
+export function handleApiError(error: string | unknown) {
+  const errorCode =
+    (error as { code: string }).code ||
+    (error as { cause: { code: string } }).cause?.code;
 
   if (errorCode === "23505") {
-    const detail = error.detail || error.cause?.detail || "";
+    const detail =
+      (error as { detail: string }).detail ||
+      (error as { cause: { detail: string } }).cause?.detail ||
+      "";
     let message = "Ada data yang sama";
 
     if (detail.includes("sku")) {
@@ -21,9 +26,13 @@ export function handleApiError(error: any) {
     );
   }
 
-  if (error.name === "ZodError") {
+  if ((error as { name: string }).name === "ZodError") {
     return NextResponse.json(
-      { success: false, error: "Validation failed", details: error.format() },
+      {
+        success: false,
+        error: "Validation failed",
+        details: (error as { format: () => unknown }).format(),
+      },
       { status: 400 },
     );
   }
@@ -34,7 +43,11 @@ export function handleApiError(error: any) {
       success: false,
       error:
         process.env.NODE_ENV === "development"
-          ? error.message
+          ? typeof error === "string"
+            ? error
+            : error instanceof Error
+              ? error.message
+              : "Unknown error"
           : "Terjadi kesalahan pada server",
     },
     { status: 500 },
