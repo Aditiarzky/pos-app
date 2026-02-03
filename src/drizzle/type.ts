@@ -36,7 +36,7 @@ export type StockMutationType = InferSelectModel<typeof schema.stockMutations>;
 export type InsertStockMutationType = InferInsertModel<
   typeof schema.stockMutations
 >;
-export type StockMutationTypeEnumType =
+export type MutationEnumType =
   (typeof schema.stockMutationType.enumValues)[number];
 export type ProductBarcodeType = InferSelectModel<
   typeof schema.productBarcodes

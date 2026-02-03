@@ -4,7 +4,7 @@ import { products, stockMutations } from "@/drizzle/schema";
 import { and, asc, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { formatMeta, parsePagination } from "@/lib/query-helper";
 import { handleApiError } from "@/lib/api-utils";
-import { StockMutationEnumType } from "@/drizzle/type";
+import { MutationEnumType } from "@/drizzle/type";
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,9 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (type && type !== "all") {
-      baseConditions.push(
-        eq(stockMutations.type, type as StockMutationEnumType),
-      );
+      baseConditions.push(eq(stockMutations.type, type as MutationEnumType));
     }
 
     let whereClause = undefined;

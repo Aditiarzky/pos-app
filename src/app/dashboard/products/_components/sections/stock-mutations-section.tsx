@@ -20,7 +20,7 @@ import { LayoutGrid, Loader2, SearchX, Table2 } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { SearchInput } from "@/components/ui/search-input";
 import { formatCompactNumber } from "@/lib/format";
-import { StockMutationEnumType } from "@/drizzle/type";
+import { MutationEnumType } from "@/drizzle/type";
 import { FilterWrap } from "@/components/filter-wrap";
 import { MutationFilterForm } from "../ui/mutation-filter-form";
 
@@ -73,7 +73,7 @@ export function StockMutationsSection() {
     }
   };
 
-  const getTypeName = (type: StockMutationEnumType) => {
+  const getTypeName = (type: MutationEnumType) => {
     switch (type) {
       case "purchase":
         return "Pembelian";
