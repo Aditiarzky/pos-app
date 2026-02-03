@@ -5,14 +5,14 @@ import { SupplierData, SupplierUpdateData } from "@/lib/validations/supplier";
 export type SupplierResponse = {
   id: number;
   name: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  description?: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  description: string | null;
   isActive: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  deletedAt?: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+  deletedAt: string | null;
 };
 
 export const getSuppliers = async (): Promise<
