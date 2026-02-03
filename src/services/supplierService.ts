@@ -10,8 +10,9 @@ export type SupplierResponse = {
   email?: string;
   description?: string;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+  deletedAt?: string;
 };
 
 export const getSuppliers = async (): Promise<
