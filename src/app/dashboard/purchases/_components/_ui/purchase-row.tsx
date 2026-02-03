@@ -21,14 +21,21 @@ interface PurchaseProps {
   purchase: PurchaseResponse;
   onEdit: (purchase: PurchaseResponse) => void;
   onDelete: (purchase: PurchaseResponse) => void;
+  idx?: number;
 }
 
-export const PurchaseRow = ({ purchase, onEdit, onDelete }: PurchaseProps) => {
+export const PurchaseRow = ({
+  purchase,
+  onEdit,
+  onDelete,
+  idx,
+}: PurchaseProps) => {
   const handlePrint = () => window.print();
   const itemCount = purchase?.items?.length || 0;
 
   return (
     <TableRow className="hover:bg-muted/30 transition-colors group">
+      <TableCell>{idx}</TableCell>
       <TableCell className="font-mono font-bold text-primary">
         {purchase.orderNumber}
         {purchase.isArchived && (

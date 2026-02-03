@@ -1,14 +1,14 @@
 import * as React from "react";
 import { Input } from "./input";
 import { cn } from "@/lib/utils";
-import { parseCurrency, formatCurrency } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 
 interface CurrencyInputProps extends Omit<
   React.ComponentProps<"input">,
   "onChange" | "value"
 > {
   // Ubah value menjadi number agar sinkron dengan state form
-  value: number | undefined | null;
+  value: string | number | undefined | null;
   // Ubah onChange untuk mengembalikan number
   onChange: (value: number) => void;
 }
@@ -22,9 +22,10 @@ export function CurrencyInput({
   const [displayValue, setDisplayValue] = React.useState("");
 
   React.useEffect(() => {
-    // Jika value adalah 0 atau angka, format untuk tampilan
-    if (typeof value === "number") {
-      const formatted = formatCurrency(value).replace("Rp", "").trim();
+    // Jika value ada, format untuk tampilan
+    if (value !== undefined && value !== null && value !== "") {
+      const numValue = typeof value === "string" ? parseFloat(value) : value;
+      const formatted = formatCurrency(numValue).replace("Rp", "").trim();
       setDisplayValue(formatted);
     } else {
       setDisplayValue("");

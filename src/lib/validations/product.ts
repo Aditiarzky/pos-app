@@ -10,14 +10,15 @@ export const productVariantSchema = baseVariantInsert
     productId: baseVariantInsert.shape.productId.optional(),
     sku: baseVariantInsert.shape.sku.optional(),
     name: baseVariantInsert.shape.name.min(1, "Nama variant harus diisi"),
-    sellPrice: baseVariantInsert.shape.sellPrice.refine(
-      (v) => Number(v) >= 1,
-      "Harga jual harus lebih dari 1",
-    ),
-    conversionToBase: baseVariantInsert.shape.conversionToBase.refine(
-      (v) => Number(v) >= 1,
-      "Konversi ke satuan dasar harus lebih dari 1",
-    ),
+    sellPrice: z.coerce
+      .string()
+      .refine((v) => Number(v) >= 1, "Harga jual harus lebih dari 1"),
+    conversionToBase: z.coerce
+      .string()
+      .refine(
+        (v) => Number(v) >= 1,
+        "Konversi ke satuan dasar harus lebih dari 1",
+      ),
     unitId: z.number({
       error: () => ({
         message: "Satuan dasar harus diisi",
@@ -32,6 +33,8 @@ export const insertProductSchema = baseInsertSchema
   .extend({
     name: baseInsertSchema.shape.name.min(3, "Nama harus diisi"),
     sku: baseInsertSchema.shape.sku.optional(),
+    minStock: z.coerce.string().optional(),
+    stock: z.coerce.string().optional(),
     baseUnitId: z.number({
       error: () => ({
         message: "Satuan dasar harus diisi",

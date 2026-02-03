@@ -13,20 +13,18 @@ export const insertProductVariantSchema = baseInsertSchema
   .extend({
     name: baseInsertSchema.shape.name.min(
       3,
-      "Name must be at least 3 characters long"
+      "Name must be at least 3 characters long",
     ),
     sku: baseInsertSchema.shape.sku.min(
       3,
-      "SKU must be at least 3 characters long"
+      "SKU must be at least 3 characters long",
     ),
-    sellPrice: baseInsertSchema.shape.sellPrice.min(
-      0,
-      "Sell price must be at least 0"
-    ),
-    conversionToBase: baseInsertSchema.shape.conversionToBase.min(
-      0,
-      "Conversion to base must be at least 0"
-    ),
+    sellPrice: z.coerce
+      .string()
+      .refine((v) => Number(v) >= 0, "Sell price must be at least 0"),
+    conversionToBase: z.coerce
+      .string()
+      .refine((v) => Number(v) >= 0, "Conversion to base must be at least 0"),
   })
   .strip();
 export const updateProductVariantSchema = baseUpdateSchema.extend({
@@ -36,11 +34,13 @@ export const updateProductVariantSchema = baseUpdateSchema.extend({
   sku: baseInsertSchema.shape.sku
     .min(3, "SKU must be at least 3 characters long")
     .optional(),
-  sellPrice: baseInsertSchema.shape.sellPrice
-    .min(0, "Sell price must be at least 0")
+  sellPrice: z.coerce
+    .string()
+    .refine((v) => Number(v) >= 0, "Sell price must be at least 0")
     .optional(),
-  conversionToBase: baseInsertSchema.shape.conversionToBase
-    .min(0, "Conversion to base must be at least 0")
+  conversionToBase: z.coerce
+    .string()
+    .refine((v) => Number(v) >= 0, "Conversion to base must be at least 0")
     .optional(),
 });
 export const selectProductVariantSchema = createSelectSchema(productVariants);

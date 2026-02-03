@@ -123,6 +123,7 @@ export function PurchaseListSection({ onEdit }: PurchaseListSectionProps) {
               <Table>
                 <TableHeader className="bg-muted/30">
                   <TableRow>
+                    <TableHead className="font-bold">No.</TableHead>
                     <TableHead className="font-bold">No. Invoice</TableHead>
                     <TableHead className="font-bold text-center">
                       Tanggal
@@ -156,6 +157,7 @@ export function PurchaseListSection({ onEdit }: PurchaseListSectionProps) {
               <Table>
                 <TableHeader className="bg-muted/30">
                   <TableRow>
+                    <TableHead className="font-bold">No.</TableHead>
                     <TableHead className="font-bold">No. Invoice</TableHead>
                     <TableHead className="font-bold text-center">
                       Tanggal
@@ -196,6 +198,7 @@ export function PurchaseListSection({ onEdit }: PurchaseListSectionProps) {
                 <Table className="min-w-[800px]">
                   <TableHeader className="bg-muted/30">
                     <TableRow>
+                      <TableHead className="font-bold">No.</TableHead>
                       <TableHead className="font-bold">No. Invoice</TableHead>
                       <TableHead className="font-bold text-center">
                         Tanggal
@@ -212,12 +215,13 @@ export function PurchaseListSection({ onEdit }: PurchaseListSectionProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {purchases.map((purchase) => (
+                    {purchases.map((purchase, idx) => (
                       <PurchaseRow
                         key={purchase.id}
                         purchase={purchase}
                         onEdit={onEdit}
                         onDelete={handleDelete}
+                        idx={idx + 1}
                       />
                     ))}
                   </TableBody>

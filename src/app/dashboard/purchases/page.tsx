@@ -66,10 +66,6 @@ function PurchasesContent() {
     setIsPurchaseFormOpen(true);
   };
 
-  // ============================================
-  // RENDER
-  // ============================================
-
   return (
     <>
       {/* Header Section */}
@@ -121,18 +117,18 @@ function PurchasesContent() {
         />
 
         {/* Tabs */}
-        <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 h-11 bg-muted/50 p-1">
+        <Tabs value={tab} onValueChange={setTab} className="gap-4">
+          <TabsList className="bg-background">
             <TabsTrigger
               value="history"
-              className="cursor-pointer font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground overflow-hidden"
+              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
             >
               <History className="mr-2 h-4 w-4" />
               <p className="truncate">Riwayat Pembelian</p>
             </TabsTrigger>
             <TabsTrigger
               value="suppliers"
-              className="cursor-pointer font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground overflow-hidden"
+              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
             >
               <Truck className="mr-2 h-4 w-4" />
               <p className="truncate">Daftar Supplier</p>

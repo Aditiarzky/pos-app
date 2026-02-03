@@ -50,7 +50,8 @@ export function useProductForm({
   >;
   productId?: number;
 }) {
-  const form = useForm<InsertProductInputType | UpdateProductInputType>({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useForm<any>({
     resolver: zodResolver(isEdit ? updateProductSchema : insertProductSchema),
     defaultValues: defaultProductValues,
   });
@@ -132,7 +133,7 @@ export function useProductForm({
   return {
     form,
     submitHandler,
-    variantFields: variantFields as InsertProductVariantInputType[],
+    variantFields: variantFields as unknown as InsertProductVariantInputType[],
     barcodeFields: barcodeFields as unknown as InsertProductBarcodeType[],
     appendVariant,
     appendBarcode,

@@ -1,15 +1,10 @@
 "use client";
 
+import React, { useState, useMemo } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,13 +12,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Edit,
   Trash2,
   MoreVertical,
-  Barcode,
   PackagePlus,
   Package,
+  Eye,
+  AlertCircle,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/contexts/ConfirmDialog";
@@ -38,6 +37,250 @@ interface ProductCardProps {
   onAdjust?: (product: ProductResponse) => void;
 }
 
+// ====================== MODAL DETAIL ======================
+function ProductDetailModal({
+  product,
+  open,
+  onOpenChange,
+  onEdit,
+  onDelete,
+  onAdjust,
+  handleDeleteClick,
+}: {
+  product: ProductResponse;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onEdit?: (id: number) => void;
+  onDelete?: (id: number) => void;
+  onAdjust?: (product: ProductResponse) => void;
+  handleDeleteClick: () => void;
+}) {
+  const stockNum = Number(product.stock);
+  const minStockNum = Number(product.minStock);
+  const isLowStock = stockNum < minStockNum && minStockNum > 0;
+
+  const priceRange = useMemo(() => {
+    if (!product.variants?.length) return "Rp 0";
+    const prices = product.variants.map((v) => Number(v.sellPrice));
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    return min === max
+      ? min.toLocaleString("id-ID")
+      : `${min.toLocaleString("id-ID")} - ${max.toLocaleString("id-ID")}`;
+  }, [product.variants]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-full sm:max-w-[680px] mx-0 p-0 mt-16 sm:mt-0 overflow-hidden rounded-3xl border-none shadow-2xl max-h-[80dvh] sm:max-h-[92vh] flex flex-col">
+        {/* Header Image */}
+        <div className="relative h-52 sm:h-60 bg-muted shrink-0 overflow-hidden">
+          {product.image ? (
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              className="object-cover"
+              priority
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted/70">
+              <Package className="h-16 w-16 text-muted-foreground/30" />
+            </div>
+          )}
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+
+          <div className="absolute bottom-0 left-0 right-0 p-5">
+            <div className="flex items-center gap-2 flex-wrap">
+              {product.category && (
+                <Badge className="bg-white/10 text-white border-white/20 backdrop-blur">
+                  {product.category.name}
+                </Badge>
+              )}
+              <span className="text-xs font-mono bg-black/50 text-white/80 px-2 py-0.5 rounded">
+                {product.sku}
+              </span>
+            </div>
+            <DialogTitle className="text-2xl sm:text-3xl font-bold text-white mt-2 leading-7">
+              {product.name}
+            </DialogTitle>
+          </div>
+
+          {isLowStock && (
+            <Badge
+              variant="destructive"
+              className="absolute top-4 left-4 gap-1 shadow"
+            >
+              <AlertCircle className="h-3.5 w-3.5" />{" "}
+              <p className="text-[10px] sm:text-xs">Stok Limit</p>
+            </Badge>
+          )}
+        </div>
+
+        <ScrollArea className="flex-1 overflow-y-scroll px-5">
+          <div className="space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-4">
+              <div
+                className={cn(
+                  "p-4 rounded-2xl",
+                  isLowStock
+                    ? "bg-red-50/20 border-border border"
+                    : "bg-emerald-50/20 border-border border",
+                )}
+              >
+                <div className="flex justify-between">
+                  <Package
+                    className={cn(
+                      "h-6 w-6",
+                      isLowStock
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-emerald-600 dark:text-emerald-200",
+                    )}
+                  />
+                  {isLowStock && (
+                    <Badge variant="destructive" className="text-[10px]">
+                      Perhatian
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-3">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    STOK SAAT INI
+                  </p>
+                  <p
+                    className={cn(
+                      "text-xl sm:text-3xl font-black mt-1",
+                      isLowStock
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-emerald-600 dark:text-emerald-200",
+                    )}
+                  >
+                    {formatCompactNumber(stockNum)}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Min: {minStockNum} {product.unit?.name}
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-blue-50/20 border border-border">
+                <Layers className="h-6 w-6 text-primary" />
+                <p className="text-xs font-medium text-muted-foreground mt-3">
+                  HARGA JUAL
+                </p>
+                <p className="sm:text-3xl text-xl font-black text-primary mt-1">
+                  Rp {priceRange}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {product.variants?.length || 0} varian
+                </p>
+              </div>
+            </div>
+
+            {/* Variants List */}
+            {product.variants && product.variants.length > 0 ? (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Layers className="h-4 w-4 text-primary" />
+                  <p className="font-semibold text-sm">Varian Produk</p>
+                </div>
+                <div className="space-y-3">
+                  {product.variants.map((v) => {
+                    const margin = calculateVariantMargin(
+                      v,
+                      product.averageCost,
+                    );
+                    return (
+                      <div
+                        key={v.id}
+                        className="flex items-center justify-between bg-muted/50 rounded-2xl px-4 py-3 border border-transparent hover:border-border transition-all"
+                      >
+                        <div>
+                          <p className="font-semibold text-sm">{v.name}</p>
+                          <p className="text-xs text-muted-foreground font-mono">
+                            1 = {v.conversionToBase} {product.unit?.name}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-bold text-primary">
+                            Rp {Number(v.sellPrice).toLocaleString("id-ID")}
+                          </p>
+                          {margin.hpp > 0 && (
+                            <Badge
+                              variant={
+                                margin.isProfitable ? "default" : "destructive"
+                              }
+                              className="text-[10px] mt-1"
+                            >
+                              {margin.marginPercent.toFixed(0)}%
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 bg-muted/30 rounded-2xl">
+                <Package className="h-10 w-10 mx-auto text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground mt-2">
+                  Tidak ada varian tambahan
+                </p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Action Buttons */}
+        <div className="border-t p-4 flex flex-row gap-2  bg-muted/50">
+          {onAdjust && (
+            <Button
+              variant="outline"
+              className="flex-1 rounded-2xl"
+              onClick={() => {
+                onAdjust(product);
+                onOpenChange(false);
+              }}
+            >
+              <PackagePlus className="mr-2 h-4 w-4" />
+              <p className="hidden sm:block">Atur Stok</p>
+              <p className="sm:hidden">Stok</p>
+            </Button>
+          )}
+
+          {onEdit && (
+            <Button
+              className="flex-1  rounded-2xl"
+              onClick={() => {
+                onEdit(product.id);
+                onOpenChange(false);
+              }}
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              <p className="hidden sm:block">Edit Produk</p>
+              <p className="sm:hidden">Edit</p>
+            </Button>
+          )}
+
+          {onDelete && (
+            <Button
+              variant="destructive"
+              className=" rounded-2xl px-6"
+              onClick={handleDeleteClick}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Hapus
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ====================== PRODUCT CARD ======================
 export function ProductCard({
   product,
   onEdit,
@@ -45,11 +288,16 @@ export function ProductCard({
   onAdjust,
 }: ProductCardProps) {
   const confirm = useConfirm();
+  const [modalOpen, setModalOpen] = useState(false);
   const stockNum = Number(product.stock);
   const minStockNum = Number(product.minStock);
-  const isLowStock = stockNum < minStockNum;
-  const stockPercentage =
-    minStockNum > 0 ? (stockNum / minStockNum) * 100 : 100;
+  const isLowStock = stockNum < minStockNum && minStockNum > 0;
+
+  const displayPrice = useMemo(() => {
+    if (!product.variants?.length) return "Rp 0";
+    const min = Math.min(...product.variants.map((v) => Number(v.sellPrice)));
+    return `Rp ${min.toLocaleString("id-ID")}`;
+  }, [product.variants]);
 
   const handleDeleteClick = async () => {
     if (!onDelete) return;
@@ -72,223 +320,169 @@ export function ProductCard({
   };
 
   return (
-    <Card className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50">
-      <div className="relative h-32 sm:h-48 overflow-hidden bg-gradient-to-br from-muted to-muted/50">
-        {product.image ? (
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-4xl sm:text-5xl transition-transform duration-300 group-hover:scale-110">
-              <Package className="h-10 w-10 text-muted-foreground" />
-            </span>
-          </div>
-        )}
+    <>
+      <ProductDetailModal
+        handleDeleteClick={handleDeleteClick}
+        product={product}
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onAdjust={onAdjust}
+      />
 
-        <div className="absolute top-2 sm:top-3 right-2 sm:right-3 flex flex-col items-end gap-1">
-          <Badge
-            variant={isLowStock ? "destructive" : "secondary"}
-            className={cn(
-              "font-semibold text-primary shadow-md px-1.5 py-0 sm:px-2.5 sm:py-0.5 text-xs sm:text-sm",
-              isLowStock && "animate-pulse",
-            )}
-          >
-            {formatCompactNumber(stockNum)} {product.unit?.name || "unit"}
-          </Badge>
-          {isLowStock && (
-            <div className="w-full h-1 bg-background/20 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-destructive transition-all duration-500"
-                style={{ width: `${Math.min(stockPercentage, 100)}%` }}
-              />
+      <Card className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50">
+        {/* Image */}
+        <div
+          className="relative aspect-video overflow-hidden bg-muted cursor-pointer"
+          onClick={() => setModalOpen(true)}
+        >
+          {product.image ? (
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              className="object-cover transition-transform duration-500 group-hover:scale-110"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Package className="h-14 w-14 text-muted-foreground/30" />
             </div>
           )}
-        </div>
 
-        {(onAdjust || onEdit || onDelete) && (
-          <div className="absolute top-2 sm:top-3 left-2 sm:left-3">
+          {/* Hover Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end p-3">
+            <span className="text-white text-xs flex items-center gap-1.5 font-medium">
+              <Eye className="h-4 w-4" /> Lihat detail
+            </span>
+          </div>
+
+          {/* Low Stock Badge */}
+          {isLowStock && (
+            <Badge
+              variant="default"
+              className="absolute bg-destructive text-white top-3 left-3 gap-1 shadow-md text-xs"
+            >
+              <AlertCircle className="h-3.5 w-3.5" />
+              <p className="text-[10px] sm:text-xs">Stok Limit</p>
+            </Badge>
+          )}
+
+          {/* Dropdown */}
+          <div className="absolute top-3 right-3 z-20">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-6 w-6 sm:h-8 sm:w-8 shadow-md hover:shadow-lg opacity-80 sm:opacity-100"
-                  type="button"
+                  className="sm:h-8 sm:w-8 h-6 w-6 rounded-full shadow-sm text-black bg-white/90 hover:bg-white"
                 >
-                  <MoreVertical className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <MoreVertical className="sm:h-4 sm:w-4 h-3 w-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {onAdjust && (
-                  <DropdownMenuItem onClick={() => onAdjust(product)}>
-                    <PackagePlus className="mr-2 h-4 w-4" />
-                    Sesuaikan Stok
+              <DropdownMenuContent align="end" className="w-44">
+                {onEdit && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(product.id);
+                    }}
+                  >
+                    <Edit className="mr-2 h-4 w-4" /> Edit Produk
                   </DropdownMenuItem>
                 )}
-                {onAdjust && (onEdit || onDelete) && <DropdownMenuSeparator />}
-                {onEdit && (
-                  <DropdownMenuItem onClick={() => onEdit(product.id)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Produk
+                {onAdjust && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAdjust(product);
+                    }}
+                  >
+                    <PackagePlus className="mr-2 h-4 w-4" /> Atur Stok
                   </DropdownMenuItem>
                 )}
                 {onDelete && (
-                  <DropdownMenuItem
-                    onClick={handleDeleteClick}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Hapus Produk
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClick();
+                      }}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" /> Hapus
+                    </DropdownMenuItem>
+                  </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        )}
-      </div>
+        </div>
 
-      <CardContent className="p-3 sm:p-4 flex-1 flex flex-col">
-        <div className="space-y-1 mb-2">
-          <h3 className="font-bold line-clamp-2 text-xs sm:text-base leading-tight">
-            {product.name}
-          </h3>
-          <div className="text-[9px] sm:text-xs text-muted-foreground font-mono">
-            {product.sku}
+        {/* Content */}
+        <CardContent
+          className="p-2 py-3 sm:p-4 flex-1 flex flex-col"
+          onClick={() => setModalOpen(true)}
+        >
+          <div className="space-y-1">
+            <h3 className="font-semibold text-sm sm:text-base leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+              {product.name}
+            </h3>
+
+            <div className="flex items-center gap-2 text-[10px] sm:text-xs text-muted-foreground">
+              <span className="font-mono">{product.sku}</span>
+              {product.category && (
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+                  {product.category.name}
+                </Badge>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Category and Barcodes */}
-        <div className="flex flex-wrap items-center gap-2 mb-3">
-          {product.category && (
-            <Badge
-              variant="outline"
-              className="text-[9px] sm:text-xs px-1 py-0 h-4 sm:h-5"
-            >
-              {product.category.name}
-            </Badge>
-          )}
-          {product.barcodes && product.barcodes.length > 0 && (
-            <Badge
-              variant="secondary"
-              className="text-[9px] sm:text-xs px-1 py-0 h-4 sm:h-5 gap-1"
-            >
-              <Barcode className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-              {product.barcodes.length}
-            </Badge>
-          )}
-        </div>
+          <div className="mt-auto pt-4">
+            <div className="sm:text-lg text-sm font-bold text-primary tracking-tighter">
+              {displayPrice}
+            </div>
 
-        {/* Variants Accordion */}
-        {product.variants && product.variants.length > 0 && (
-          <Accordion type="single" collapsible className="flex-1">
-            <AccordionItem value="variants" className="border-none">
-              <AccordionTrigger className="py-1 sm:py-2 text-[10px] sm:text-sm hover:no-underline">
-                <span className="font-bold text-primary underline-offset-2">
-                  {product.variants.length} Variant
-                </span>
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="grid gap-2 pt-1 max-h-40 overflow-y-auto pr-1">
-                  {product.variants.map((variant) => {
-                    const marginData = calculateVariantMargin(
-                      variant,
-                      product.averageCost,
-                    );
-                    return (
-                      <div
-                        key={variant.id}
-                        className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-1 bg-muted/40 rounded-md px-2 py-1.5 text-[10px] sm:text-sm hover:bg-muted/70 transition-colors border border-transparent hover:border-muted-foreground/10"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="font-bold truncate">
-                            {variant.name}
-                          </div>
-                          {marginData.hpp > 0 && (
-                            <div className="flex items-center gap-1 text-[8px] sm:text-[10px] text-muted-foreground mt-0.5">
-                              <span className="font-medium bg-muted rounded px-1">
-                                Modal:{" "}
-                                {Number(marginData.hpp).toLocaleString("id-ID")}
-                              </span>
-                              <span className="text-muted-foreground/30">
-                                |
-                              </span>
-                              <span
-                                className={cn(
-                                  "font-bold",
-                                  marginData.isProfitable
-                                    ? "text-emerald-600"
-                                    : "text-destructive",
-                                )}
-                              >
-                                {marginData.isProfitable ? "+" : ""}
-                                {Math.round(marginData.marginPercent)}%
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex sm:flex-col justify-between w-full sm:w-auto items-baseline sm:items-end gap-2 shrink-0 border-t sm:border-t-0 pt-1 sm:pt-0 mt-0.5 sm:mt-0 border-muted-foreground/10">
-                          <div className="font-black text-primary text-[10px] sm:text-sm">
-                            Rp{" "}
-                            {Number(variant.sellPrice).toLocaleString("id-ID")}
-                          </div>
-                          <div className="text-[8px] sm:text-xs text-muted-foreground font-medium uppercase tracking-tighter">
-                            1:{variant.conversionToBase} {variant.unit?.name}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        )}
-      </CardContent>
+            <div className="flex items-center justify-between mt-3">
+              <div
+                className={cn(
+                  "flex items-center gap-1.5 text-xs font-medium px-2 sm:py-1 py-0.5 rounded-full",
+                  isLowStock
+                    ? "bg-red-100 text-red-700"
+                    : "bg-emerald-100 text-emerald-700",
+                )}
+              >
+                <Package className="h-3 w-3 sm:h-4 sm:w-4 hidden sm:block" />
+                {formatCompactNumber(stockNum)}
+                <p className="truncate max-w-8 text-[10px] sm:text-xs">
+                  {product.unit?.name}
+                </p>
+              </div>
 
-      <CardFooter className="px-3 sm:px-4 py-2.5 sm:py-3 border-t bg-muted/30 flex justify-between items-center gap-2 mt-auto">
-        {/* Min stock info */}
-        <div className="flex flex-col gap-0">
-          <span className="text-[8px] sm:text-xs text-muted-foreground uppercase font-bold tracking-tighter">
-            Min. Stok:
-          </span>
-          <span className="text-[10px] sm:text-sm font-black text-primary">
-            {formatCompactNumber(minStockNum)} {product.unit?.name}
-          </span>
-        </div>
+              {product.variants?.length ? (
+                <Badge variant="secondary" className="text-[10px] sm:text-xs">
+                  {product.variants.length} varian
+                </Badge>
+              ) : null}
+            </div>
+          </div>
+        </CardContent>
 
-        {/* Action buttons */}
-        <div className="flex gap-1.5 sm:gap-2">
-          {onAdjust && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onAdjust(product)}
-              className="h-7 sm:h-8 px-2 sm:px-3 text-xs"
-              type="button"
-            >
-              <PackagePlus className="h-3 w-3 sm:mr-1" />
-              <span className="hidden sm:inline">Stok</span>
-            </Button>
-          )}
-          {onEdit && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onEdit(product.id)}
-              className="h-7 sm:h-8 px-2 sm:px-3 text-xs"
-              type="button"
-            >
-              <Edit className="h-3 w-3 sm:mr-1" />
-              <span className="hidden sm:inline">Edit</span>
-            </Button>
-          )}
-        </div>
-      </CardFooter>
-    </Card>
+        {/* Footer Button */}
+        <CardFooter className="[.border-t]:pt-0 border-t bg-muted/30 flex justify-between items-center gap-2 mt-auto">
+          <Button
+            variant="ghost"
+            className="w-full text-xs h-12 sm:text-sm font-semibold text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-none gap-2 transition-all"
+            onClick={() => setModalOpen(true)}
+          >
+            <Eye className="h-4 w-4" />
+            Lihat Detail
+          </Button>
+        </CardFooter>
+      </Card>
+    </>
   );
 }

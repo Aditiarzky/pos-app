@@ -51,18 +51,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { useSupplierList } from "../_hooks/use-supplier-list";
-import {
-  SupplierListSectionProps,
-  SupplierResponse,
-} from "../_types/supplier";
+import { SupplierListSectionProps, SupplierResponse } from "../_types/supplier";
 
 // ============================================
 // MAIN COMPONENT
 // ============================================
 
-export function SupplierListSection({ onEdit, onAddNew }: SupplierListSectionProps) {
+export function SupplierListSection({
+  onEdit,
+  onAddNew,
+}: SupplierListSectionProps) {
   const {
     // Data
     suppliers,
@@ -92,10 +92,6 @@ export function SupplierListSection({ onEdit, onAddNew }: SupplierListSectionPro
     // Actions
     handleDelete,
   } = useSupplierList();
-
-  // ============================================
-  // RENDER
-  // ============================================
 
   return (
     <div className="space-y-4">
@@ -169,10 +165,7 @@ export function SupplierListSection({ onEdit, onAddNew }: SupplierListSectionPro
           </DropdownMenu>
 
           {/* Add Supplier Button */}
-          <Button
-            className="h-10"
-            onClick={onAddNew}
-          >
+          <Button className="h-10" onClick={onAddNew}>
             <Plus className="mr-2 h-4 w-4" />
             Tambah Supplier
           </Button>
@@ -189,15 +182,18 @@ export function SupplierListSection({ onEdit, onAddNew }: SupplierListSectionPro
       </div>
 
       {/* Table */}
-      <Card className="overflow-hidden border-border/50 shadow-sm">
+      <div className="[&>div]:rounded-sm [&>div]:border">
         <Table>
           <TableHeader className="bg-muted/30">
             <TableRow>
+              <TableHead className="font-bold">No. </TableHead>
               <TableHead className="font-bold">Nama Supplier</TableHead>
               <TableHead className="font-bold">Telepon</TableHead>
               <TableHead className="font-bold">Email</TableHead>
               <TableHead className="font-bold">Alamat</TableHead>
-              <TableHead className="font-bold text-center">Tanggal Dibuat</TableHead>
+              <TableHead className="font-bold text-center">
+                Tanggal Dibuat
+              </TableHead>
               <TableHead className="text-right font-bold w-20">Aksi</TableHead>
             </TableRow>
           </TableHeader>
@@ -207,9 +203,10 @@ export function SupplierListSection({ onEdit, onAddNew }: SupplierListSectionPro
             ) : suppliers.length === 0 ? (
               <EmptyState />
             ) : (
-              suppliers.map((supplier) => (
+              suppliers.map((supplier, idx) => (
                 <SupplierRow
                   key={supplier.id}
+                  idx={idx + 1}
                   supplier={supplier}
                   onEdit={onEdit}
                   onDelete={handleDelete}
@@ -218,7 +215,7 @@ export function SupplierListSection({ onEdit, onAddNew }: SupplierListSectionPro
             )}
           </TableBody>
         </Table>
-      </Card>
+      </div>
 
       {/* Pagination */}
       {meta && (
@@ -306,20 +303,18 @@ interface SupplierRowProps {
   supplier: SupplierResponse;
   onEdit: (supplier: SupplierResponse) => void;
   onDelete: (supplier: SupplierResponse) => Promise<void>;
+  idx: number;
 }
 
-function SupplierRow({ supplier, onEdit, onDelete }: SupplierRowProps) {
+function SupplierRow({ supplier, onEdit, onDelete, idx }: SupplierRowProps) {
   return (
     <TableRow className="hover:bg-muted/30 transition-colors group">
+      <TableCell>{idx}</TableCell>
       <TableCell className="font-medium text-primary">
         {supplier.name}
       </TableCell>
-      <TableCell>
-        {supplier.phone || "-"}
-      </TableCell>
-      <TableCell>
-        {supplier.email || "-"}
-      </TableCell>
+      <TableCell>{supplier.phone || "-"}</TableCell>
+      <TableCell>{supplier.email || "-"}</TableCell>
       <TableCell>
         <div className="text-sm text-muted-foreground max-w-[150px] truncate">
           {supplier.address || "-"}
@@ -364,8 +359,8 @@ function SupplierRow({ supplier, onEdit, onDelete }: SupplierRowProps) {
 interface FilterFormProps {
   orderBy: "createdAt" | "name" | "phone" | undefined;
   setOrderBy: (v: "createdAt" | "name" | "phone" | undefined) => void;
-  order: "asc" | "desc";
-  setOrder: (v: "asc" | "desc") => void;
+  order: "asc" | "desc" | undefined;
+  setOrder: (v: "asc" | "desc" | undefined) => void;
   setPage: (p: number) => void;
   resetFilters: () => void;
   isDropdown?: boolean;

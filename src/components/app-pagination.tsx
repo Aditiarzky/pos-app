@@ -3,8 +3,6 @@ import {
   PaginationContent,
   PaginationItem,
   PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
 } from "@/components/ui/pagination";
 import {
   Select,
@@ -13,6 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  ChevronFirstIcon,
+  ChevronLastIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "lucide-react";
 
 export function AppPagination({
   currentPage,
@@ -46,7 +50,7 @@ export function AppPagination({
               <SelectValue placeholder={limit.toString()} />
             </SelectTrigger>
             <SelectContent>
-              {[12, 24, 48, 100].map((l) => (
+              {[10, 12, 24, 48, 100].map((l) => (
                 <SelectItem key={l} value={l.toString()}>
                   {l}
                 </SelectItem>
@@ -55,46 +59,109 @@ export function AppPagination({
           </Select>
         </div>
       )}
+      <div className="text-muted-foreground flex grow items-center justify-end whitespace-nowrap max-sm:justify-center">
+        <p
+          className="text-muted-foreground text-sm whitespace-nowrap"
+          aria-live="polite"
+        >
+          Halaman <span className="text-foreground">{currentPage}</span> dari{" "}
+          <span className="text-foreground">{totalPages}</span> halaman
+        </p>
+      </div>
 
       {/* Pagination Controls */}
       <Pagination className="justify-center sm:justify-end">
         <PaginationContent>
-          {/* Previous Button */}
+          {/* First Page Button */}
           <PaginationItem>
-            <PaginationPrevious
+            <PaginationLink
               href="#"
+              aria-label="Go to first page"
+              size="icon"
+              className="rounded-full"
+              onClick={(e) => {
+                e.preventDefault();
+                onPageChange(1);
+              }}
+              aria-disabled={currentPage === 1}
+            >
+              <ChevronFirstIcon className="size-4" />
+            </PaginationLink>
+          </PaginationItem>
+
+          {/* Previous Page Button */}
+          <PaginationItem>
+            <PaginationLink
+              href="#"
+              aria-label="Go to previous page"
+              size="icon"
+              className="rounded-full"
               onClick={(e) => {
                 e.preventDefault();
                 if (currentPage > 1) onPageChange(currentPage - 1);
               }}
-            />
+              aria-disabled={currentPage === 1}
+            >
+              <ChevronLeftIcon className="size-4" />
+            </PaginationLink>
           </PaginationItem>
 
-          {/* Page Numbers */}
-          {pages.map((p) => (
-            <PaginationItem key={p}>
-              <PaginationLink
-                href="#"
-                isActive={p === currentPage}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onPageChange(p);
-                }}
-              >
-                {p}
-              </PaginationLink>
-            </PaginationItem>
-          ))}
-
-          {/* Next Button */}
+          {/* Page Selection Dropdown */}
           <PaginationItem>
-            <PaginationNext
+            <Select
+              value={String(currentPage)}
+              onValueChange={(value) => onPageChange(Number(value))}
+              aria-label="Select page"
+            >
+              <SelectTrigger
+                id="select-page"
+                className="w-fit whitespace-nowrap"
+                aria-label="Select page"
+              >
+                <SelectValue placeholder="Select page" />
+              </SelectTrigger>
+              <SelectContent>
+                {pages.map((page) => (
+                  <SelectItem key={page} value={String(page)}>
+                    Halaman {page}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </PaginationItem>
+
+          {/* Next Page Button */}
+          <PaginationItem>
+            <PaginationLink
               href="#"
+              aria-label="Go to next page"
+              size="icon"
+              className="rounded-full"
               onClick={(e) => {
                 e.preventDefault();
                 if (currentPage < totalPages) onPageChange(currentPage + 1);
               }}
-            />
+              aria-disabled={currentPage === totalPages}
+            >
+              <ChevronRightIcon className="size-4" />
+            </PaginationLink>
+          </PaginationItem>
+
+          {/* Last Page Button */}
+          <PaginationItem>
+            <PaginationLink
+              href="#"
+              aria-label="Go to last page"
+              size="icon"
+              className="rounded-full"
+              onClick={(e) => {
+                e.preventDefault();
+                onPageChange(totalPages);
+              }}
+              aria-disabled={currentPage === totalPages}
+            >
+              <ChevronLastIcon className="size-4" />
+            </PaginationLink>
           </PaginationItem>
         </PaginationContent>
       </Pagination>

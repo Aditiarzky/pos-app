@@ -54,6 +54,9 @@ export function SupplierFormModal({
   });
 
   useEffect(() => {
+    if (!isEdit) {
+      reset({ name: "", address: "", phone: "", email: "", description: "" });
+    }
     if (isEdit && suppliersResult?.data) {
       const supplier = suppliersResult.data.find((s) => s.id === supplierId);
       if (supplier) {

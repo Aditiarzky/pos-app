@@ -107,6 +107,7 @@ export function ProductFormModal({
         }
       },
     )();
+    handleClose();
   };
 
   const handleClose = () => {
