@@ -12,50 +12,17 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppPagination } from "@/components/app-pagination";
 import { Button } from "@/components/ui/button";
-import {
-  Filter,
-  LayoutList,
-  SearchX,
-  LayoutGrid,
-  Table as TableIcon,
-  Table2,
-} from "lucide-react";
+import { LayoutList, SearchX, LayoutGrid, Table2 } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { IconSortAscending, IconSortDescending } from "@tabler/icons-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 
 import { usePurchaseList } from "../_hooks/use-purchase-list";
 import { PurchaseListSectionProps } from "../_types/purchase-type";
 import { PurchaseCard, PurchaseRow } from "./_ui/purchase-row";
-import { ErrorIndicator } from "@/components/ui/error-indicator";
 import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { FilterWrap } from "@/components/filter-wrap";
 import { PurchaseFilterForm } from "./_ui/purchase-filter-form";
-
-// ============================================
-// MAIN COMPONENT
-// ============================================
 
 export function PurchaseListSection({ onEdit }: PurchaseListSectionProps) {
   const {

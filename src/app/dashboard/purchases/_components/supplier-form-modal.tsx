@@ -1,6 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -22,7 +20,6 @@ import {
 } from "@/hooks/master/use-suppliers";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { ApiResponse } from "@/services/productService";
 
 interface SupplierFormModalProps {
   open: boolean;
@@ -44,13 +41,15 @@ export function SupplierFormModal({
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting: isFormSubmitting },
   } = useForm<SupplierData>({
     resolver: zodResolver(supplierSchema),
     defaultValues: {
       name: "",
       address: "",
       phone: "",
+      email: "",
+      description: "",
     },
   });
 
@@ -62,16 +61,18 @@ export function SupplierFormModal({
           name: supplier.name,
           address: supplier.address || "",
           phone: supplier.phone || "",
+          email: supplier.email || "",
+          description: supplier.description || "",
         });
       }
     } else if (!open) {
-      reset({ name: "", address: "", phone: "" });
+      reset({ name: "", address: "", phone: "", email: "", description: "" });
     }
   }, [isEdit, supplierId, suppliersResult, open, reset]);
 
   const onSubmit = async (data: SupplierData) => {
     try {
-      if (isEdit) {
+      if (isEdit && supplierId) {
         await updateMutation.mutateAsync({ id: supplierId, ...data });
         toast.success("Supplier berhasil diperbarui");
       } else {
@@ -80,78 +81,143 @@ export function SupplierFormModal({
       }
       onOpenChange(false);
     } catch (error: unknown) {
-      const apiError = error as ApiResponse;
-      toast.error(apiError.error || "Terjadi kesalahan");
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else if (
+        typeof error === "object" &&
+        error !== null &&
+        "error" in error
+      ) {
+        toast.error((error as { error: string }).error);
+      } else {
+        toast.error("Terjadi kesalahan");
+      }
     }
   };
 
+  const isPending =
+    createMutation.isPending || updateMutation.isPending || isFormSubmitting;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-lg w-[95vw] max-h-[90vh] overflow-y-auto rounded-xl">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-xl font-bold text-primary">
             {isEdit ? "Edit Supplier" : "Tambah Supplier Baru"}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">
-              Nama Supplier <span className="text-red-500">*</span>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 py-2">
+          {/* Name Field */}
+          <div className="space-y-1.5">
+            <Label htmlFor="name" className="text-sm font-semibold">
+              Nama Supplier <span className="text-destructive">*</span>
             </Label>
             <Input
               id="name"
               {...register("name")}
               placeholder="Contoh: PT. Sumber Bakti"
+              className="h-11 focus-visible:ring-primary/20"
             />
             {errors.name && (
-              <p className="text-xs text-destructive">{errors.name.message}</p>
+              <p className="text-xs font-medium text-destructive">
+                {errors.name.message}
+              </p>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">Nomor Telepon</Label>
-            <Input
-              id="phone"
-              {...register("phone")}
-              placeholder="08123456789"
-            />
-            {errors.phone && (
-              <p className="text-xs text-destructive">{errors.phone.message}</p>
-            )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Phone Field */}
+            <div className="space-y-1.5">
+              <Label htmlFor="phone" className="text-sm font-semibold">
+                Nomor Telepon
+              </Label>
+              <Input
+                id="phone"
+                {...register("phone")}
+                placeholder="08123456789"
+                className="h-11 focus-visible:ring-primary/20"
+              />
+              {errors.phone && (
+                <p className="text-xs font-medium text-destructive">
+                  {errors.phone.message}
+                </p>
+              )}
+            </div>
+
+            {/* Email Field */}
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-sm font-semibold">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                {...register("email")}
+                placeholder="supplier@email.com"
+                className="h-11 focus-visible:ring-primary/20"
+              />
+              {errors.email && (
+                <p className="text-xs font-medium text-destructive">
+                  {errors.email.message}
+                </p>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="address">Alamat</Label>
+          {/* Address Field */}
+          <div className="space-y-1.5">
+            <Label htmlFor="address" className="text-sm font-semibold">
+              Alamat
+            </Label>
             <Textarea
               id="address"
               {...register("address")}
               placeholder="Alamat lengkap supplier..."
-              className="resize-none h-24"
+              className="resize-none min-h-[80px] focus-visible:ring-primary/20"
             />
             {errors.address && (
-              <p className="text-xs text-destructive">
+              <p className="text-xs font-medium text-destructive">
                 {errors.address.message}
               </p>
             )}
           </div>
 
-          <DialogFooter>
+          {/* Description Field */}
+          <div className="space-y-1.5">
+            <Label htmlFor="description" className="text-sm font-semibold">
+              Deskripsi
+            </Label>
+            <Textarea
+              id="description"
+              {...register("description")}
+              placeholder="Tambahkan catatan singkat (opsional)..."
+              className="resize-none min-h-[80px] focus-visible:ring-primary/20"
+            />
+            {errors.description && (
+              <p className="text-xs font-medium text-destructive">
+                {errors.description.message}
+              </p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 pt-2 border-t mt-4 sm:space-x-2">
             <Button
               variant="outline"
               type="button"
               onClick={() => onOpenChange(false)}
+              className="h-11 px-6 rounded-lg font-semibold"
+              disabled={isPending}
             >
               Batal
             </Button>
             <Button
               type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
+              disabled={isPending}
+              className="h-11 px-8 rounded-lg font-semibold"
             >
-              {(createMutation.isPending || updateMutation.isPending) && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              {isEdit ? "Perbarui" : "Simpan"}
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEdit ? "Perbarui Data" : "Simpan Supplier"}
             </Button>
           </DialogFooter>
         </form>

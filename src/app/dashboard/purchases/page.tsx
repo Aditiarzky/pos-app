@@ -24,8 +24,9 @@ import { CardBg } from "@/assets/card-background/card-bg";
 import { PurchaseResponse } from "./_types/purchase-type";
 import { PurchaseListSection } from "./_components/purchase-list-section";
 import { SupplierListSection } from "./_components/supplier-list-section";
-import { SupplierForm } from "./_components/supplier-form";
 import { PurchaseForm } from "./_components/purchase-form";
+import { SupplierFormModal } from "./_components/supplier-form-modal";
+import { SupplierResponse } from "./_types/supplier";
 
 // ============================================
 // MAIN CONTENT COMPONENT
@@ -41,8 +42,8 @@ function PurchasesContent() {
     useState<PurchaseResponse | null>(null);
 
   // Supplier form state
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [editingSupplier, setEditingSupplier] = useState<any | null>(null); // Would be SupplierResponse | null
+  const [editingSupplier, setEditingSupplier] =
+    useState<SupplierResponse | null>(null);
   const [isSupplierFormOpen, setIsSupplierFormOpen] = useState(false);
 
   // ============================================
@@ -65,11 +66,6 @@ function PurchasesContent() {
     setIsPurchaseFormOpen(true);
   };
 
-  const handleCloseSupplierForm = () => {
-    setIsSupplierFormOpen(false);
-    setEditingSupplier(null);
-  };
-
   // ============================================
   // RENDER
   // ============================================
@@ -89,12 +85,10 @@ function PurchasesContent() {
         </div>
         <div className="flex gap-2">
           {tab === "history" ? (
-            !isPurchaseFormOpen && (
-              <Button onClick={handleOpenNewPurchase}>
-                <Plus className="mr-2 h-4 w-4" />
-                Catat Pembelian
-              </Button>
-            )
+            <Button onClick={handleOpenNewPurchase}>
+              <Plus className="mr-0 sm:mr-2 h-4 w-4" />
+              <p className="hidden sm:block">Catat Pembelian</p>
+            </Button>
           ) : (
             <Button
               onClick={() => {
@@ -102,8 +96,8 @@ function PurchasesContent() {
                 setIsSupplierFormOpen(true);
               }}
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Tambah Supplier
+              <Plus className="mr-0 sm:mr-2 h-4 w-4" />
+              <p className="hidden sm:block">Tambah Supplier</p>
             </Button>
           )}
         </div>
@@ -112,17 +106,19 @@ function PurchasesContent() {
       {/* Main Content */}
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
         {/* Analytics Cards - Hidden saat form terbuka */}
-        {!isPurchaseFormOpen && <AnalyticsCards />}
+        <AnalyticsCards />
 
-        {/* Purchase Form - Inline */}
-        {isPurchaseFormOpen && (
-          <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-            <PurchaseForm
-              onCancel={handleClosePurchaseForm}
-              initialData={editingPurchase}
-            />
-          </div>
-        )}
+        <PurchaseForm
+          isOpen={isPurchaseFormOpen}
+          onClose={handleClosePurchaseForm}
+          initialData={editingPurchase}
+        />
+
+        <SupplierFormModal
+          open={isSupplierFormOpen}
+          onOpenChange={setIsSupplierFormOpen}
+          supplierId={editingSupplier?.id}
+        />
 
         {/* Tabs */}
         <Tabs value={tab} onValueChange={setTab} className="space-y-4">
@@ -155,7 +151,10 @@ function PurchasesContent() {
             className="animate-in fade-in duration-300"
           >
             <SupplierListSection
-              onEdit={setEditingSupplier}
+              onEdit={(supplier) => {
+                setEditingSupplier(supplier);
+                setIsSupplierFormOpen(true);
+              }}
               onAddNew={() => {
                 setEditingSupplier(null);
                 setIsSupplierFormOpen(true);
@@ -163,20 +162,6 @@ function PurchasesContent() {
             />
           </TabsContent>
         </Tabs>
-
-        {/* Supplier Form - Inline */}
-        {isSupplierFormOpen && (
-          <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-            <SupplierForm
-              isOpen={isSupplierFormOpen}
-              onClose={handleCloseSupplierForm}
-              initialData={editingSupplier}
-              onSuccess={() => {
-                // Optionally refresh data or show success message
-              }}
-            />
-          </div>
-        )}
       </main>
     </>
   );

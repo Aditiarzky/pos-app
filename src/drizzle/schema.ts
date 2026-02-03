@@ -94,7 +94,9 @@ export const suppliers = p.pgTable("suppliers", {
   id: p.serial("id").primaryKey(),
   name: p.varchar("name", { length: 120 }).notNull(),
   phone: p.varchar("phone", { length: 30 }),
+  email: p.varchar("email", { length: 255 }),
   address: p.text("address"),
+  description: p.text("description"),
   isActive: p.boolean("is_active").default(true),
   createdAt: p.timestamp("created_at").defaultNow(),
   updatedAt: p

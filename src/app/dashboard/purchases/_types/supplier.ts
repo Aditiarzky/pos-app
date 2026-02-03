@@ -3,13 +3,16 @@
  * Centralized type definitions for supplier module
  */
 
-import { InsertSupplierType, SupplierType } from "@/drizzle/type";
+import { SupplierType } from "@/drizzle/type";
 
 // ============================================
 // API RESPONSE TYPES
 // ============================================
 
-export interface SupplierResponse extends SupplierType {}
+export interface SupplierResponse extends SupplierType {
+  email: string | null;
+  description: string | null;
+}
 
 export interface SupplierListResponse {
   data: SupplierResponse[];

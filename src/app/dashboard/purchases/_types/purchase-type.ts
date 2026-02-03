@@ -96,8 +96,10 @@ export interface PurchasesQueryParams {
 // ============================================
 
 export interface PurchaseFormProps {
-  onCancel: () => void;
+  isOpen: boolean;
+  onClose: () => void;
   initialData?: PurchaseResponse | null;
+  onSuccess?: () => void;
 }
 
 export interface PurchaseListSectionProps {

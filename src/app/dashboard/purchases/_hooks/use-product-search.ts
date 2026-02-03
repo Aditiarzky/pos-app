@@ -40,6 +40,7 @@ interface UseProductSearchProps {
   minSearchLength?: number;
   searchLimit?: number;
   autoFocusOnMount?: boolean;
+  isOpen?: boolean;
 }
 
 // ============================================
@@ -50,6 +51,7 @@ export function useProductSearch({
   minSearchLength = 2,
   searchLimit = 10,
   autoFocusOnMount = true,
+  isOpen,
 }: UseProductSearchProps = {}): UseProductSearchReturn {
   // Search state
   const [searchInput, setSearchInput] = useState("");
@@ -74,12 +76,19 @@ export function useProductSearch({
 
   const searchResults = productsResult?.data ?? [];
 
-  // Auto focus on mount
+  // Clear search input when modal closes
   useEffect(() => {
-    if (autoFocusOnMount) {
+    if (!isOpen) {
+      setSearchInput("");
+    }
+  }, [isOpen]);
+
+  // Auto focus on open
+  useEffect(() => {
+    if (isOpen && autoFocusOnMount) {
       searchInputRef.current?.focus();
     }
-  }, [autoFocusOnMount]);
+  }, [isOpen, autoFocusOnMount]);
 
   // Scanner handlers
   const openScanner = () => setIsScannerOpen(true);

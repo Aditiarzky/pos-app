@@ -7,7 +7,6 @@ import {
 import { db } from "@/lib/db";
 import { users, refreshTokens } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
-import { cookies } from "next/headers";
 
 export async function POST() {
   try {

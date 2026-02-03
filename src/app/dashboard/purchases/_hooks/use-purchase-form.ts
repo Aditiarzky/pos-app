@@ -39,6 +39,7 @@ interface UsePurchaseFormProps {
     { id: number } & insertPurchaseType
   >;
   initialData?: PurchaseResponse | null;
+  isOpen?: boolean;
 }
 
 // ============================================
@@ -66,10 +67,11 @@ export function usePurchaseForm({
   createMutation,
   updateMutation,
   initialData,
+  isOpen,
 }: UsePurchaseFormProps): UsePurchaseFormReturn {
   const { user } = useAuth();
   const isEdit = !!initialData?.id;
-  const isEditInitialized = useRef(false);
+  const lastInitialDataId = useRef<number | null | undefined>(undefined);
 
   // Initialize form
   const form = useForm<PurchaseFormData>({
@@ -95,32 +97,42 @@ export function usePurchaseForm({
     name: "items",
   });
 
-  // Reset form ketika initialData berubah (edit mode)
+  // Reset form ketika initialData berubah (edit mode) atau modal dibuka
   useEffect(() => {
-    // Hanya reset jika benar-benar ada perubahan pada initialData
-    if (initialData && !isEditInitialized.current) {
-      form.reset({
-        supplierId: initialData.supplierId,
-        userId: user?.id,
-        items:
-          initialData.items?.map((item) => ({
-            productId: item.productId,
-            variantId: item.variantId,
-            qty: Number(item.qty),
-            price: Number(item.price),
-            productName: item.product?.name ?? null,
-            variantName: item.productVariant?.name ?? null,
-          })) || [],
-      });
-
-      isEditInitialized.current = true;
+    // Jika modal tertutup, reset tracker agar re-inisialisasi saat buka lagi
+    if (!isOpen) {
+      lastInitialDataId.current = undefined;
+      return;
     }
 
-    // Reset flag ketika tidak dalam mode edit
-    if (!initialData) {
-      isEditInitialized.current = false;
+    const currentId = initialData?.id ?? null;
+    // Cek apakah ID berubah (atau baru pertama kali buka)
+    if (currentId !== lastInitialDataId.current) {
+      if (initialData) {
+        form.reset({
+          supplierId: initialData.supplierId,
+          userId: user?.id,
+          items:
+            initialData.items?.map((item) => ({
+              productId: item.productId,
+              variantId: item.variantId,
+              qty: Number(item.qty),
+              price: Number(item.price),
+              productName: item.product?.name ?? null,
+              variantName: item.productVariant?.name ?? null,
+            })) || [],
+        });
+      } else {
+        // Reset ke state kosong untuk "Create" baru
+        form.reset({
+          supplierId: undefined,
+          userId: user?.id,
+          items: [],
+        });
+      }
+      lastInitialDataId.current = currentId;
     }
-  }, [initialData, user?.id, form]);
+  }, [initialData, isOpen, user?.id, form]);
 
   // Calculate total
   const items = form.watch("items") || [];

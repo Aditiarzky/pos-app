@@ -1,12 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { Controller, UseFormReturn } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogHeader,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { SupplierSelect } from "@/components/ui/supplier-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Trash2, Loader2, Search, X, QrCode, Package } from "lucide-react";
@@ -23,12 +30,16 @@ import { usePurchaseForm } from "../_hooks/use-purchase-form";
 import { useProductSearch } from "../_hooks/use-product-search";
 import { PurchaseFormItem, PurchaseFormProps } from "../_types/purchase-type";
 import { ProductResponse } from "@/services/productService";
+import { Switch } from "@/components/ui/switch";
 
-// ============================================
-// MAIN COMPONENT
-// ============================================
+export function PurchaseForm({
+  isOpen,
+  onClose,
+  initialData,
+  onSuccess,
+}: PurchaseFormProps) {
+  const [isMassMode, setIsMassMode] = useState(false);
 
-export function PurchaseForm({ onCancel, initialData }: PurchaseFormProps) {
   // Mutations
   const createMutation = useCreatePurchase();
   const updateMutation = useUpdatePurchase();
@@ -52,11 +63,20 @@ export function PurchaseForm({ onCancel, initialData }: PurchaseFormProps) {
       toast.success(
         isEdit ? "Pembelian diperbarui" : "Pembelian berhasil dicatat",
       );
-      onCancel();
+
+      onSuccess?.();
+
+      if (!isMassMode || isEdit) {
+        onClose();
+      } else {
+        // Enforce focus to search input for next entry in mass mode
+        setTimeout(() => searchInputRef.current?.focus(), 100);
+      }
     },
     createMutation,
     updateMutation,
     initialData,
+    isOpen,
   });
 
   // Product search hook
@@ -71,7 +91,7 @@ export function PurchaseForm({ onCancel, initialData }: PurchaseFormProps) {
     closeScanner,
     handleScanSuccess,
     searchInputRef,
-  } = useProductSearch();
+  } = useProductSearch({ isOpen });
 
   // ============================================
   // HANDLERS
@@ -102,137 +122,164 @@ export function PurchaseForm({ onCancel, initialData }: PurchaseFormProps) {
     searchInputRef.current?.focus();
   };
 
-  // ============================================
-  // RENDER
-  // ============================================
+  if (!isOpen) return null;
 
   return (
     <>
-      <Card className="border-border shadow-none w-full mx-auto">
-        <CardHeader className="pb-4 flex flex-row items-center justify-between space-y-0 border-b">
-          <div>
-            <CardTitle className="text-lg font-bold">
-              {isEdit ? "Edit Pembelian" : "Catat Pembelian"}
-            </CardTitle>
-            {isEdit && initialData && (
-              <p className="text-xs text-muted-foreground mt-1">
-                No. {initialData.orderNumber}
-              </p>
-            )}
-          </div>
-          <Button variant="ghost" size="icon" onClick={onCancel}>
-            <X className="h-4 w-4" />
-          </Button>
-        </CardHeader>
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent
+          className="max-w-full sm:max-w-[95vw] md:max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden "
+          showCloseButton={false}
+        >
+          <DialogHeader className="px-6 py-4 border-b shrink-0 flex flex-row items-center justify-between space-y-0 bg-card">
+            <div className="flex flex-col gap-0.5">
+              <DialogTitle className="text-lg font-bold">
+                {isEdit ? "Edit Pembelian" : "Catat Pembelian"}
+              </DialogTitle>
+              {isEdit && initialData && (
+                <p className="text-xs text-muted-foreground font-medium">
+                  Order:{" "}
+                  <span className="text-primary">
+                    {initialData.orderNumber}
+                  </span>
+                </p>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="h-8 w-8 rounded-full hover:bg-muted"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogHeader>
 
-        <CardContent className="pt-4 space-y-4">
-          <form onSubmit={onSubmit} className="space-y-4">
-            {/* Header Section: Supplier & Search */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-              {/* Supplier Select */}
-              <div className="md:col-span-4 space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Supplier
-                </Label>
-                <SupplierSelect
-                  suppliers={suppliers}
-                  value={form.watch("supplierId")}
-                  onValueChange={(v) => form.setValue("supplierId", v)}
-                />
-                {form.formState.errors.supplierId && (
-                  <p className="text-xs text-destructive">
-                    {form.formState.errors.supplierId.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Product Search */}
-              <div className="md:col-span-8 space-y-1.5 relative">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Cari Produk
-                </Label>
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <input
-                    ref={searchInputRef}
-                    className={cn(
-                      "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 pl-9 text-sm shadow-sm transition-colors",
-                      "placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                      "disabled:cursor-not-allowed disabled:opacity-50 pr-20",
-                    )}
-                    placeholder="Nama / SKU / Scan..."
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
+          <div className="flex-1 overflow-y-auto px-6 py-6 custom-scrollbar">
+            <form id="purchase-form" onSubmit={onSubmit} className="space-y-8">
+              {/* Header Section: Supplier & Search */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pb-2">
+                {/* Supplier Select */}
+                <div className="md:col-span-5 space-y-2">
+                  <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                    Supplier
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <SupplierSelect
+                    suppliers={suppliers}
+                    value={form.watch("supplierId")}
+                    onValueChange={(v) => form.setValue("supplierId", v)}
                   />
-                  <div className="absolute right-1 top-1.5">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                      onClick={openScanner}
-                    >
-                      <QrCode className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-
-                  {/* Search Results Dropdown */}
-                  {debouncedSearch.length > 1 && (
-                    <SearchResultsDropdown
-                      isSearching={isSearching}
-                      searchResults={searchResults}
-                      onSelectProduct={handleAddProduct}
-                    />
+                  {form.formState.errors.supplierId && (
+                    <p className="text-xs text-destructive font-medium">
+                      {form.formState.errors.supplierId.message}
+                    </p>
                   )}
                 </div>
+
+                {/* Product Search */}
+                <div className="md:col-span-7 space-y-2 relative">
+                  <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                    Cari Produk
+                  </Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      ref={searchInputRef}
+                      className={cn(
+                        "flex h-10 w-full rounded-xl border border-input bg-muted/40 px-3 py-1 pl-10 text-sm shadow-none transition-all",
+                        "placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/20",
+                        "disabled:cursor-not-allowed disabled:opacity-50 pr-12",
+                      )}
+                      placeholder="Nama / SKU / Scan..."
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                    />
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full hover:bg-background/50"
+                        onClick={openScanner}
+                      >
+                        <QrCode className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Search Results Dropdown */}
+                    {debouncedSearch.length > 1 && (
+                      <SearchResultsDropdown
+                        isSearching={isSearching}
+                        searchResults={searchResults}
+                        onSelectProduct={handleAddProduct}
+                      />
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Items Table */}
-            <ItemsTable
-              fields={fields}
-              form={form as unknown as UseFormReturn<PurchaseFormItem>}
-              onRemove={remove}
-            />
+              {/* Items Table Section */}
+              <div className="space-y-4">
+                <ItemsTable
+                  fields={fields}
+                  form={form as unknown as UseFormReturn<PurchaseFormItem>}
+                  onRemove={remove}
+                />
+              </div>
+            </form>
+          </div>
 
-            {/* Total Summary */}
-            <div className="flex items-center justify-end border-t pt-3">
-              <div className="flex flex-col items-end gap-0.5">
-                <span className="text-[10px] uppercase text-muted-foreground font-bold tracking-wider">
-                  Total Pembayaran
+          <DialogFooter className="px-6 py-4 border-t bg-muted/20 shrink-0 sm:flex-row items-center justify-between gap-4">
+            {/* Mass Mode Toggle (Desktop only in footer, or both) */}
+            {!isEdit ? (
+              <div className="flex items-center gap-3 bg-white/50 dark:bg-black/50 px-3 py-1.5 rounded-full border border-border/50">
+                <Label
+                  htmlFor="mass-mode"
+                  className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider cursor-pointer"
+                >
+                  Mass Mode
+                </Label>
+                <Switch
+                  id="mass-mode"
+                  checked={isMassMode}
+                  onCheckedChange={setIsMassMode}
+                  className="scale-75 origin-right"
+                />
+              </div>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
+              {/* Total Summary */}
+              <div className="flex flex-col items-end">
+                <span className="text-[9px] uppercase text-muted-foreground font-black tracking-widest">
+                  Grand Total
                 </span>
-                <span className="text-xl font-bold text-foreground">
+                <span className="text-xl font-black text-primary leading-tight">
                   {formatCurrency(total)}
                 </span>
               </div>
-            </div>
 
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onCancel}
-                disabled={isSubmitting}
-              >
-                Batal
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                className="min-w-[140px]"
-                disabled={isSubmitting || fields.length === 0}
-              >
-                {isSubmitting && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                {isEdit ? "Update Data" : "Simpan"}
-              </Button>
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                <Button
+                  form="purchase-form"
+                  type="submit"
+                  className="px-8 font-black text-xs uppercase tracking-widest h-10 rounded-xl shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  disabled={isSubmitting || fields.length === 0}
+                >
+                  {isSubmitting && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  {isEdit ? "Update" : "Simpan"}
+                </Button>
+              </div>
             </div>
-          </form>
-        </CardContent>
-      </Card>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Scanner Dialog */}
       <Dialog open={isScannerOpen} onOpenChange={closeScanner}>

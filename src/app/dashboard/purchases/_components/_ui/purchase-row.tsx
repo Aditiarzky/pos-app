@@ -2,12 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -44,7 +38,7 @@ export const PurchaseRow = ({ purchase, onEdit, onDelete }: PurchaseProps) => {
         )}
       </TableCell>
       <TableCell className="text-center font-medium">
-        {formatDate(purchase.createdAt || new Date())}
+        {purchase.createdAt ? formatDate(purchase.createdAt) : "-"}
       </TableCell>
       <TableCell>
         <div className="font-semibold">{purchase.supplier?.name || "-"}</div>
@@ -71,13 +65,16 @@ export const PurchaseRow = ({ purchase, onEdit, onDelete }: PurchaseProps) => {
                     className="flex justify-between border-l-2 border-primary/20 pl-3 py-1"
                   >
                     <div className="flex-1">
-                      <span className="font-medium">{item?.product?.name}</span>
+                      <span className="font-medium">
+                        {item?.product?.name || "Unknown Product"}
+                      </span>
                       <span className="text-muted-foreground ml-1">
-                        ({item?.productVariant?.name})
+                        ({item?.productVariant?.name || "-"})
                       </span>
                     </div>
                     <div className="text-right whitespace-nowrap font-mono">
-                      {item.qty} × {formatCurrency(Number(item.price))}
+                      {item?.qty ?? 0} ×{" "}
+                      {formatCurrency(Number(item?.price ?? 0))}
                     </div>
                   </div>
                 ))}
@@ -136,7 +133,7 @@ export const PurchaseCard = ({ purchase, onEdit, onDelete }: PurchaseProps) => {
               {purchase.orderNumber}
             </div>
             <div className="text-xs text-muted-foreground font-medium">
-              {formatDate(purchase.createdAt || new Date())}
+              {purchase.createdAt ? formatDate(purchase.createdAt) : "-"}
             </div>
           </div>
           {purchase.isArchived && (
