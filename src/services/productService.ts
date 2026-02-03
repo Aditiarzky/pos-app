@@ -53,9 +53,16 @@ export type ApiResponse<T = unknown> = {
   error?: string;
   errors?: Record<string, string[]>;
   analytics?: {
-    totalProducts: number;
-    totalStock: number;
-    underMinimumStock: number;
+    // Product analytics
+    totalProducts?: number;
+    totalStock?: number;
+    underMinimumStock?: number;
+    // Purchase analytics
+    totalPurchases?: number;
+    totalPurchasesThisMonth?: number;
+    newTransactions?: number;
+    activeSuppliers?: number;
+    [key: string]: number | undefined;
   };
   meta?: {
     page: number;

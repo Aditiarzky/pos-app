@@ -148,6 +148,9 @@ export function StockMutationsSection() {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4">
+                  No.
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4">
                   Waktu
                 </TableHead>
                 <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4">
@@ -187,12 +190,15 @@ export function StockMutationsSection() {
                   </TableCell>
                 </TableRow>
               ) : (
-                mutations.map((mutation) => (
+                mutations.map((mutation, index) => (
                   <TableRow
                     key={mutation.id}
                     className="hover:bg-muted/50 transition-colors"
                   >
-                    <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2">
+                    <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2">
+                      {index + 1}
+                    </TableCell>
+                    <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2">
                       <div className="flex flex-col">
                         <span className="sm:hidden text-[9px] text-muted-foreground">
                           {format(mutation.createdAt!, "dd/MM/yy", {

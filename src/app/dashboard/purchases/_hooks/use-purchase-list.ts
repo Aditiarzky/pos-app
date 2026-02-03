@@ -22,7 +22,7 @@ import {
 // HOOK RETURN TYPE
 // ============================================
 
-interface UsePurchaseListReturn {
+export interface UsePurchaseListReturn {
   purchases: PurchaseResponse[];
   isLoading: boolean;
   meta?: {
@@ -53,6 +53,12 @@ interface UsePurchaseListReturn {
   hasActiveFilters: boolean;
   resetFilters: () => void;
 
+  analytics?: {
+    totalPurchases?: number;
+    totalPurchasesThisMonth?: number;
+    newTransactions?: number;
+    activeSuppliers?: number;
+  };
   // Actions
   handleDelete: (purchase: PurchaseResponse) => Promise<void>;
   isDeleting: boolean;
@@ -98,6 +104,7 @@ export function usePurchaseList(): UsePurchaseListReturn {
   });
   const purchases = purchasesResult?.data ?? [];
   const meta = purchasesResult?.meta;
+  const analytics = purchasesResult?.analytics;
 
   // Delete mutation
   const deleteMutation = useDeletePurchase();
@@ -139,6 +146,7 @@ export function usePurchaseList(): UsePurchaseListReturn {
     purchases: purchases as PurchaseResponse[],
     isLoading,
     meta,
+    analytics,
 
     // Pagination
     page,

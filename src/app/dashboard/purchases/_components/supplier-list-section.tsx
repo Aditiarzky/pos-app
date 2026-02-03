@@ -13,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppPagination } from "@/components/app-pagination";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,6 @@ import {
   Edit,
   Trash2,
   Plus,
-  Filter,
   LayoutList,
   MoreHorizontal,
   SearchX,
@@ -36,24 +34,11 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { IconSortAscending, IconSortDescending } from "@tabler/icons-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { formatDate } from "@/lib/format";
 import { useSupplierList } from "../_hooks/use-supplier-list";
 import { SupplierListSectionProps, SupplierResponse } from "../_types/supplier";
+import { FilterWrap } from "@/components/filter-wrap";
+import { SupplierFilterForm } from "./_ui/supplier-filter-form";
 
 // ============================================
 // MAIN COMPONENT
@@ -109,60 +94,16 @@ export function SupplierListSection({
         </div>
 
         <div className="flex gap-2">
-          {/* Mobile Filter Sheet */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                className="h-10 sm:hidden relative border-dashed"
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
-                {hasActiveFilters && <ActiveFilterIndicator />}
-              </Button>
-            </SheetTrigger>
-            <SheetContent
-              side="bottom"
-              className="px-4 py-6 sm:hidden rounded-t-[20px]"
-            >
-              <SheetHeader className="mb-4">
-                <SheetTitle>Filter Lanjutan</SheetTitle>
-              </SheetHeader>
-              <FilterForm
-                orderBy={orderBy}
-                setOrderBy={setOrderBy}
-                order={order}
-                setOrder={setOrder}
-                setPage={setPage}
-                resetFilters={resetFilters}
-              />
-            </SheetContent>
-          </Sheet>
-
-          {/* Desktop Filter Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="h-10 hidden sm:flex relative border-dashed"
-              >
-                <Filter className="mr-2 h-4 w-4" />
-                Filter Lanjutan
-                {hasActiveFilters && <ActiveFilterIndicator />}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-80 p-4" align="end">
-              <FilterForm
-                orderBy={orderBy}
-                setOrderBy={setOrderBy}
-                order={order}
-                setOrder={setOrder}
-                setPage={setPage}
-                resetFilters={resetFilters}
-                isDropdown
-              />
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <FilterWrap hasActiveFilters={hasActiveFilters}>
+            <SupplierFilterForm
+              orderBy={orderBy}
+              setOrderBy={setOrderBy}
+              order={order}
+              setOrder={setOrder}
+              setPage={setPage}
+              resetFilters={resetFilters}
+            />
+          </FilterWrap>
 
           {/* Add Supplier Button */}
           <Button className="h-10" onClick={onAddNew}>
@@ -171,10 +112,7 @@ export function SupplierListSection({
           </Button>
 
           {/* Total Badge */}
-          <Badge
-            variant="secondary"
-            className="h-10 px-4 rounded-lg hidden md:flex items-center gap-2 font-medium"
-          >
+          <Badge className="h-10 px-4 bg-primary/10 text-primary rounded-lg hidden md:flex items-center gap-2 font-medium">
             <LayoutList className="h-4 w-4" />
             Total {meta?.total || 0} Supplier
           </Badge>
@@ -352,85 +290,5 @@ function SupplierRow({ supplier, onEdit, onDelete, idx }: SupplierRowProps) {
         </DropdownMenu>
       </TableCell>
     </TableRow>
-  );
-}
-
-// Filter Form
-interface FilterFormProps {
-  orderBy: "createdAt" | "name" | "phone" | undefined;
-  setOrderBy: (v: "createdAt" | "name" | "phone" | undefined) => void;
-  order: "asc" | "desc" | undefined;
-  setOrder: (v: "asc" | "desc" | undefined) => void;
-  setPage: (p: number) => void;
-  resetFilters: () => void;
-  isDropdown?: boolean;
-}
-
-function FilterForm({
-  orderBy,
-  setOrderBy,
-  order,
-  setOrder,
-  setPage,
-  resetFilters,
-  isDropdown,
-}: FilterFormProps) {
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <h4 className="font-medium leading-none text-xs text-muted-foreground uppercase tracking-wider">
-          Urutkan
-        </h4>
-        <div className="grid grid-cols-2 gap-2">
-          <Select
-            value={orderBy}
-            onValueChange={(v) => {
-              setOrderBy(v as "createdAt" | "name" | "phone" | undefined);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="h-10 px-3 bg-muted/50 border-none shadow-none focus:ring-1 focus:ring-primary/20 cursor-pointer">
-              <SelectValue placeholder="Urutkan" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="createdAt">Tanggal Dibuat</SelectItem>
-              <SelectItem value="name">Nama</SelectItem>
-              <SelectItem value="phone">Telepon</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select
-            value={order}
-            onValueChange={(v: "asc" | "desc") => {
-              setOrder(v);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="h-10 px-3 bg-muted/50 border-none shadow-none focus:ring-1 focus:ring-primary/20 cursor-pointer">
-              <SelectValue placeholder="A-Z" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="asc">
-                Ascending{" "}
-                <IconSortAscending className="h-4 w-4 ml-2 inline text-muted-foreground" />
-              </SelectItem>
-              <SelectItem value="desc">
-                Descending{" "}
-                <IconSortDescending className="h-4 w-4 ml-2 inline text-muted-foreground" />
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {isDropdown && <DropdownMenuSeparator />}
-
-      <Button
-        variant="ghost"
-        className="w-full h-10 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
-        onClick={resetFilters}
-      >
-        Reset Filter
-      </Button>
-    </div>
   );
 }

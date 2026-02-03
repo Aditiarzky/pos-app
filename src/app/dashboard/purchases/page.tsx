@@ -14,19 +14,23 @@ import {
   Truck,
   Plus,
   ShoppingCart,
-  TrendingUp,
   Receipt,
   Loader2,
 } from "lucide-react";
-import { useQueryState } from "@/hooks/use-query-state";
-import { AnimatedNumber } from "@/components/ui/animated-number";
-import { CardBg } from "@/assets/card-background/card-bg";
+import {
+  usePurchaseList,
+  UsePurchaseListReturn,
+} from "./_hooks/use-purchase-list";
 import { PurchaseResponse } from "./_types/purchase-type";
 import { PurchaseListSection } from "./_components/purchase-list-section";
 import { SupplierListSection } from "./_components/supplier-list-section";
 import { PurchaseForm } from "./_components/purchase-form";
 import { SupplierFormModal } from "./_components/supplier-form-modal";
 import { SupplierResponse } from "./_types/supplier";
+import { useQueryState } from "@/hooks/use-query-state";
+import { AnimatedNumber } from "@/components/ui/animated-number";
+import { CardBg } from "@/assets/card-background/card-bg";
+import { Badge } from "@/components/ui/badge";
 
 // ============================================
 // MAIN CONTENT COMPONENT
@@ -35,6 +39,27 @@ import { SupplierResponse } from "./_types/supplier";
 function PurchasesContent() {
   // Tab state (synced dengan URL)
   const [tab, setTab] = useQueryState<string>("tab", "history");
+
+  // Fetch data here so it can be shared with AnalyticsCards
+  const {
+    purchases,
+    isLoading,
+    meta,
+    analytics,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    searchInput,
+    setSearchInput,
+    orderBy,
+    setOrderBy,
+    order,
+    setOrder,
+    hasActiveFilters,
+    resetFilters,
+    handleDelete,
+  } = usePurchaseList();
 
   // Purchase form state
   const [isPurchaseFormOpen, setIsPurchaseFormOpen] = useState(false);
@@ -102,7 +127,7 @@ function PurchasesContent() {
       {/* Main Content */}
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
         {/* Analytics Cards - Hidden saat form terbuka */}
-        <AnalyticsCards />
+        <AnalyticsCards analytics={analytics} />
 
         <PurchaseForm
           isOpen={isPurchaseFormOpen}
@@ -139,7 +164,26 @@ function PurchasesContent() {
             value="history"
             className="animate-in fade-in duration-300"
           >
-            <PurchaseListSection onEdit={handleEditPurchase} />
+            <PurchaseListSection
+              onEdit={handleEditPurchase}
+              // Injection data dari usePurchaseList
+              purchases={purchases}
+              isLoading={isLoading}
+              meta={meta}
+              page={page}
+              setPage={setPage}
+              limit={limit}
+              setLimit={setLimit}
+              searchInput={searchInput}
+              setSearchInput={setSearchInput}
+              orderBy={orderBy}
+              setOrderBy={setOrderBy}
+              order={order}
+              setOrder={setOrder}
+              hasActiveFilters={hasActiveFilters}
+              resetFilters={resetFilters}
+              onDelete={handleDelete}
+            />
           </TabsContent>
 
           <TabsContent
@@ -167,71 +211,76 @@ function PurchasesContent() {
 // ANALYTICS CARDS COMPONENT
 // ============================================
 
-function AnalyticsCards() {
-  // TODO: Fetch actual analytics data dari API
-  const analytics = {
-    totalPurchasesThisMonth: 0,
-    newTransactions: 0,
-    activeSuppliers: 0,
-    percentageChange: 0,
-  };
-
+function AnalyticsCards({
+  analytics,
+}: {
+  analytics?: UsePurchaseListReturn["analytics"];
+}) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {/* Total Pembelian */}
-      <Card className="relative overflow-hidden group">
+      <Card className="relative overflow-hidden">
         <CardBg />
-        <CardHeader className="pb-2 z-10 transition-transform group-hover:scale-105 duration-300">
+        <CardHeader className="pb-2 z-10">
           <CardTitle className="text-sm font-medium flex items-center justify-between">
             Total Pembelian (Bulan Ini)
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <ShoppingCart className="h-5 w-5 text-muted-foreground/50" />
           </CardTitle>
         </CardHeader>
         <CardContent className="z-10 text-primary">
-          <div className="text-3xl font-bold">
-            Rp <AnimatedNumber value={analytics.totalPurchasesThisMonth} />
+          <div className="text-3xl font-bold flex items-baseline gap-1">
+            <span className="text-xl font-medium opacity-70">Rp</span>
+            <AnimatedNumber value={analytics?.totalPurchasesThisMonth ?? 0} />
           </div>
-          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-            <TrendingUp className="h-3 w-3 text-emerald-500" />
-            {analytics.percentageChange}% vs bulan lalu
-          </p>
+          <div className="mt-1 flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className="text-[10px] px-1.5 py-0 bg-emerald-50 text-emerald-600 border-emerald-100 font-bold"
+            >
+              +0%
+            </Badge>
+            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter italic opacity-60">
+              vs bulan lalu
+            </span>
+          </div>
         </CardContent>
       </Card>
 
       {/* Transaksi Baru */}
-      <Card className="relative overflow-hidden group">
+      <Card className="relative overflow-hidden">
         <CardBg />
-        <CardHeader className="pb-2 z-10 transition-transform group-hover:scale-105 duration-300">
+        <CardHeader className="pb-2 z-10">
           <CardTitle className="text-sm font-medium flex items-center justify-between">
-            Transaksi Baru
-            <Receipt className="h-4 w-4 text-muted-foreground" />
+            Transaksi Hari Ini
+            <Receipt className="h-5 w-5 text-muted-foreground/50" />
           </CardTitle>
         </CardHeader>
         <CardContent className="z-10 text-primary">
           <div className="text-3xl font-bold">
-            <AnimatedNumber value={analytics.newTransactions} />
+            <AnimatedNumber value={analytics?.newTransactions ?? 0} />
           </div>
-          <p className="text-xs text-muted-foreground mt-1 text-[10px] font-bold uppercase tracking-wider">
-            Menunggu Kedatangan
+          <p className="text-[10px] text-muted-foreground mt-2 font-bold uppercase tracking-wider flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+            Terakhir dicatat hari ini
           </p>
         </CardContent>
       </Card>
 
       {/* Supplier Aktif */}
-      <Card className="relative overflow-hidden group">
+      <Card className="relative overflow-hidden">
         <CardBg />
-        <CardHeader className="pb-2 z-10 transition-transform group-hover:scale-105 duration-300">
+        <CardHeader className="pb-2 z-10">
           <CardTitle className="text-sm font-medium flex items-center justify-between">
-            Supplier Aktif
-            <Truck className="h-4 w-4 text-muted-foreground" />
+            Supplier Terlibat
+            <Truck className="h-5 w-5 text-muted-foreground/50" />
           </CardTitle>
         </CardHeader>
         <CardContent className="z-10 text-primary">
           <div className="text-3xl font-bold">
-            <AnimatedNumber value={analytics.activeSuppliers} />
+            <AnimatedNumber value={analytics?.activeSuppliers ?? 0} />
           </div>
-          <p className="text-xs text-muted-foreground mt-1 text-[10px] font-bold uppercase tracking-wider">
-            Bekerja sama dengan toko
+          <p className="text-[10px] text-muted-foreground mt-2 font-bold uppercase tracking-wider flex items-center gap-1.5 opacity-70">
+            Total mitra supplier aktif
           </p>
         </CardContent>
       </Card>

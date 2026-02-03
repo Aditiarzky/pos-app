@@ -136,18 +136,18 @@ function ProductsContent() {
           </Card>
         </div>
 
-        <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2 h-11 bg-muted/50 p-1">
+        <Tabs value={tab} onValueChange={setTab} className="gap-4">
+          <TabsList className="bg-background">
             <TabsTrigger
               value="list"
-              className="cursor-pointer font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground overflow-hidden"
+              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
             >
               <LayoutPanelTopIcon className="mr-2 h-4 w-4" />
               <p className="truncate">Daftar Produk</p>
             </TabsTrigger>
             <TabsTrigger
               value="mutations"
-              className="cursor-pointer font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground overflow-hidden"
+              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
             >
               <Table className="mr-2 h-4 w-4" />
               <p className="truncate">Mutasi Stok</p>

@@ -10,12 +10,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { UseMutationResult } from "@tanstack/react-query";
 import {
   supplierSchema,
-  SupplierData as SupplierFormData
+  SupplierData as SupplierFormData,
 } from "@/lib/validations/supplier";
-import { 
-  SupplierFormProps, 
-  SupplierResponse 
-} from "../_types/supplier";
+import { SupplierResponse } from "../_types/supplier";
 import { ApiResponse } from "@/services/productService";
 import { toast } from "sonner";
 
@@ -90,9 +87,9 @@ export function useSupplierForm({
       form.reset();
       onSuccess?.();
     } catch (error) {
-      const errorMessage = 
-        error instanceof Error 
-          ? error.message 
+      const errorMessage =
+        error instanceof Error
+          ? error.message
           : "Gagal menyimpan data supplier";
       toast.error(errorMessage);
     }

@@ -37,7 +37,17 @@ export async function GET(request: NextRequest) {
       ))`;
     }
 
-    const [purchasesData, totalRes] = await Promise.all([
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfToday = new Date(now.setHours(0, 0, 0, 0));
+
+    const [
+      purchasesData,
+      totalRes,
+      monthlyTotalRes,
+      todayTransactionsRes,
+      activeSuppliersRes,
+    ] = await Promise.all([
       db.query.purchaseOrders.findMany({
         where: and(searchFilter, not(purchaseOrders.isArchived)),
         with: {
@@ -79,15 +89,51 @@ export async function GET(request: NextRequest) {
         .select({ count: sql<number>`count(*)` })
         .from(purchaseOrders)
         .where(and(searchFilter, not(purchaseOrders.isArchived))),
+
+      // Total Purchases This Month
+      db
+        .select({ total: sql<string>`sum(${purchaseOrders.total})` })
+        .from(purchaseOrders)
+        .where(
+          and(
+            not(purchaseOrders.isArchived),
+            sql`${purchaseOrders.createdAt} >= ${firstDayOfMonth}`,
+          ),
+        ),
+
+      // Transactions Today
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(purchaseOrders)
+        .where(
+          and(
+            not(purchaseOrders.isArchived),
+            sql`${purchaseOrders.createdAt} >= ${startOfToday}`,
+          ),
+        ),
+
+      // Active Suppliers (Suppliers with at least one purchase)
+      db
+        .select({
+          count: sql<number>`count(distinct ${purchaseOrders.supplierId})`,
+        })
+        .from(purchaseOrders)
+        .where(not(purchaseOrders.isArchived)),
     ]);
 
     const totalCount = Number(totalRes[0]?.count || 0);
+    const monthlyTotal = Number(monthlyTotalRes[0]?.total || 0);
+    const transactionsToday = Number(todayTransactionsRes[0]?.count || 0);
+    const activeSuppliers = Number(activeSuppliersRes[0]?.count || 0);
 
     return NextResponse.json({
       success: true,
       data: purchasesData,
       analytics: {
         totalPurchases: totalCount,
+        totalPurchasesThisMonth: monthlyTotal,
+        newTransactions: transactionsToday, // Matching the frontend key name from plan
+        activeSuppliers: activeSuppliers,
       },
       meta: formatMeta(totalCount, params.page, params.limit),
     });

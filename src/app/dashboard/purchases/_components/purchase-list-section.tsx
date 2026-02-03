@@ -17,43 +17,59 @@ import { SearchInput } from "@/components/ui/search-input";
 import { Badge } from "@/components/ui/badge";
 
 import { usePurchaseList } from "../_hooks/use-purchase-list";
-import { PurchaseListSectionProps } from "../_types/purchase-type";
+import {
+  PurchaseListSectionProps,
+  PurchaseResponse,
+} from "../_types/purchase-type";
 import { PurchaseCard, PurchaseRow } from "./_ui/purchase-row";
 import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { FilterWrap } from "@/components/filter-wrap";
 import { PurchaseFilterForm } from "./_ui/purchase-filter-form";
 
-export function PurchaseListSection({ onEdit }: PurchaseListSectionProps) {
-  const {
-    // Data
-    purchases,
-    isLoading,
-    meta,
+export function PurchaseListSection({
+  onEdit,
+  // Optional props for direct injection
+  purchases: injectedPurchases,
+  isLoading: injectedIsLoading,
+  meta: injectedMeta,
+  page: injectedPage,
+  setPage: injectedSetPage,
+  limit: injectedLimit,
+  setLimit: injectedSetLimit,
+  searchInput: injectedSearchInput,
+  setSearchInput: injectedSetSearchInput,
+  orderBy: injectedOrderBy,
+  setOrderBy: injectedSetOrderBy,
+  order: injectedOrder,
+  setOrder: injectedSetOrder,
+  hasActiveFilters: injectedHasActiveFilters,
+  resetFilters: injectedResetFilters,
+  onDelete: injectedOnDelete,
+}: PurchaseListSectionProps &
+  Partial<ReturnType<typeof usePurchaseList>> & {
+    onDelete?: (p: PurchaseResponse) => void;
+  }) {
+  const internalData = usePurchaseList();
 
-    // Pagination
-    page,
-    setPage,
-    limit,
-    setLimit,
-
-    // Search
-    searchInput,
-    setSearchInput,
-
-    // Sorting
-    orderBy,
-    setOrderBy,
-    order,
-    setOrder,
-
-    // Filters
-    hasActiveFilters,
-    resetFilters,
-
-    // Actions
-    handleDelete,
-  } = usePurchaseList();
+  // Use injected props if available, otherwise use internal hook results
+  const purchases = injectedPurchases ?? internalData.purchases;
+  const isLoading = injectedIsLoading ?? internalData.isLoading;
+  const meta = injectedMeta ?? internalData.meta;
+  const page = injectedPage ?? internalData.page;
+  const setPage = injectedSetPage ?? internalData.setPage;
+  const limit = injectedLimit ?? internalData.limit;
+  const setLimit = injectedSetLimit ?? internalData.setLimit;
+  const searchInput = injectedSearchInput ?? internalData.searchInput;
+  const setSearchInput = injectedSetSearchInput ?? internalData.setSearchInput;
+  const orderBy = injectedOrderBy ?? internalData.orderBy;
+  const setOrderBy = injectedSetOrderBy ?? internalData.setOrderBy;
+  const order = injectedOrder ?? internalData.order;
+  const setOrder = injectedSetOrder ?? internalData.setOrder;
+  const hasActiveFilters =
+    injectedHasActiveFilters ?? internalData.hasActiveFilters;
+  const resetFilters = injectedResetFilters ?? internalData.resetFilters;
+  const handleDelete = injectedOnDelete ?? internalData.handleDelete;
 
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
 
@@ -90,7 +106,7 @@ export function PurchaseListSection({ onEdit }: PurchaseListSectionProps) {
               variant={viewMode === "table" ? "default" : "outline"}
               size="icon"
               onClick={() => setViewMode("table")}
-              className="h-10 w-10 sm:flex"
+              className={`h-10 w-10 sm:flex ${viewMode === "table" ? "bg-primary/10 text-primary border border-border hover:bg-primary/50" : "hover:bg-primary/50"}`}
               title="Tampilan Tabel"
             >
               <Table2 className="h-4 w-4" />
@@ -99,16 +115,13 @@ export function PurchaseListSection({ onEdit }: PurchaseListSectionProps) {
               variant={viewMode === "card" ? "default" : "outline"}
               size="icon"
               onClick={() => setViewMode("card")}
-              className="h-10 w-10 sm:flex"
+              className={`h-10 w-10 sm:flex ${viewMode === "card" ? "bg-primary/10 text-primary border border-border hover:bg-primary/50" : "hover:bg-primary/50"}`}
               title="Tampilan Kartu"
             >
               <LayoutGrid className="h-4 w-4" />
             </Button>
           </div>
-          <Badge
-            variant="secondary"
-            className="h-10 px-4 rounded-lg hidden md:flex items-center gap-2 font-medium"
-          >
+          <Badge className="h-10 px-4 bg-primary/10 text-primary rounded-lg hidden md:flex items-center gap-2 font-medium">
             <LayoutList className="h-4 w-4" />
             Total {meta?.total || 0} Transaksi
           </Badge>

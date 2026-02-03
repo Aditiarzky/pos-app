@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, Settings, ChevronLeft, FileText, LogOut } from "lucide-react";
+import { Package, Settings, ChevronLeft, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import LogoNav from "@/assets/logo-nav/logo-nav";
@@ -138,17 +138,6 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
               </Link>
             );
           })}
-          <Separator className="my-2" />
-          <button
-            disabled={!roles.length}
-            className={cn(
-              "w-full flex items-center my-1 gap-3 px-4 py-2 cursor-pointer rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              !roles.length && "opacity-50 cursor-not-allowed",
-            )}
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="font-regular">Keluar</span>
-          </button>
         </nav>
       </div>
       {/* Overlay for mobile */}
