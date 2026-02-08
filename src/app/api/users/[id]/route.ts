@@ -8,12 +8,27 @@ import {
   validateUpdateUserData,
 } from "@/lib/validations/user";
 import { UserRoleEnumType } from "@/drizzle/type";
+import { verifySession } from "@/lib/auth";
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    if (!session.roles.includes("admin sistem")) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
+    }
     const { id: rawId } = await params;
     const id = parseInt(rawId);
 
@@ -59,6 +74,20 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    if (!session.roles.includes("admin sistem")) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
+    }
     const { id: rawId } = await params;
     const id = parseInt(rawId);
 
@@ -152,6 +181,20 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    if (!session.roles.includes("admin sistem")) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
+    }
     const { id: rawId } = await params;
     const id = parseInt(rawId);
 

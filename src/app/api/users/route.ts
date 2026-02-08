@@ -1,40 +1,82 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, userRoles } from "@/drizzle/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, sql, and, exists } from "drizzle-orm";
 import { hash } from "bcryptjs";
 import { validateUserData } from "@/lib/validations/user";
+import { verifySession } from "@/lib/auth";
+import { UserRoleEnumType } from "@/drizzle/type";
+import {
+  formatMeta,
+  getSearchAndOrderFTS,
+  parsePagination,
+} from "@/lib/query-helper";
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
-    const offset = (page - 1) * limit;
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    if (!session.roles.includes("admin sistem")) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
+    }
+    const params = parsePagination(request);
+    const role = request.nextUrl.searchParams.get("role");
+
+    const { searchFilter, searchOrder } = getSearchAndOrderFTS(
+      params.search,
+      params.order,
+      params.orderBy,
+      users,
+    );
+
+    let finalFilter = and(searchFilter, eq(users.isActive, true));
+
+    if (role && role !== "all") {
+      finalFilter = and(
+        finalFilter,
+        exists(
+          db
+            .select()
+            .from(userRoles)
+            .where(
+              and(
+                eq(userRoles.userId, users.id),
+                eq(userRoles.role, role as UserRoleEnumType),
+              ),
+            ),
+        ),
+      );
+    }
 
     const usersData = await db.query.users.findMany({
+      where: finalFilter,
       with: {
         roles: true,
       },
-      orderBy: [desc(users.createdAt)],
-      limit: limit,
-      offset: offset,
+      orderBy: searchOrder,
+      limit: params.limit,
+      offset: params.offset,
     });
 
     const totalRes = await db
       .select({ count: sql<number>`count(*)` })
-      .from(users);
+      .from(users)
+      .where(finalFilter);
     const totalCount = Number(totalRes[0]?.count || 0);
 
     return NextResponse.json({
       success: true,
       data: usersData,
-      pagination: {
-        page,
-        limit,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-      },
+      pagination: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {
     console.error("fetch users error:", error);
@@ -47,6 +89,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    if (!session.roles.includes("admin sistem")) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      );
+    }
     const body = await req.json();
     const validation = validateUserData(body);
 
@@ -95,7 +151,7 @@ export async function POST(req: NextRequest) {
         await tx.insert(userRoles).values(
           rolesInput.map((r) => ({
             userId: newUser.id,
-            role: r as any,
+            role: r as UserRoleEnumType,
           })),
         );
       }

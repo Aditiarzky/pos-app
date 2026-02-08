@@ -52,7 +52,6 @@ export function ProductListSection({
     setMounted(true);
   }, []);
 
-  // Still need to reset page when filters change
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, categoryFilter, stockFilter, orderBy, order]);

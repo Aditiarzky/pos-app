@@ -34,6 +34,9 @@ export const getUsers = async (params?: {
   page?: number;
   limit?: number;
   search?: string;
+  role?: string;
+  orderBy?: string;
+  order?: "asc" | "desc";
 }): Promise<ApiResponse<UserResponse[]>> => {
   const response = await axiosInstance.get("/users", { params });
   return response.data;

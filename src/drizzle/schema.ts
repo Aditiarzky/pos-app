@@ -39,8 +39,21 @@ export const users = p.pgTable(
       .defaultNow()
       .$onUpdateFn(() => new Date()),
     deletedAt: p.timestamp("deleted_at"),
+    searchVector: p
+      .customType<{ data: string }>({
+        dataType() {
+          return "tsvector";
+        },
+      })("search_vector")
+      .generatedAlwaysAs(
+        (): SQL =>
+          sql`to_tsvector('indonesian', ${users.name} || ' ' || ${users.email})`,
+      ),
   },
-  (t) => [p.uniqueIndex("users_email_key").on(t.email)],
+  (t) => [
+    p.uniqueIndex("users_email_key").on(t.email),
+    p.index("users_search_idx").using("gin", t.searchVector),
+  ],
 );
 
 export const refreshTokens = p.pgTable("refresh_tokens", {
