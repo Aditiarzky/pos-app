@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { productVariants } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { validateProductVariantData } from "@/lib/validations/product-variant";
+import { handleApiError } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
           error: "Validation failed",
           details: validation.error.format() || "Unknown error",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -31,13 +32,9 @@ export async function POST(request: NextRequest) {
         data: newProductVariant,
         message: "Product variant created successfully",
       },
-      { status: 201 }
+      { status: 201 },
     );
-  } catch (error: any) {
-    console.error("Error inserting product variant:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

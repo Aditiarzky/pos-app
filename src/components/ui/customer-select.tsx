@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import * as React from "react";
 import { Check, ChevronsUpDown, Search, Plus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -8,61 +10,68 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SupplierResponse } from "@/services/supplierService";
-import { useCreateSupplier } from "@/hooks/master/use-suppliers";
+import { useCustomers, useCreateCustomer } from "@/hooks/master/use-customers";
 import { toast } from "sonner";
 
-interface SupplierSelectProps {
-  suppliers: SupplierResponse[];
+interface CustomerSelectProps {
   value?: number;
   onValueChange: (value: number) => void;
+  customers?: { id: number; name: string }[];
   placeholder?: string;
   disabled?: boolean;
 }
 
-export function SupplierSelect({
-  suppliers,
+export function CustomerSelect({
   value,
   onValueChange,
-  placeholder = "Pilih supplier...",
+  customers: propCustomers,
+  placeholder = "Pilih Customer...",
   disabled,
-}: SupplierSelectProps) {
+}: CustomerSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
 
-  const createSupplierMutation = useCreateSupplier();
+  // Fetch customers if not provided
+  const { data: customerResult, isLoading } = useCustomers();
 
-  const filteredSuppliers = React.useMemo(() => {
-    if (!search) return suppliers;
-    return suppliers.filter((supplier) =>
-      supplier.name.toLowerCase().includes(search.toLowerCase()),
-    );
-  }, [suppliers, search]);
-
-  const selectedSupplier = React.useMemo(
-    () => suppliers.find((s) => s.id === value),
-    [suppliers, value],
+  const customers = React.useMemo(
+    () => propCustomers || customerResult?.data || [],
+    [propCustomers, customerResult?.data],
   );
 
-  const handleCreateSupplier = async () => {
+  const createMutation = useCreateCustomer();
+
+  const filteredCustomers = React.useMemo(() => {
+    if (!search) return customers;
+    return customers.filter((customer) =>
+      customer.name.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [customers, search]);
+
+  const selectedCustomer = React.useMemo(
+    () => customers.find((c) => c.id === value),
+    [customers, value],
+  );
+
+  const handleCreateCustomer = async () => {
     if (!search.trim()) return;
 
     try {
-      const result = await createSupplierMutation.mutateAsync({
+      const result = await createMutation.mutateAsync({
         name: search,
       });
 
       if (result.success && result.data) {
+        toast.success(`Customer "${result.data.name}" berhasil dibuat`);
         onValueChange(result.data.id);
         setSearch("");
         setOpen(false);
-        toast.success(`Supplier "${result.data.name}" berhasil dibuat`);
       } else {
-        toast.error(result.message || "Gagal membuat supplier baru");
+        toast.error("Gagal membuat customer baru");
       }
-    } catch (error: unknown) {
-      const err = error as Error;
-      toast.error(err.message || "Gagal membuat supplier baru");
+    } catch (error) {
+      console.error(error);
+      toast.error("Gagal membuat customer baru");
     }
   };
 
@@ -74,12 +83,16 @@ export function SupplierSelect({
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
-          disabled={disabled || createSupplierMutation.isPending}
+          disabled={disabled || isLoading || createMutation.isPending}
         >
           <span className="truncate">
-            {selectedSupplier ? selectedSupplier.name : placeholder}
+            {selectedCustomer ? selectedCustomer.name : placeholder}
           </span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          {isLoading ? (
+            <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin" />
+          ) : (
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -90,23 +103,23 @@ export function SupplierSelect({
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <input
             className="flex h-8 w-full rounded-md bg-transparent text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
-            placeholder="Cari atau tambah supplier..."
+            placeholder="Cari atau tambah customer..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <div className="max-h-[200px] overflow-y-auto p-1">
-          {filteredSuppliers.length === 0 && !search && (
+          {filteredCustomers.length === 0 && !search && (
             <div className="py-6 text-center text-sm text-muted-foreground">
-              Tidak ada supplier.
+              Tidak ada customer.
             </div>
           )}
 
-          {filteredSuppliers.map((supplier) => (
+          {filteredCustomers.map((customer) => (
             <DropdownMenuItem
-              key={supplier.id}
+              key={customer.id}
               onSelect={() => {
-                onValueChange(supplier.id);
+                onValueChange(customer.id);
                 setOpen(false);
                 setSearch("");
               }}
@@ -116,24 +129,24 @@ export function SupplierSelect({
                 <Check
                   className={cn(
                     "mr-2 h-4 w-4 text-primary",
-                    value === supplier.id ? "opacity-100" : "opacity-0",
+                    value === customer.id ? "opacity-100" : "opacity-0",
                   )}
                 />
-                {supplier.name}
+                {customer.name}
               </div>
             </DropdownMenuItem>
           ))}
 
           {search &&
-            !filteredSuppliers.some(
-              (s) => s.name.toLowerCase() === search.toLowerCase(),
+            !filteredCustomers.some(
+              (c) => c.name.toLowerCase() === search.toLowerCase(),
             ) && (
               <DropdownMenuItem
-                onSelect={handleCreateSupplier}
+                onSelect={handleCreateCustomer}
                 className="mt-1 border-t bg-muted/50 focus:bg-primary focus:text-primary-foreground"
               >
                 <div className="flex items-center font-medium">
-                  {createSupplierMutation.isPending ? (
+                  {createMutation.isPending ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
                     <Plus className="mr-2 h-4 w-4" />

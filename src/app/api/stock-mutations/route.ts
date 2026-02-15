@@ -16,7 +16,14 @@ export async function GET(request: NextRequest) {
     const baseConditions = [];
 
     if (productId) {
-      baseConditions.push(eq(stockMutations.productId, Number(productId)));
+      const parsedProductId = Number(productId);
+      if (Number.isNaN(parsedProductId)) {
+        return NextResponse.json(
+          { success: false, error: "Invalid productId parameter" },
+          { status: 400 },
+        );
+      }
+      baseConditions.push(eq(stockMutations.productId, parsedProductId));
     }
 
     if (type && type !== "all") {
@@ -77,13 +84,6 @@ export async function GET(request: NextRequest) {
       limit: params.limit,
       offset: params.offset,
       orderBy: orderFn,
-      columns: {
-        id: true,
-        type: true,
-        qtyBaseUnit: true,
-        reference: true,
-        createdAt: true,
-      },
       with: {
         product: { columns: { name: true, sku: true } },
         productVariant: {

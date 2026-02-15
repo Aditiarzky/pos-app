@@ -10,10 +10,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { UnitType } from "@/drizzle/type";
 import { useCreateUnit } from "@/hooks/master/use-units";
 import { toast } from "sonner";
+import { ApiResponse } from "@/services/productService";
 
 interface UnitSelectProps {
   units: UnitType[];
@@ -62,8 +62,8 @@ export function UnitSelect({
         setOpen(false);
         toast.success(`Satuan "${result.data.name}" berhasil dibuat`);
       }
-    } catch (error: any) {
-      toast.error(error.message || "Gagal membuat satuan baru");
+    } catch (error) {
+      toast.error((error as ApiResponse).error || "Gagal membuat satuan baru");
     }
   };
 
@@ -137,7 +137,7 @@ export function UnitSelect({
                   ) : (
                     <Plus className="mr-2 h-4 w-4" />
                   )}
-                  Tambah "{search}"
+                  Tambah &quot;{search}&quot;
                 </div>
               </DropdownMenuItem>
             )}

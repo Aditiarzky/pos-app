@@ -1,10 +1,6 @@
-import { saleItems, sales, suppliers, users } from "@/drizzle/schema";
+import { saleItems } from "@/drizzle/schema";
 import { createInsertSchema } from "drizzle-zod";
 import z from "zod";
-import { db } from "../db";
-import { eq } from "drizzle-orm";
-
-const baseInsertSaleOrderSchema = createInsertSchema(sales);
 
 const saleItemInputSchema = createInsertSchema(saleItems)
   .omit({
@@ -13,6 +9,7 @@ const saleItemInputSchema = createInsertSchema(saleItems)
     subtotal: true,
     priceAtSale: true,
     costAtSale: true,
+    unitFactorAtSale: true,
   })
   .extend({
     qty: z.coerce.number().positive("Qty must be positive"),
@@ -21,26 +18,18 @@ const saleItemInputSchema = createInsertSchema(saleItems)
   });
 
 export const insertSaleSchema = z.object({
-  totalPaid: baseInsertSaleOrderSchema.shape.totalPaid,
-  userId: baseInsertSaleOrderSchema.shape.userId,
+  totalPaid: z.coerce.number().nonnegative("Total paid must be non-negative"),
+  userId: z.number().min(1, "Tidak ada user yang login"),
+  customerId: z.number().min(1, "Customer harus diisi"),
+  totalBalanceUsed: z.coerce
+    .number()
+    .nonnegative("Total saldo harus positif")
+    .default(0),
   items: z.array(saleItemInputSchema).min(1, "At least one item is required"),
 });
 
 export type insertSaleType = z.infer<typeof insertSaleSchema>;
 
 export const validateInsertSaleData = async (data: unknown) => {
-  return await insertSaleSchema
-    .superRefine(async (val, ctx) => {
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, val.userId),
-      });
-      if (!user) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "User tidak terdaftar di database",
-          path: ["userId"],
-        });
-      }
-    })
-    .parseAsync(data);
+  return await insertSaleSchema.parseAsync(data);
 };

@@ -61,6 +61,9 @@ export interface PurchaseFormItem {
   price: number;
   productName?: string | null;
   variantName?: string | null;
+  image?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  variants?: any[]; // Using any[] temporarily or import ProductResponse["variants"] if possible, but for now we keep it loose or I will import it. Let's try to be specific if I can import types.
 }
 
 export interface PurchaseFormData {

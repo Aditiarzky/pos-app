@@ -224,6 +224,7 @@ export async function POST(request: NextRequest) {
             variantId: item.variantId,
             qty: item.qty.toFixed(3),
             price: item.price.toFixed(2),
+            unitFactorAtPurchase: variantData.conversionToBase,
             subtotal: subtotal.toFixed(2),
             costBefore: costBefore.toFixed(4),
           })
@@ -237,6 +238,7 @@ export async function POST(request: NextRequest) {
             productId: item.productId,
             variantId: item.variantId,
             type: "purchase",
+            unitFactorAtMutation: variantData.conversionToBase,
             qtyBaseUnit: qtyInBaseUnit.toFixed(4),
             reference: `PO-${newOrder.id.toString().padStart(6, "0")}`,
             userId: userId,

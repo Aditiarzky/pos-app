@@ -7,12 +7,14 @@ import {
   products,
   stockMutations,
   productVariants,
+  customers,
 } from "@/drizzle/schema";
 import { validateInsertSaleData } from "@/lib/validations/sale";
+import { handleApiError } from "@/lib/api-utils";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ salesId: string }> }
+  { params }: { params: Promise<{ salesId: string }> },
 ) {
   try {
     const { salesId } = await params;
@@ -21,7 +23,7 @@ export async function GET(
     if (isNaN(saleId)) {
       return NextResponse.json(
         { success: false, error: "salesId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -60,39 +62,36 @@ export async function GET(
     if (!result) {
       return NextResponse.json(
         { success: false, error: "sales not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
     return NextResponse.json({ success: true, data: result });
-  } catch (error: any) {
-    console.error(error);
-    return NextResponse.json(
-      { success: false, error: "internal server error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
+// sebaiknya tidak digunakan
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ salesId: string }> }
+  { params }: { params: Promise<{ salesId: string }> },
 ) {
   try {
     const { salesId } = await params;
     const saleId = Number(salesId);
     const body = await request.json();
     const validation = await validateInsertSaleData(body);
-    const { userId, items: newItems, totalPaid } = validation;
+    const { userId, customerId, items: newItems, totalPaid } = validation;
 
-    const variantIds = newItems.map((i: any) => i.variantId);
+    const variantIds = newItems.map((i) => i.variantId);
     if (new Set(variantIds).size !== variantIds.length) {
       return NextResponse.json(
         {
           success: false,
           error: "Terdapat item duplikat, silahkan digabung kuantitasnya",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -163,6 +162,7 @@ export async function PUT(
             variantId: item.variantId,
             qty: item.qty.toFixed(3),
             priceAtSale: Number(variantData.sellPrice).toFixed(2),
+            unitFactorAtSale: Number(variantData.conversionToBase).toFixed(3),
             costAtSale: Number(productData.averageCost).toFixed(2),
             subtotal: subtotal.toFixed(2),
           })
@@ -195,16 +195,17 @@ export async function PUT(
           }).format(grandTotal)}, Dibayar: ${new Intl.NumberFormat("id-ID", {
             style: "currency",
             currency: "IDR",
-          }).format(paidAmount)}`
+          }).format(paidAmount)}`,
         );
 
       const [updatedSale] = await tx
         .update(sales)
         .set({
+          userId,
+          customerId,
           totalPrice: grandTotal.toFixed(2),
           totalPaid: totalPaid.toString(),
           totalReturn: calculatedReturn.toFixed(2),
-          updatedAt: new Date(),
         })
         .where(eq(sales.id, saleId))
         .returning();
@@ -217,17 +218,14 @@ export async function PUT(
     });
 
     return NextResponse.json({ success: true, data: result });
-  } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ salesId: string }> }
+  { params }: { params: Promise<{ salesId: string }> },
 ) {
   try {
     const { salesId } = await params;
@@ -236,7 +234,7 @@ export async function DELETE(
     if (isNaN(saleId)) {
       return NextResponse.json(
         { success: false, error: "ID tidak valid" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -255,13 +253,13 @@ export async function DELETE(
         .where(eq(saleItems.saleId, saleId));
 
       for (const item of items) {
-        const variant = await tx.query.productVariants.findFirst({
+        const variantData = await tx.query.productVariants.findFirst({
           where: eq(productVariants.id, item.variantId),
         });
 
-        if (variant) {
+        if (variantData) {
           const qtyToRevert =
-            Number(item.qty) * Number(variant.conversionToBase);
+            Number(item.qty) * Number(variantData.conversionToBase);
 
           await tx
             .update(products)
@@ -271,12 +269,25 @@ export async function DELETE(
           await tx.insert(stockMutations).values({
             productId: item.productId,
             variantId: item.variantId,
-            type: "adjustment",
+            type: "sale_cancel",
             qtyBaseUnit: qtyToRevert.toFixed(4),
+            unitFactorAtMutation: variantData.conversionToBase,
             reference: `VOID-${existingSale.invoiceNumber}`,
             userId: existingSale.userId,
           });
         }
+      }
+
+      if (
+        existingSale.customerId &&
+        Number(existingSale.totalBalanceUsed) > 0
+      ) {
+        await tx
+          .update(customers)
+          .set({
+            creditBalance: sql`${customers.creditBalance} + ${Number(existingSale.totalBalanceUsed).toFixed(2)}`,
+          })
+          .where(eq(customers.id, existingSale.customerId));
       }
 
       const [archivedSale] = await tx
@@ -293,10 +304,7 @@ export async function DELETE(
       message: "Penjualan berhasil dibatalkan",
       data: result,
     });
-  } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

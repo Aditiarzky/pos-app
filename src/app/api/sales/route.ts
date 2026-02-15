@@ -6,6 +6,7 @@ import {
   products,
   stockMutations,
   productVariants,
+  customers,
 } from "@/drizzle/schema";
 import { and, eq, not, sql } from "drizzle-orm";
 import { validateInsertSaleData } from "@/lib/validations/sale";
@@ -14,6 +15,7 @@ import {
   getSearchAndOrderBasic,
   formatMeta,
 } from "@/lib/query-helper";
+import { handleApiError } from "@/lib/api-utils";
 
 // GET all sales with serach
 export async function GET(request: NextRequest) {
@@ -79,11 +81,7 @@ export async function GET(request: NextRequest) {
       meta: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {
-    console.error("Error fetching sales:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 
@@ -91,10 +89,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validation = await validateInsertSaleData(body);
-    const { userId, items, totalPaid } = validation;
+    const { userId, customerId, items, totalPaid, totalBalanceUsed } =
+      validation;
 
     // Cek Duplikat Variant dalam satu keranjang
-    const variantIds = items.map((i: any) => i.variantId);
+    const variantIds = items.map((i) => i.variantId);
     if (new Set(variantIds).size !== variantIds.length) {
       return NextResponse.json(
         {
@@ -103,6 +102,24 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 },
       );
+    }
+
+    if (customerId) {
+      const customerData = await db.query.customers.findFirst({
+        where: eq(customers.id, customerId),
+      });
+      if (!customerData) {
+        return NextResponse.json(
+          { success: false, error: "Customer tidak ditemukan" },
+          { status: 404 },
+        );
+      }
+      if (Number(customerData.creditBalance) < totalBalanceUsed) {
+        return NextResponse.json(
+          { success: false, error: "Saldo tidak mencukupi" },
+          { status: 400 },
+        );
+      }
     }
 
     const result = await db.transaction(async (tx) => {
@@ -115,7 +132,9 @@ export async function POST(request: NextRequest) {
           totalPrice: "0",
           totalPaid: totalPaid.toString(),
           totalReturn: "0",
+          totalBalanceUsed: totalBalanceUsed.toString(),
           userId,
+          customerId,
         })
         .returning();
 
@@ -161,7 +180,8 @@ export async function POST(request: NextRequest) {
             productId: item.productId,
             variantId: item.variantId,
             qty: item.qty.toFixed(3),
-            priceAtSale: Number(variantData.sellPrice).toFixed(2),
+            priceAtSale: variantData.sellPrice,
+            unitFactorAtSale: variantData.conversionToBase,
             costAtSale: Number(productData.averageCost).toFixed(4),
             subtotal: subtotal.toFixed(2),
           })
@@ -176,6 +196,7 @@ export async function POST(request: NextRequest) {
             variantId: item.variantId,
             type: "sale",
             qtyBaseUnit: (-qtyInBaseUnit).toFixed(4),
+            unitFactorAtMutation: variantData.conversionToBase,
             reference: `INV-${newSale.id.toString().padStart(7, "0")}`,
             userId,
           })
@@ -184,19 +205,30 @@ export async function POST(request: NextRequest) {
         stockMutationsData.push(newStockMutation);
       }
 
+      const netTotal = grandTotal - totalBalanceUsed;
+
       const paidAmount = Number(totalPaid);
-      if (paidAmount < grandTotal) {
+      if (paidAmount < netTotal) {
         throw new Error(
           `Pembayaran kurang! Total: ${new Intl.NumberFormat("id-ID", {
             style: "currency",
             currency: "IDR",
-          }).format(grandTotal)}, Dibayar: ${new Intl.NumberFormat("id-ID", {
+          }).format(netTotal)}, Dibayar: ${new Intl.NumberFormat("id-ID", {
             style: "currency",
             currency: "IDR",
           }).format(paidAmount)}`,
         );
       }
-      const calculatedReturn = paidAmount - grandTotal;
+      const calculatedReturn = paidAmount - netTotal;
+
+      if (customerId && totalBalanceUsed > 0) {
+        await tx
+          .update(customers)
+          .set({
+            creditBalance: sql`${customers.creditBalance} - ${totalBalanceUsed.toFixed(2)}`,
+          })
+          .where(eq(customers.id, customerId));
+      }
 
       const finalInvoice = `INV-${newSale.id.toString().padStart(7, "0")}`;
       const [finalSale] = await tx
@@ -217,11 +249,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: result });
-  } catch (error: any) {
-    console.error("Sales Error:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 },
-    );
+  } catch (error) {
+    return handleApiError(error);
   }
 }

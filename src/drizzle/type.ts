@@ -44,3 +44,12 @@ export type ProductBarcodeType = InferSelectModel<
 export type InsertProductBarcodeType = InferInsertModel<
   typeof schema.productBarcodes
 >;
+export type CustomerReturnType = InferInsertModel<
+  typeof schema.customerReturns
+>;
+export type CustomerReturnItemType = InferInsertModel<
+  typeof schema.customerReturnItems
+>;
+export type CustomerReturnExchangeItemType = InferInsertModel<
+  typeof schema.customerExchangeItems
+>;

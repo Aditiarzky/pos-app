@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         with: {
           variants: {
             limit: 1,
-            columns: { id: true, name: true },
+            columns: { id: true, name: true, conversionToBase: true },
             with: {
               unit: {
                 columns: { name: true },
@@ -50,18 +50,18 @@ export async function POST(request: NextRequest) {
       });
 
       if (!product) {
-        throw new Error("Product not found");
+        throw new Error("Produk tidak ditemukan");
       }
 
       if (product.variants.length === 0) {
-        throw new Error("Product has no variants to attach mutation record to");
+        throw new Error("Produk tidak punya varian");
       }
 
       const currentStock = Number(product.stock);
       const diff = actualStock! - currentStock;
 
       if (diff === 0) {
-        return { message: "No stock change needed" };
+        return { message: "Tidak ada stok yang diubah" };
       }
 
       // 2. Insert Mutation if actualStock changed
@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
           variantId: product.variants[0].id,
           type: "adjustment",
           qtyBaseUnit: diff.toString(),
+          unitFactorAtMutation: product.variants[0].conversionToBase,
           reference: "Stock Adjustment",
           userId: userId,
         });

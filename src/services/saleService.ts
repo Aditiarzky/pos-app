@@ -1,0 +1,41 @@
+import { axiosInstance } from "@/lib/axios";
+import { ApiResponse } from "./productService";
+import { insertSaleType } from "@/lib/validations/sale";
+import { SaleItemType, SaleType } from "@/drizzle/type";
+
+export interface SaleResponse extends SaleType {
+  user?: { id: number; name: string };
+  customer?: { id: number; name: string };
+  items?: Array<
+    SaleItemType & {
+      product?: {
+        id?: number;
+        name: string;
+      };
+      productVariant?: { id?: number; name: string };
+    }
+  >;
+}
+
+export const getSales = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+}): Promise<ApiResponse<SaleResponse[]>> => {
+  const response = await axiosInstance.get("/sales", { params });
+  return response.data;
+};
+
+export const createSale = async (
+  data: insertSaleType,
+): Promise<ApiResponse<SaleResponse>> => {
+  const response = await axiosInstance.post("/sales", data);
+  return response.data;
+};
+
+export const deleteSale = async (id: number): Promise<ApiResponse<void>> => {
+  const response = await axiosInstance.delete(`/sales/${id}`);
+  return response.data;
+};

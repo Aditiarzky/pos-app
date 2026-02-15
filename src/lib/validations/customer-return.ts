@@ -7,10 +7,10 @@ import {
 } from "@/drizzle/schema";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { db } from "../db";
-import { eq } from "drizzle-orm";
 
 const baseInsertCustomerReturnSchema = createInsertSchema(customerReturns);
+const baseInsertCustomerReturnItemSchema =
+  createInsertSchema(customerReturnItems);
 
 const customerReturnItemInputSchema = createInsertSchema(customerReturnItems)
   .omit({
@@ -22,6 +22,7 @@ const customerReturnItemInputSchema = createInsertSchema(customerReturnItems)
     qty: z.coerce.number().positive("Qty must be positive"),
     productId: z.number().int(),
     variantId: z.number().int(),
+    returnedToStock: baseInsertCustomerReturnItemSchema.shape.returnedToStock,
   });
 
 const customerExchangeItemInputSchema = createInsertSchema(
@@ -54,41 +55,22 @@ export type insertCustomerReturnType = z.infer<
   typeof insertCustomerReturnSchema
 >;
 
+export type insertCustomerReturnItemType = Omit<
+  z.infer<typeof customerReturnItemInputSchema>,
+  "productId" | "variantId"
+> & {
+  productId: number;
+  variantId: number;
+};
+
+export type insertCustomerExchangeItemType = Omit<
+  z.infer<typeof customerExchangeItemInputSchema>,
+  "productId" | "variantId"
+> & {
+  productId: number;
+  variantId: number;
+};
+
 export const validateInsertCustomerReturnData = async (data: unknown) => {
-  return await insertCustomerReturnSchema
-    .superRefine(async (val, ctx) => {
-      const sale = await db.query.sales.findFirst({
-        where: eq(sales.id, val.saleId),
-      });
-      if (!sale) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Sale not found",
-          path: ["saleId"],
-        });
-      }
-
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, val.userId),
-      });
-
-      if (!user) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "User not found",
-          path: ["userId"],
-        });
-      }
-
-      if (val.compensationType === "exchange") {
-        if (!val.exchangeItems || val.exchangeItems.length === 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Exchange items are required for exchange compensation",
-            path: ["exchangeItems"],
-          });
-        }
-      }
-    })
-    .parseAsync(data);
+  return await insertCustomerReturnSchema.parseAsync(data);
 };

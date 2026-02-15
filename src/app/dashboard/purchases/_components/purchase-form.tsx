@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Controller, UseFormReturn } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +35,7 @@ import {
 } from "@/hooks/purchases/use-purchases";
 import { usePurchaseForm } from "../_hooks/use-purchase-form";
 import { useProductSearch } from "../_hooks/use-product-search";
+import { ProductResponse } from "@/services/productService";
 import { PurchaseFormItem, PurchaseFormProps } from "../_types/purchase-type";
 import { ProductResponse } from "@/services/productService";
 import { Switch } from "@/components/ui/switch";
@@ -91,7 +99,40 @@ export function PurchaseForm({
     closeScanner,
     handleScanSuccess,
     searchInputRef,
+    lastScannedBarcode,
+    setLastScannedBarcode,
   } = useProductSearch({ isOpen });
+
+  // Auto-add item when barcode is scanned
+  useEffect(() => {
+    if (lastScannedBarcode && searchResults.length > 0) {
+      // Find exact match for barcode
+      // NOTE: product search returns products that MATCH the search term.
+      // If we scanned a barcode, the backend *should* return the product with that barcode.
+      // We need to find the specific variant that matches the barcode if possible.
+      // For now, if strict match isn't available in search results (since search might be fuzzy),
+      // we take the first result.
+      // Ideally, the backend should return exact match first.
+
+      const product = searchResults[0];
+      if (product) {
+        // Auto select first variant if no specific logic, or ideally find variant matching barcode?
+        // Since search API is general, we might not know WHICH variant matched if multiple share similar codes (unlikely)
+        // But usually barcode is unique to variant.
+        // Let's check if any variant sku matches searchInput (barcode)
+        const matchedVariant =
+          product.variants.find((v) => v.sku === lastScannedBarcode) ||
+          product.variants[0];
+
+        if (matchedVariant) {
+          handleAddProduct(product, matchedVariant);
+          setLastScannedBarcode(null); // Reset after adding
+          toast.success("Item ditambahkan otomatis");
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchResults, lastScannedBarcode]);
 
   // ============================================
   // HANDLERS
@@ -115,6 +156,8 @@ export function PurchaseForm({
         price: Number(variant.sellPrice),
         productName: product.name,
         variantName: variant.name,
+        image: product.image,
+        variants: product.variants, // Store variants for dropdown
       });
     }
 
@@ -327,9 +370,17 @@ function SearchResultsDropdown({
         </div>
       ) : (
         searchResults.map((product) => (
-          <div key={product.id} className="group">
+          <div key={product.id} className="group cursor-pointer">
             {/* Product Header */}
-            <div className="px-3 py-1.5 bg-muted/50 text-xs font-bold text-muted-foreground uppercase">
+            <div className="px-3 py-1.5 bg-muted/50 text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
+              {product.image && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="h-6 w-6 rounded-sm object-cover border"
+                />
+              )}
               {product.name}
             </div>
             {/* Variants List */}
@@ -436,6 +487,7 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                 fields.map((field, index) => {
                   const qty = Number(form.watch(`items.${index}.qty`)) || 0;
                   const price = Number(form.watch(`items.${index}.price`)) || 0;
+                  const variantId = form.watch(`items.${index}.variantId`);
                   const subtotal = qty * price;
 
                   return (
@@ -443,15 +495,80 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                       key={field.id}
                       className="hover:bg-muted/30 transition-colors"
                     >
-                      {/* Product Name */}
+                      {/* Product Name & Image */}
                       <td className="px-4 py-2">
-                        <div className="font-medium text-foreground text-xs">
-                          {field.productName}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          <span className="bg-muted px-1 rounded py-0.5">
-                            {field.variantName}
-                          </span>
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-muted">
+                            {field.image ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={field.image}
+                                alt={field.productName || ""}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                                <Package className="h-5 w-5 opacity-20" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <div
+                              className="font-medium text-foreground text-xs line-clamp-1 w-[180px]"
+                              title={field.productName || ""}
+                            >
+                              {field.productName}
+                            </div>
+                            {/* Variant Selector */}
+                            {field.variants && field.variants.length > 1 ? (
+                              <Select
+                                value={String(variantId)}
+                                onValueChange={(value) => {
+                                  const newVariantId = Number(value);
+                                  const newVariant = field.variants?.find(
+                                    (v: ProductResponse["variants"][0]) =>
+                                      v.id === newVariantId,
+                                  );
+
+                                  if (newVariant) {
+                                    form.setValue(
+                                      `items.${index}.variantId`,
+                                      newVariantId,
+                                    );
+                                    form.setValue(
+                                      `items.${index}.variantName`,
+                                      newVariant.name,
+                                    );
+                                    form.setValue(
+                                      `items.${index}.price`,
+                                      Number(newVariant.sellPrice),
+                                    );
+                                  }
+                                }}
+                              >
+                                <SelectTrigger className="h-7 w-full text-[10px] px-2">
+                                  <SelectValue placeholder="Pilih Varian" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {field.variants.map(
+                                    (v: ProductResponse["variants"][0]) => (
+                                      <SelectItem
+                                        key={v.id}
+                                        value={String(v.id)}
+                                        className="text-xs"
+                                      >
+                                        {v.name}
+                                      </SelectItem>
+                                    ),
+                                  )}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <span className="bg-muted px-1.5 rounded py-0.5 text-[10px] text-muted-foreground w-fit">
+                                {field.variantName}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
 
@@ -551,6 +668,7 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
           fields.map((field, index) => {
             const qty = Number(form.watch(`items.${index}.qty`)) || 0;
             const price = Number(form.watch(`items.${index}.price`)) || 0;
+            const variantId = form.watch(`items.${index}.variantId`);
             const subtotal = qty * price;
 
             return (
@@ -565,12 +683,59 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                       <h4 className="font-bold text-sm leading-tight text-foreground">
                         {field.productName}
                       </h4>
-                      <Badge
-                        variant="secondary"
-                        className="mt-1 text-[10px] py-0 h-4 font-medium uppercase tracking-wider"
-                      >
-                        {field.variantName}
-                      </Badge>
+                      <div className="mt-1">
+                        {field.variants && field.variants.length > 1 ? (
+                          <Select
+                            value={String(variantId)}
+                            onValueChange={(value) => {
+                              const newVariantId = Number(value);
+                              const newVariant = field.variants?.find(
+                                (v: ProductResponse["variants"][0]) =>
+                                  v.id === newVariantId,
+                              );
+
+                              if (newVariant) {
+                                form.setValue(
+                                  `items.${index}.variantId`,
+                                  newVariantId,
+                                );
+                                form.setValue(
+                                  `items.${index}.variantName`,
+                                  newVariant.name,
+                                );
+                                form.setValue(
+                                  `items.${index}.price`,
+                                  Number(newVariant.sellPrice),
+                                );
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-6 w-fit text-[10px] px-2 gap-2">
+                              <SelectValue placeholder="Pilih Varian" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {field.variants.map(
+                                (v: ProductResponse["variants"][0]) => (
+                                  <SelectItem
+                                    key={v.id}
+                                    value={String(v.id)}
+                                    className="text-xs"
+                                  >
+                                    {v.name}
+                                  </SelectItem>
+                                ),
+                              )}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] py-0 h-4 font-medium uppercase tracking-wider"
+                          >
+                            {field.variantName}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <Button
                       type="button"

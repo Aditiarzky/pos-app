@@ -5,7 +5,9 @@ import * as p from "drizzle-orm/pg-core";
 
 export const stockMutationType = p.pgEnum("stock_mutation_type", [
   "purchase",
+  "purchase_cancel",
   "sale",
+  "sale_cancel",
   "return_restock",
   "waste",
   "supplier_return",
@@ -13,7 +15,11 @@ export const stockMutationType = p.pgEnum("stock_mutation_type", [
   "exchange",
 ]);
 
-export const saleStatus = p.pgEnum("sale_status", ["completed", "refunded"]);
+export const saleStatus = p.pgEnum("sale_status", [
+  "pending",
+  "completed",
+  "refunded",
+]);
 
 export const compensationType = p.pgEnum("compensation_type", [
   "exchange",
@@ -277,6 +283,12 @@ export const purchaseItems = p.pgTable("purchase_items", {
   qty: p.decimal("qty", { precision: 12, scale: 3 }).notNull(),
 
   price: p.decimal("price", { precision: 12, scale: 2 }).notNull(),
+
+  unitFactorAtPurchase: p.decimal("unit_factor_at_purchase", {
+    precision: 12,
+    scale: 3,
+  }),
+
   costBefore: p.decimal("cost_before", { precision: 12, scale: 4 }).notNull(),
 
   subtotal: p.decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
@@ -291,6 +303,9 @@ export const sales = p.pgTable("sales", {
   totalPrice: p.decimal("total_price", { precision: 12, scale: 2 }).notNull(),
   totalPaid: p.decimal("total_paid", { precision: 12, scale: 2 }).notNull(),
   totalReturn: p.decimal("total_return", { precision: 12, scale: 2 }).notNull(),
+  totalBalanceUsed: p
+    .decimal("total_balance_used", { precision: 12, scale: 2 })
+    .notNull(),
   status: saleStatus("status").default("completed"),
   isArchived: p.boolean("is_archived").default(false),
   createdAt: p.timestamp("created_at").defaultNow(),
@@ -328,6 +343,11 @@ export const saleItems = p.pgTable("sale_items", {
   priceAtSale: p
     .decimal("price_at_sale", { precision: 12, scale: 2 })
     .notNull(), // harga jual saat transaksi terjadi
+
+  unitFactorAtSale: p
+    .decimal("unit_factor_at_sale", { precision: 12, scale: 3 })
+    .notNull(), //konversi qty ke unit terkecil dari variant
+
   costAtSale: p.decimal("cost_at_sale", { precision: 12, scale: 4 }).notNull(), // Menyimpan averageCost produk SAAT transaksi terjadi.
 
   subtotal: p.decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
@@ -389,6 +409,11 @@ export const stockMutations = p.pgTable("stock_mutations", {
     .decimal("qty_base_unit", { precision: 12, scale: 4 })
     .notNull(),
 
+  unitFactorAtMutation: p.decimal("unit_factor_at_mutation", {
+    precision: 12,
+    scale: 3,
+  }),
+
   reference: p.varchar("reference", { length: 100 }),
 
   createdAt: p.timestamp("created_at").defaultNow(),
@@ -414,8 +439,7 @@ export const customerReturns = p.pgTable("customer_returns", {
     .notNull(),
   customerId: p
     .integer("customer_id")
-    .references(() => customers.id, { onDelete: "cascade" })
-    .notNull(),
+    .references(() => customers.id, { onDelete: "cascade" }),
 
   totalRefund: p.decimal("total_refund", { precision: 12, scale: 2 }).notNull(),
 
@@ -459,10 +483,13 @@ export const customerReturnItems = p.pgTable("customer_return_items", {
 
   qty: p.decimal("qty", { precision: 12, scale: 3 }).notNull(),
 
-  priceAtSale: p
-    .decimal("price_at_sale", { precision: 12, scale: 2 })
+  priceAtReturn: p
+    .decimal("price_at_return", { precision: 12, scale: 2 })
     .notNull(),
 
+  unitFactorAtReturn: p
+    .decimal("unit_factor_at_return", { precision: 12, scale: 3 })
+    .notNull(),
   reason: p.text("reason"),
 
   returnedToStock: p.boolean("returned_to_stock").default(false),
@@ -502,6 +529,14 @@ export const customerExchangeItems = p.pgTable("customer_exchange_items", {
     .notNull(),
 
   qty: p.decimal("qty", { precision: 12, scale: 3 }).notNull(),
+
+  priceAtExchange: p
+    .decimal("price_at_exchange", { precision: 12, scale: 2 })
+    .notNull(),
+
+  unitFactorAtExchange: p
+    .decimal("unit_factor_at_exchange", { precision: 12, scale: 3 })
+    .notNull(),
 
   createdAt: p.timestamp("created_at").defaultNow(),
   updatedAt: p

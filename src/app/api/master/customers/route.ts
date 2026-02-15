@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       params.search,
       params.order,
       params.orderBy,
-      customers.name
+      customers.name,
     );
 
     const [customersData, totalRes] = await Promise.all([
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     console.error("fetch customers error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch customers" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
           error: "Validation failed",
           details: validation.error.format() || "Unknown error",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     if (!customer) {
       return NextResponse.json(
         { success: false, error: "Customer not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     console.error("create customer error:", error);
     return NextResponse.json(
       { success: false, error: "Failed to create customer" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

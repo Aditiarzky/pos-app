@@ -350,8 +350,9 @@ export async function DELETE(
           await tx.insert(stockMutations).values({
             productId: item.productId,
             variantId: item.variantId,
-            type: "adjustment", // Tipe Adjustment karena ini pembatalan
+            type: "purchase_cancel",
             qtyBaseUnit: (-qtyToRemove).toFixed(4),
+            unitFactorAtMutation: variant.conversionToBase,
             reference: `VOID-PO-${poId.toString().padStart(6, "0")}`,
             userId: existingOrder.userId,
           });
@@ -360,7 +361,7 @@ export async function DELETE(
 
       const [archivedOrder] = await tx
         .update(purchaseOrders)
-        .set({ isArchived: true, updatedAt: new Date() })
+        .set({ isArchived: true, deletedAt: new Date() })
         .where(eq(purchaseOrders.id, poId))
         .returning();
 

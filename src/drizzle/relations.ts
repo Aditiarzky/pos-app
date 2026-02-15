@@ -128,6 +128,7 @@ export const customerReturnsRelations = relations(
       references: [schema.users.id],
     }),
     items: many(schema.customerReturnItems),
+    exchangeItems: many(schema.customerExchangeItems),
     sales: one(schema.sales, {
       fields: [schema.customerReturns.saleId],
       references: [schema.sales.id],
@@ -148,6 +149,24 @@ export const customerReturnItemsRelations = relations(
     }),
     productVariant: one(schema.productVariants, {
       fields: [schema.customerReturnItems.variantId],
+      references: [schema.productVariants.id],
+    }),
+  }),
+);
+
+export const customerExchangeItemsRelations = relations(
+  schema.customerExchangeItems,
+  ({ one }) => ({
+    customerReturn: one(schema.customerReturns, {
+      fields: [schema.customerExchangeItems.returnId],
+      references: [schema.customerReturns.id],
+    }),
+    product: one(schema.products, {
+      fields: [schema.customerExchangeItems.productId],
+      references: [schema.products.id],
+    }),
+    productVariant: one(schema.productVariants, {
+      fields: [schema.customerExchangeItems.variantId],
       references: [schema.productVariants.id],
     }),
   }),
