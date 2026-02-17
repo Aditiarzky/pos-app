@@ -49,7 +49,9 @@ export const MutationFilterForm = ({
           <SelectContent>
             <SelectItem value="all">Semua Tipe</SelectItem>
             <SelectItem value="purchase">Pembelian</SelectItem>
+            <SelectItem value="purchase_cancel">Batal Beli</SelectItem>
             <SelectItem value="sale">Penjualan</SelectItem>
+            <SelectItem value="sale_cancel">Batal Jual</SelectItem>
             <SelectItem value="adjustment">Penyesuaian</SelectItem>
             <SelectItem value="waste">Terbuang/Rusak</SelectItem>
             <SelectItem value="return_restock">Retur (Restock)</SelectItem>

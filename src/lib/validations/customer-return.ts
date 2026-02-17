@@ -16,7 +16,6 @@ const customerReturnItemInputSchema = createInsertSchema(customerReturnItems)
   .omit({
     id: true,
     returnId: true,
-    priceAtSale: true, // will be fetched from original sale item
   })
   .extend({
     qty: z.coerce.number().positive("Qty must be positive"),

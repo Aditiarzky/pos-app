@@ -53,3 +53,11 @@ export type CustomerReturnItemType = InferInsertModel<
 export type CustomerReturnExchangeItemType = InferInsertModel<
   typeof schema.customerExchangeItems
 >;
+export type DebtType = InferSelectModel<typeof schema.debts>;
+export type InsertDebtType = InferInsertModel<typeof schema.debts>;
+export type DebtPaymentType = InferSelectModel<typeof schema.debtPayments>;
+export type InsertDebtPaymentType = InferInsertModel<
+  typeof schema.debtPayments
+>;
+export type DebtStatusEnumType =
+  (typeof schema.debtStatusEnum.enumValues)[number];

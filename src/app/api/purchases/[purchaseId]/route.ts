@@ -70,11 +70,7 @@ export async function GET(
     }
     return NextResponse.json({ success: true, data: purchase });
   } catch (error) {
-    console.error("Error fetching purchase:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
-      { status: 500 },
-    );
+    return handleApiError(error);
   }
 }
 

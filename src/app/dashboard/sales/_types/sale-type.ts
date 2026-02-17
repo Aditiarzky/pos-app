@@ -2,7 +2,7 @@
  * SALE MODULE - TYPE DEFINITIONS
  */
 
-import { SaleType } from "@/drizzle/type";
+import { DebtType, SaleType } from "@/drizzle/type";
 
 // ============================================
 // API RESPONSE TYPES
@@ -48,6 +48,7 @@ export interface SaleResponse extends SaleType {
   customer?: SaleCustomerInfo;
   user?: SaleUserInfo;
   items?: SaleItemResponse[];
+  debt?: DebtType;
 }
 
 // ============================================
@@ -70,11 +71,12 @@ export interface SaleFormItem {
 }
 
 export interface SaleFormData {
-  customerId: number;
+  customerId?: number;
   userId: number;
   items: SaleFormItem[];
   totalPaid: number;
   totalBalanceUsed: number;
+  shouldPayOldDebt?: boolean;
 }
 
 // ============================================

@@ -1,4 +1,4 @@
-import { customers } from "@/drizzle/schema";
+import { customers, debts } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import {
   formatMeta,
@@ -6,7 +6,7 @@ import {
   parsePagination,
 } from "@/lib/query-helper";
 import { validateCustomerData } from "@/lib/validations/customer";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, eq, not, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
 // GET
@@ -20,9 +20,17 @@ export async function GET(request: NextRequest) {
       customers.name,
     );
 
-    const [customersData, totalRes] = await Promise.all([
+    const [customersRaw, totalRes] = await Promise.all([
       db.query.customers.findMany({
         where: and(eq(customers.isActive, true), searchFilter),
+        with: {
+          debts: {
+            where: and(not(eq(debts.status, "paid")), eq(debts.isActive, true)),
+            columns: {
+              remainingAmount: true,
+            },
+          },
+        },
         orderBy: searchOrder,
         limit: params.limit,
         offset: params.offset,
@@ -32,6 +40,17 @@ export async function GET(request: NextRequest) {
         .from(customers)
         .where(and(eq(customers.isActive, true), searchFilter)),
     ]);
+
+    const customersData = customersRaw.map((customer) => {
+      const totalDebt = customer.debts.reduce(
+        (acc, debt) => acc + Number(debt.remainingAmount),
+        0,
+      );
+      return {
+        ...customer,
+        totalDebt,
+      };
+    });
 
     const totalCount = Number(totalRes[0]?.count || 0);
 

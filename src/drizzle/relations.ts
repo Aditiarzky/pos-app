@@ -95,6 +95,11 @@ export const salesRelations = relations(schema.sales, ({ one, many }) => ({
     references: [schema.users.id],
   }),
   items: many(schema.saleItems),
+  debt: one(schema.debts),
+  customer: one(schema.customers, {
+    fields: [schema.sales.customerId],
+    references: [schema.customers.id],
+  }),
 }));
 
 export const saleItemsRelations = relations(schema.saleItems, ({ one }) => ({
@@ -114,6 +119,7 @@ export const saleItemsRelations = relations(schema.saleItems, ({ one }) => ({
 
 export const customersRelations = relations(schema.customers, ({ many }) => ({
   sales: many(schema.sales),
+  debts: many(schema.debts),
 }));
 
 export const customerReturnsRelations = relations(
@@ -201,6 +207,28 @@ export const stockMutationsRelations = relations(
     user: one(schema.users, {
       fields: [schema.stockMutations.userId],
       references: [schema.users.id],
+    }),
+  }),
+);
+
+export const debtsRelations = relations(schema.debts, ({ one, many }) => ({
+  sale: one(schema.sales, {
+    fields: [schema.debts.saleId],
+    references: [schema.sales.id],
+  }),
+  customer: one(schema.customers, {
+    fields: [schema.debts.customerId],
+    references: [schema.customers.id],
+  }),
+  payments: many(schema.debtPayments),
+}));
+
+export const debtPaymentsRelations = relations(
+  schema.debtPayments,
+  ({ one }) => ({
+    debt: one(schema.debts, {
+      fields: [schema.debtPayments.debtId],
+      references: [schema.debts.id],
     }),
   }),
 );

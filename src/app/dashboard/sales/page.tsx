@@ -10,6 +10,8 @@ import {
   Loader2,
   Undo2,
   RefreshCcw,
+  LayoutGrid,
+  Table2,
 } from "lucide-react";
 import { useQueryState } from "@/hooks/use-query-state";
 import { AnimatedNumber } from "@/components/ui/animated-number";
@@ -17,7 +19,10 @@ import { CardBg } from "@/assets/card-background/card-bg";
 import { TransactionForm } from "./_components/transaction-form";
 import { SalesListSection } from "./_components/sales-list-section";
 import { ReturnListSection } from "./_components/return-list-section";
+import { DebtListSection } from "./_components/debt-list-section";
 import { cn } from "@/lib/utils";
+import { SearchInput } from "@/components/ui/search-input";
+import { Button } from "@/components/ui/button";
 
 // ============================================
 // MAIN CONTENT COMPONENT
@@ -27,6 +32,10 @@ function SalesContent() {
   // Tab state (synced dengan URL)
   const [tab, setTab] = useQueryState<string>("tab", "cashier");
   const [cashierMode, setCashierMode] = useState<"sales" | "return">("sales");
+
+  // Shared Filter States for History
+  const [viewMode, setViewMode] = useState<"table" | "card">("table");
+  const [searchInput, setSearchInput] = useState("");
 
   return (
     <>
@@ -44,7 +53,7 @@ function SalesContent() {
 
       {/* Main Content */}
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
-        {/* Analytics Cards - Only show on History tabs? Or always? Let's show always for now or conditional */}
+        {/* Analytics Cards */}
         {tab !== "cashier" && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-4">
             <Card className="relative overflow-hidden">
@@ -151,16 +160,42 @@ function SalesContent() {
                   Silahkan gunakan menu Riwayat Penjualan untuk membatalkan
                   transaksi.
                 </p>
-                {/* Placeholder for ReturnForm implementation */}
               </div>
             )}
           </TabsContent>
 
           <TabsContent
             value="history-sales"
-            className="animate-in fade-in duration-300"
+            className="animate-in fade-in duration-300 space-y-8"
           >
-            <SalesListSection />
+            {/* GLOBAL FILTER & TOGGLE BAR */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <SearchInput
+                placeholder="Cari No. Invoice / Customer..."
+                value={searchInput}
+                onChange={setSearchInput}
+              />
+
+              <div className="flex gap-2">
+                <Button
+                  variant={viewMode === "table" ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => setViewMode("table")}
+                >
+                  <Table2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "card" ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => setViewMode("card")}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <DebtListSection viewMode={viewMode} search={searchInput} />
+            <SalesListSection viewMode={viewMode} searchInput={searchInput} />
           </TabsContent>
 
           <TabsContent

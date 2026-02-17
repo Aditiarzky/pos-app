@@ -16,9 +16,17 @@ export const stockMutationType = p.pgEnum("stock_mutation_type", [
 ]);
 
 export const saleStatus = p.pgEnum("sale_status", [
-  "pending",
+  "debt",
   "completed",
   "refunded",
+  "cancelled",
+]);
+
+export const debtStatusEnum = p.pgEnum("debt_status", [
+  "unpaid",
+  "partial",
+  "paid",
+  "cancelled",
 ]);
 
 export const compensationType = p.pgEnum("compensation_type", [
@@ -351,6 +359,47 @@ export const saleItems = p.pgTable("sale_items", {
   costAtSale: p.decimal("cost_at_sale", { precision: 12, scale: 4 }).notNull(), // Menyimpan averageCost produk SAAT transaksi terjadi.
 
   subtotal: p.decimal("subtotal", { precision: 12, scale: 2 }).notNull(),
+});
+
+export const debts = p.pgTable("debts", {
+  id: p.serial("id").primaryKey(),
+  saleId: p
+    .integer("sale_id")
+    .references(() => sales.id, { onDelete: "cascade" })
+    .notNull(),
+  customerId: p
+    .integer("customer_id")
+    .references(() => customers.id, { onDelete: "cascade" })
+    .notNull(),
+
+  // Total hutang awal dari transaksi ini
+  originalAmount: p
+    .decimal("original_amount", { precision: 12, scale: 2 })
+    .notNull(),
+  // Sisa yang belum dibayar (akan diupdate setiap ada cicilan)
+  remainingAmount: p
+    .decimal("remaining_amount", { precision: 12, scale: 2 })
+    .notNull(),
+
+  status: debtStatusEnum("status").default("unpaid").notNull(),
+  isActive: p.boolean("is_active").default(true).notNull(),
+  deletedAt: p.timestamp("deleted_at"),
+  createdAt: p.timestamp("created_at").defaultNow(),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
+});
+
+export const debtPayments = p.pgTable("debt_payments", {
+  id: p.serial("id").primaryKey(),
+  debtId: p
+    .integer("debt_id")
+    .references(() => debts.id, { onDelete: "cascade" })
+    .notNull(),
+  amountPaid: p.decimal("amount_paid", { precision: 12, scale: 2 }).notNull(),
+  paymentDate: p.timestamp("payment_date").defaultNow(),
+  note: p.text("note"),
 });
 
 export const supplierReturns = p.pgTable(

@@ -61,6 +61,11 @@ export function StockMutationsSection() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "purchase":
+        return "default";
+      case "purchase_cancel":
+        return "destructive";
+      case "sale_cancel":
+        return "secondary";
       case "return_restock":
       case "adjustment":
         return "default";
@@ -77,6 +82,10 @@ export function StockMutationsSection() {
     switch (type) {
       case "purchase":
         return "Pembelian";
+      case "purchase_cancel":
+        return "Batal Beli";
+      case "sale_cancel":
+        return "Batal Jual";
       case "sale":
         return "Penjualan";
       case "return_restock":

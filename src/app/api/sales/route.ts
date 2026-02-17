@@ -7,6 +7,8 @@ import {
   stockMutations,
   productVariants,
   customers,
+  debts,
+  debtPayments,
 } from "@/drizzle/schema";
 import { and, eq, not, sql } from "drizzle-orm";
 import { validateInsertSaleData } from "@/lib/validations/sale";
@@ -36,6 +38,16 @@ export async function GET(request: NextRequest) {
             columns: {
               id: true,
               name: true,
+            },
+          },
+          debt: {
+            columns: {
+              id: true,
+              originalAmount: true,
+              remainingAmount: true,
+              status: true,
+              createdAt: true,
+              updatedAt: true,
             },
           },
           items: {
@@ -89,8 +101,15 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validation = await validateInsertSaleData(body);
-    const { userId, customerId, items, totalPaid, totalBalanceUsed } =
-      validation;
+    const {
+      userId,
+      customerId,
+      items,
+      totalPaid,
+      totalBalanceUsed,
+      isDebt,
+      shouldPayOldDebt,
+    } = validation;
 
     // Cek Duplikat Variant dalam satu keranjang
     const variantIds = items.map((i) => i.variantId);
@@ -101,6 +120,16 @@ export async function POST(request: NextRequest) {
           error: "Terdapat item duplikat, silahkan digabung kuantitasnya",
         },
         { status: 400 },
+      );
+    }
+
+    if (!customerId && totalBalanceUsed > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Customer tidak ditemukan",
+        },
+        { status: 404 },
       );
     }
 
@@ -122,6 +151,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (isDebt && !customerId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Hutang hanya diperbolehkan untuk member/customer terdaftar",
+        },
+        { status: 400 },
+      );
+    }
+
     const result = await db.transaction(async (tx) => {
       const invoiceNum = `INV-${Date.now()}`;
 
@@ -135,12 +174,11 @@ export async function POST(request: NextRequest) {
           totalBalanceUsed: totalBalanceUsed.toString(),
           userId,
           customerId,
+          status: "completed",
         })
         .returning();
 
       let grandTotal = 0;
-      const saleItemsData = [];
-      const stockMutationsData = [];
 
       for (const item of items) {
         const productData = await tx.query.products.findFirst({
@@ -173,53 +211,63 @@ export async function POST(request: NextRequest) {
           })
           .where(eq(products.id, item.productId));
 
-        const [newSaleItem] = await tx
-          .insert(saleItems)
-          .values({
-            saleId: newSale.id,
-            productId: item.productId,
-            variantId: item.variantId,
-            qty: item.qty.toFixed(3),
-            priceAtSale: variantData.sellPrice,
-            unitFactorAtSale: variantData.conversionToBase,
-            costAtSale: Number(productData.averageCost).toFixed(4),
-            subtotal: subtotal.toFixed(2),
-          })
-          .returning();
+        await tx.insert(saleItems).values({
+          saleId: newSale.id,
+          productId: item.productId,
+          variantId: item.variantId,
+          qty: item.qty.toFixed(3),
+          priceAtSale: variantData.sellPrice,
+          unitFactorAtSale: variantData.conversionToBase,
+          costAtSale: Number(productData.averageCost).toFixed(4),
+          subtotal: subtotal.toFixed(2),
+        });
 
-        saleItemsData.push(newSaleItem);
+        await tx.insert(stockMutations).values({
+          productId: item.productId,
+          variantId: item.variantId,
+          type: "sale",
+          qtyBaseUnit: (-qtyInBaseUnit).toFixed(4),
+          unitFactorAtMutation: variantData.conversionToBase,
+          reference: `INV-${newSale.id.toString().padStart(7, "0")}`,
+          userId,
+        });
+      }
 
-        const [newStockMutation] = await tx
-          .insert(stockMutations)
-          .values({
-            productId: item.productId,
-            variantId: item.variantId,
-            type: "sale",
-            qtyBaseUnit: (-qtyInBaseUnit).toFixed(4),
-            unitFactorAtMutation: variantData.conversionToBase,
-            reference: `INV-${newSale.id.toString().padStart(7, "0")}`,
-            userId,
-          })
-          .returning();
-
-        stockMutationsData.push(newStockMutation);
+      if (totalBalanceUsed > grandTotal) {
+        throw new Error("Penggunaan saldo tidak boleh melebihi total belanja");
       }
 
       const netTotal = grandTotal - totalBalanceUsed;
-
       const paidAmount = Number(totalPaid);
+      let calculatedReturn = 0;
+      let saleStatus: "completed" | "debt" = "completed";
+
       if (paidAmount < netTotal) {
-        throw new Error(
-          `Pembayaran kurang! Total: ${new Intl.NumberFormat("id-ID", {
-            style: "currency",
-            currency: "IDR",
-          }).format(netTotal)}, Dibayar: ${new Intl.NumberFormat("id-ID", {
-            style: "currency",
-            currency: "IDR",
-          }).format(paidAmount)}`,
-        );
+        if (!isDebt) {
+          throw new Error(
+            `Pembayaran kurang! Total: ${new Intl.NumberFormat("id-ID", {
+              style: "currency",
+              currency: "IDR",
+            }).format(netTotal)}, Dibayar: ${new Intl.NumberFormat("id-ID", {
+              style: "currency",
+              currency: "IDR",
+            }).format(paidAmount)}`,
+          );
+        }
+
+        saleStatus = "debt";
+        const debtAmount = netTotal - paidAmount;
+
+        await tx.insert(debts).values({
+          saleId: newSale.id,
+          customerId: customerId!,
+          originalAmount: debtAmount.toFixed(2),
+          remainingAmount: debtAmount.toFixed(2),
+          status: "unpaid",
+        });
+      } else {
+        calculatedReturn = paidAmount - netTotal;
       }
-      const calculatedReturn = paidAmount - netTotal;
 
       if (customerId && totalBalanceUsed > 0) {
         await tx
@@ -231,24 +279,108 @@ export async function POST(request: NextRequest) {
       }
 
       const finalInvoice = `INV-${newSale.id.toString().padStart(7, "0")}`;
-      const [finalSale] = await tx
+      let finalReturn = calculatedReturn;
+
+      // --- Handle Old Debt Repayment with Surplus (Calculated Return) ---
+      if (shouldPayOldDebt && finalReturn > 0 && customerId) {
+        let remainingSurplus = finalReturn;
+
+        // Get active debts for this customer, FIFO (oldest first)
+        const activeDebts = await tx.query.debts.findMany({
+          where: and(
+            eq(debts.customerId, customerId),
+            not(eq(debts.status, "paid")),
+            eq(debts.isActive, true),
+          ),
+          orderBy: (debts, { asc }) => [asc(debts.createdAt)],
+        });
+
+        for (const debt of activeDebts) {
+          if (remainingSurplus <= 0) break;
+
+          const currentRemaining = Number(debt.remainingAmount);
+          const payAmount = Math.min(currentRemaining, remainingSurplus);
+
+          const newRemaining = currentRemaining - payAmount;
+          const newStatus = newRemaining <= 0 ? "paid" : "partial";
+
+          await tx
+            .update(debts)
+            .set({
+              remainingAmount: newRemaining.toFixed(2),
+              status: newStatus,
+            })
+            .where(eq(debts.id, debt.id));
+
+          await tx.insert(debtPayments).values({
+            debtId: debt.id,
+            amountPaid: payAmount.toFixed(2),
+            note: `Dibayar otomatis dari kembalian transaksi ${finalInvoice}`,
+          });
+
+          remainingSurplus -= payAmount;
+        }
+
+        finalReturn = remainingSurplus;
+      }
+
+      await tx
         .update(sales)
         .set({
           totalPrice: grandTotal.toFixed(2),
-          totalReturn: calculatedReturn.toFixed(2),
+          totalReturn: finalReturn.toFixed(2),
           invoiceNumber: finalInvoice,
+          status: saleStatus,
         })
-        .where(eq(sales.id, newSale.id))
-        .returning();
+        .where(eq(sales.id, newSale.id));
 
       return {
-        sale: finalSale,
-        items: saleItemsData,
-        stockMutations: stockMutationsData,
+        id: newSale.id,
       };
     });
 
-    return NextResponse.json({ success: true, data: result });
+    // Fetch full sale data with relations for receipt
+    const fullSale = await db.query.sales.findFirst({
+      where: eq(sales.id, result.id),
+      with: {
+        customer: true,
+        user: {
+          columns: {
+            id: true,
+            name: true,
+          },
+        },
+        debt: {
+          columns: {
+            id: true,
+            originalAmount: true,
+            remainingAmount: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        items: {
+          with: {
+            product: {
+              columns: {
+                id: true,
+                name: true,
+              },
+            },
+            productVariant: {
+              columns: {
+                id: true,
+                name: true,
+                sku: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ success: true, data: fullSale });
   } catch (error) {
     return handleApiError(error);
   }

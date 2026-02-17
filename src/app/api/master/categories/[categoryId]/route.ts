@@ -1,4 +1,5 @@
 import { categories } from "@/drizzle/schema";
+import { handleApiError } from "@/lib/api-utils";
 import { db } from "@/lib/db";
 import { validateCategoryData } from "@/lib/validations/category";
 import { eq } from "drizzle-orm";
@@ -7,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 // PUT
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ categoryId: string }> }
+  { params }: { params: Promise<{ categoryId: string }> },
 ) {
   try {
     const categoryId = parseInt((await params).categoryId);
@@ -15,7 +16,7 @@ export async function PATCH(
     if (isNaN(categoryId)) {
       return NextResponse.json(
         { success: false, error: "Invalid category ID" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -29,7 +30,7 @@ export async function PATCH(
           error: "Validation failed",
           details: validation.error.format() || "Unknown error",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -41,18 +42,14 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, data: category });
   } catch (error) {
-    console.error("update category error:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to update category" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
 // Delete
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ categoryId: string }> }
+  { params }: { params: Promise<{ categoryId: string }> },
 ) {
   try {
     const categoryId = parseInt((await params).categoryId);
@@ -60,7 +57,7 @@ export async function DELETE(
     if (isNaN(categoryId)) {
       return NextResponse.json(
         { success: false, error: "Invalid category ID" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -73,7 +70,7 @@ export async function DELETE(
     if (existingCategory.length === 0) {
       return NextResponse.json(
         { success: false, error: "Category not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -85,10 +82,6 @@ export async function DELETE(
       message: "Category deleted successfully",
     });
   } catch (error) {
-    console.error("Delete category error:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to delete category" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

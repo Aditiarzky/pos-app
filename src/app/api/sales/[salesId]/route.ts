@@ -8,6 +8,8 @@ import {
   stockMutations,
   productVariants,
   customers,
+  debts,
+  debtPayments,
 } from "@/drizzle/schema";
 import { validateInsertSaleData } from "@/lib/validations/sale";
 import { handleApiError } from "@/lib/api-utils";
@@ -288,6 +290,40 @@ export async function DELETE(
             creditBalance: sql`${customers.creditBalance} + ${Number(existingSale.totalBalanceUsed).toFixed(2)}`,
           })
           .where(eq(customers.id, existingSale.customerId));
+      }
+
+      const existingDebt = await tx.query.debts.findFirst({
+        where: eq(debts.saleId, saleId),
+      });
+
+      if (existingDebt) {
+        await tx
+          .update(debts)
+          .set({
+            isActive: false,
+            deletedAt: new Date(),
+            status: "cancelled",
+          })
+          .where(eq(debts.id, existingDebt.id));
+
+        const payments = await tx
+          .select()
+          .from(debtPayments)
+          .where(eq(debtPayments.debtId, existingDebt.id));
+
+        const totalPaidDebt = payments.reduce(
+          (acc, p) => acc + Number(p.amountPaid),
+          0,
+        );
+
+        if (totalPaidDebt > 0 && existingSale.customerId) {
+          await tx
+            .update(customers)
+            .set({
+              creditBalance: sql`${customers.creditBalance} + ${totalPaidDebt.toFixed(2)}`,
+            })
+            .where(eq(customers.id, existingSale.customerId));
+        }
       }
 
       const [archivedSale] = await tx

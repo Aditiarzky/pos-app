@@ -7,6 +7,7 @@ export type CustomerResponse = {
   name: string;
   address: string | null;
   phone: string | null;
+  creditBalance: string;
   createdAt: string | null;
   updatedAt: string | null;
 };

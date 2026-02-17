@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { uploadToCloudinary } from "@/lib/cloudinary";
 
+interface CloudinaryResult {
+  public_id: string;
+  secure_url: string;
+}
+
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
@@ -18,16 +23,22 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(arrayBuffer);
 
     // Gunakan fungsi helper yang kita buat di lib
-    const result: any = await uploadToCloudinary(buffer, "my-app-folder");
+    const result = (await uploadToCloudinary(
+      buffer,
+      "my-app-folder",
+    )) as CloudinaryResult;
 
     return NextResponse.json({
       success: true,
-      publicId: result.public_id, // Simpan ini ke DB
-      secureUrl: result.secure_url, // URL asli cloudinary (opsional)
+      publicId: result.public_id,
+      secureUrl: result.secure_url,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error("Upload Error:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: (error as Error).message },
+      { status: 500 },
+    );
   }
 }
 
@@ -61,6 +72,7 @@ export async function GET(req: Request) {
 
     return new NextResponse(blob, { headers });
   } catch (error) {
+    console.error("Upload Error:", error);
     return new NextResponse("Not Found", { status: 404 });
   }
 }

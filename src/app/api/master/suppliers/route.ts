@@ -1,4 +1,5 @@
 import { suppliers } from "@/drizzle/schema";
+import { handleApiError } from "@/lib/api-utils";
 import { db } from "@/lib/db";
 import {
   formatMeta,
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
       params.search,
       params.order,
       params.orderBy,
-      suppliers.name
+      suppliers.name,
     );
 
     const [suppliersData, totalRes] = await Promise.all([
@@ -41,11 +42,7 @@ export async function GET(request: NextRequest) {
       meta: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {
-    console.error("fetch suppliers error:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch suppliers" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -63,7 +60,7 @@ export async function POST(request: NextRequest) {
           error: "Validation failed",
           details: validation.error.format() || "Unknown error",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -75,7 +72,7 @@ export async function POST(request: NextRequest) {
     if (!supplier) {
       return NextResponse.json(
         { success: false, error: "Supplier not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -85,10 +82,6 @@ export async function POST(request: NextRequest) {
       message: "Supplier created successfully",
     });
   } catch (error) {
-    console.error("create supplier error:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to create supplier" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }

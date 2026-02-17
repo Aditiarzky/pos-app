@@ -35,10 +35,10 @@ import {
 } from "@/hooks/purchases/use-purchases";
 import { usePurchaseForm } from "../_hooks/use-purchase-form";
 import { useProductSearch } from "../_hooks/use-product-search";
-import { ProductResponse } from "@/services/productService";
 import { PurchaseFormItem, PurchaseFormProps } from "../_types/purchase-type";
-import { ProductResponse } from "@/services/productService";
 import { Switch } from "@/components/ui/switch";
+import { ProductResponse } from "@/services/productService";
+import { SearchResultsDropdown } from "@/components/ui/search-product-dropdown";
 
 export function PurchaseForm({
   isOpen,
@@ -338,95 +338,6 @@ export function PurchaseForm({
   );
 }
 
-// ============================================
-// SUB-COMPONENTS
-// ============================================
-
-// Search Results Dropdown
-interface SearchResultsDropdownProps {
-  isSearching: boolean;
-  searchResults: ProductResponse[];
-  onSelectProduct: (
-    product: ProductResponse,
-    variant: ProductResponse["variants"][0],
-  ) => void;
-}
-
-function SearchResultsDropdown({
-  isSearching,
-  searchResults,
-  onSelectProduct,
-}: SearchResultsDropdownProps) {
-  return (
-    <div className="absolute top-full left-0 right-0 z-50 mt-1.5 max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md text-sm">
-      {isSearching ? (
-        <div className="flex items-center justify-center p-4 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          <span className="text-xs">Mencari...</span>
-        </div>
-      ) : searchResults.length === 0 ? (
-        <div className="p-4 text-center text-muted-foreground">
-          Tidak ditemukan.
-        </div>
-      ) : (
-        searchResults.map((product) => (
-          <div key={product.id} className="group cursor-pointer">
-            {/* Product Header */}
-            <div className="px-3 py-1.5 bg-muted/50 text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
-              {product.image && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="h-6 w-6 rounded-sm object-cover border"
-                />
-              )}
-              {product.name}
-            </div>
-            {/* Variants List */}
-            {product.variants?.map((variant) => (
-              <button
-                key={variant.id}
-                type="button"
-                className="w-full text-left px-3 py-2 hover:bg-muted/50 border-l-2 border-transparent hover:border-primary transition-all flex justify-between items-center"
-                onClick={() => onSelectProduct(product, variant)}
-              >
-                <div className="flex flex-col">
-                  <span className="font-medium text-foreground">
-                    {variant.name}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    SKU: {variant.sku}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold text-xs text-foreground">
-                    {formatCurrency(Number(variant.sellPrice))}
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <div className="text-[9px] text-emerald-600 font-bold">
-                      Stok: {Number(product.stock).toFixed(0)}
-                    </div>
-                    {Number(product.averageCost) > 0 && (
-                      <div className="text-[8px] text-muted-foreground bg-muted px-1 rounded mt-0.5">
-                        HPP:{" "}
-                        {formatCurrency(
-                          Number(product.averageCost) *
-                            Number(variant.conversionToBase),
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        ))
-      )}
-    </div>
-  );
-}
-
 // Items Table
 interface ItemsTableProps {
   fields: PurchaseFormItem[];
@@ -658,7 +569,7 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
       </div>
 
       {/* Mobile Card View */}
-      <div className="md:hidden space-y-3">
+      <div className="md:hidden space-y-2.5">
         {fields.length === 0 ? (
           <div className="py-12 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-3 text-muted-foreground bg-muted/20">
             <Package className="h-8 w-8 opacity-20" />
@@ -674,15 +585,36 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
             return (
               <Card
                 key={field.id}
-                className="relative overflow-hidden group border-border shadow-sm"
+                className="relative p-0 overflow-hidden border-border shadow-sm"
               >
-                <div className="p-4 space-y-4">
-                  {/* Card Header: Product Info & Delete */}
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1">
-                      <h4 className="font-bold text-sm leading-tight text-foreground">
+                <div className="p-3.5 space-y-3">
+                  {/* Header: Gambar + Nama + Varian + Delete */}
+                  <div className="flex items-start gap-3">
+                    {/* Image */}
+                    <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md border bg-muted">
+                      {field.image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={field.image}
+                          alt={field.productName || ""}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                          <Package className="h-4 w-4 opacity-30" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Nama & Varian */}
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="font-semibold text-sm leading-tight line-clamp-1"
+                        title={field.productName || ""}
+                      >
                         {field.productName}
-                      </h4>
+                      </div>
+
                       <div className="mt-1">
                         {field.variants && field.variants.length > 1 ? (
                           <Select
@@ -710,7 +642,7 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                               }
                             }}
                           >
-                            <SelectTrigger className="h-6 w-fit text-[10px] px-2 gap-2">
+                            <SelectTrigger className="h-6 w-fit text-[10px] px-2 gap-1">
                               <SelectValue placeholder="Pilih Varian" />
                             </SelectTrigger>
                             <SelectContent>
@@ -737,22 +669,24 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                         )}
                       </div>
                     </div>
+
+                    {/* Delete Button */}
                     <Button
                       type="button"
                       variant="destructive"
                       size="icon"
-                      className="h-8 w-8 shrink-0 rounded-full shadow-sm hover:scale-105 transition-transform"
+                      className="h-8 w-8 shrink-0 rounded-full shadow-sm"
                       onClick={() => onRemove(index)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
 
-                  <div className="h-[1px] bg-border/50 w-full" />
+                  <div className="h-px bg-border/50" />
 
-                  {/* Card Body: Inputs */}
+                  {/* Inputs */}
                   <div className="grid grid-cols-2 gap-4">
-                    {/* Qty Input */}
+                    {/* Qty */}
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                         Kuantitas
@@ -768,16 +702,11 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                             <Input
                               type="number"
                               min={1}
-                              className="h-10 text-sm font-semibold bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/30 rounded-lg shadow-none"
+                              className="h-9 text-sm font-semibold bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/30 rounded-lg"
                               value={value ?? ""}
                               onChange={(e) => {
                                 const val = e.target.value;
-                                if (val === "") {
-                                  onChange(0);
-                                  return;
-                                }
-                                const num = parseFloat(val);
-                                onChange(num);
+                                onChange(val === "" ? 0 : parseFloat(val));
                               }}
                             />
                             {fieldState.error && (
@@ -790,7 +719,7 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                       />
                     </div>
 
-                    {/* Price Input */}
+                    {/* Harga Beli */}
                     <div className="space-y-1.5 text-right">
                       <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                         Harga Beli
@@ -816,12 +745,12 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                     </div>
                   </div>
 
-                  {/* Card Footer: Subtotal */}
-                  <div className="pt-3 border-t border-dashed flex items-center justify-between">
+                  {/* Subtotal */}
+                  <div className="pt-2 border-t border-dashed flex items-center justify-between">
                     <span className="text-[10px] font-bold text-muted-foreground uppercase">
                       Subtotal
                     </span>
-                    <span className="font-black text-sm text-foreground">
+                    <span className="font-black text-base text-foreground">
                       {formatCurrency(subtotal)}
                     </span>
                   </div>

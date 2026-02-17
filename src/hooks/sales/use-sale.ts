@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createSale, deleteSale } from "@/services/saleService";
-import { MutationConfig, QueryConfig } from "@/lib/react-query";
+import { MutationConfig } from "@/lib/react-query";
 import { getSalesQueryOptions, saleKeys } from "./sale-query-options";
 import { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { productKeys } from "../products/product-query-options";
+import { debtKeys } from "../debt/debt-query-options";
 
 type UseCreateSaleOptions = {
   mutationConfig?: MutationConfig<typeof createSale>;
@@ -16,13 +17,17 @@ type UseDeleteSaleOptions = {
 
 type UseSaleListOptions = {
   initialLimit?: number;
+  search?: string;
 };
 
-export const useSaleList = ({ initialLimit = 10 }: UseSaleListOptions = {}) => {
+export const useSaleList = ({
+  initialLimit = 10,
+  search: externalSearch,
+}: UseSaleListOptions = {}) => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(initialLimit);
   const [searchInput, setSearchInput] = useState("");
-  const debouncedSearch = useDebounce(searchInput, 500);
+  const debouncedSearch = useDebounce(externalSearch ?? searchInput, 500);
 
   const [dateRange, setDateRange] = useState<{
     startDate?: string;
@@ -93,6 +98,7 @@ export const useDeleteSale = ({
     onSuccess: (data, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({ queryKey: saleKeys.lists() });
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: debtKeys.lists() });
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });

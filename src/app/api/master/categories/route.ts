@@ -1,4 +1,5 @@
 import { categories } from "@/drizzle/schema";
+import { handleApiError } from "@/lib/api-utils";
 import { db } from "@/lib/db";
 import { validateCategoryData } from "@/lib/validations/category";
 import { desc, eq } from "drizzle-orm";
@@ -18,11 +19,7 @@ export async function GET() {
       data: categoriesData,
     });
   } catch (error) {
-    console.error("fetch categories error:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to fetch categories" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
 
@@ -40,7 +37,7 @@ export async function POST(request: NextRequest) {
           error: "Validation failed",
           details: validation.error.format() || "Unknown error",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -51,10 +48,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: category });
   } catch (error) {
-    console.error("create category error:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to create category" },
-      { status: 500 }
-    );
+    return handleApiError(error);
   }
 }
