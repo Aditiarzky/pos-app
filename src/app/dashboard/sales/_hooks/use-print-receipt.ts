@@ -5,6 +5,8 @@ import { useRef, useCallback, useState } from "react";
 export function usePrintReceipt() {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const receiptWidthMm = 80;
+  const receiptPaddingMm = 2;
 
   const handlePrint = useCallback(() => {
     const content = receiptRef.current;
@@ -39,23 +41,46 @@ export function usePrintReceipt() {
           <style>
             /* Reset dasar agar tidak blank */
             * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-              font-family: 'Courier New', Courier, monospace; 
-              width: 80mm; 
+             html, body {
               background: #fff;
               color: #000;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            body { 
+              font-family: 'Courier New', Courier, monospace; 
+              width: ${receiptWidthMm}mm;
+              margin: 0 auto;
             }
             /* Copy inline styles agar tetap bekerja */
-            .print-content { width: 100% !important; padding: 8px !important; }
+            .print-content {
+              width: ${receiptWidthMm}mm !important;
+              max-width: ${receiptWidthMm}mm !important;
+              padding: ${receiptPaddingMm}mm !important;
+            }
             
             /* Sembunyikan elemen yang tidak perlu saat print */
             @media print {
-              @page { size: 80mm auto; margin: 0; }
-              body { width: 80mm; }
+               @page {
+                size: ${receiptWidthMm}mm auto;
+                margin: 0;
+              }
+
+              html, body {
+                width: ${receiptWidthMm}mm;
+                margin: 0 !important;
+                padding: 0 !important;
+              }
+
+              .print-content {
+                width: ${receiptWidthMm}mm !important;
+                max-width: ${receiptWidthMm}mm !important;
+                padding: ${receiptPaddingMm}mm !important;
+              }
             }
 
             /* Paksa Barcode Muncul */
-            svg { max-width: 100%; height: auto; }
+            svg, img, canvas { max-width: 100%; height: auto; }
           </style>
         </head>
         <body>
@@ -70,15 +95,30 @@ export function usePrintReceipt() {
                 window.print();
               }, 250);
             };
+            
+            window.onafterprint = () => {
+              window.parent.postMessage({ type: 'RECEIPT_PRINT_DONE' }, '*');
+            };
           </script>
         </body>
       </html>
     `);
     doc.close();
 
-    // Berikan delay sedikit sebelum mengizinkan klik cetak lagi
-    setTimeout(() => setIsPrinting(false), 1000);
-  }, []);
+    const handlePrintDone = (event: MessageEvent) => {
+      if (event.data?.type !== "RECEIPT_PRINT_DONE") return;
+
+      setIsPrinting(false);
+      window.removeEventListener("message", handlePrintDone);
+    };
+
+    window.addEventListener("message", handlePrintDone);
+
+    setTimeout(() => {
+      setIsPrinting(false);
+      window.removeEventListener("message", handlePrintDone);
+    }, 2000);
+  }, [receiptPaddingMm, receiptWidthMm]);
 
   return { receiptRef, handlePrint, isPrinting };
 }

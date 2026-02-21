@@ -44,7 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geist.variable} ${instrumentSerif.variable} font-geist`}
+        className={`${geist.variable} ${instrumentSerif.variable} ${inter.variable} font-geist`}
       >
         <QueryProvider>
           <ConfirmProvider>{children}</ConfirmProvider>

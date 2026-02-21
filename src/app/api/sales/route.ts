@@ -8,7 +8,6 @@ import {
   productVariants,
   customers,
   debts,
-  debtPayments,
 } from "@/drizzle/schema";
 import { and, eq, not, sql } from "drizzle-orm";
 import { validateInsertSaleData } from "@/lib/validations/sale";
@@ -18,6 +17,7 @@ import {
   formatMeta,
 } from "@/lib/query-helper";
 import { handleApiError } from "@/lib/api-utils";
+import { processDebtPayment } from "../debts/_lib/debt-service";
 
 // GET all sales with serach
 export async function GET(request: NextRequest) {
@@ -48,6 +48,13 @@ export async function GET(request: NextRequest) {
               status: true,
               createdAt: true,
               updatedAt: true,
+            },
+          },
+          customer: {
+            columns: {
+              id: true,
+              name: true,
+              creditBalance: true,
             },
           },
           items: {
@@ -301,22 +308,12 @@ export async function POST(request: NextRequest) {
           const currentRemaining = Number(debt.remainingAmount);
           const payAmount = Math.min(currentRemaining, remainingSurplus);
 
-          const newRemaining = currentRemaining - payAmount;
-          const newStatus = newRemaining <= 0 ? "paid" : "partial";
-
-          await tx
-            .update(debts)
-            .set({
-              remainingAmount: newRemaining.toFixed(2),
-              status: newStatus,
-            })
-            .where(eq(debts.id, debt.id));
-
-          await tx.insert(debtPayments).values({
-            debtId: debt.id,
-            amountPaid: payAmount.toFixed(2),
-            note: `Dibayar otomatis dari kembalian transaksi ${finalInvoice}`,
-          });
+          await processDebtPayment(
+            tx,
+            debt.id,
+            payAmount,
+            `Dibayar otomatis dari kembalian transaksi ${finalInvoice}`,
+          );
 
           remainingSurplus -= payAmount;
         }

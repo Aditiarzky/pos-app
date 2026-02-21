@@ -187,7 +187,7 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "Customer return successfully voided",
+      message: "Data retur berhasil dibatalkan",
       data: result,
     });
   } catch (error) {

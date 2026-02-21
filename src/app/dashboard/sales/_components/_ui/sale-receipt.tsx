@@ -34,8 +34,6 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
         ref={ref}
         className="print-content"
         style={{
-          width: "302px",
-          maxWidth: "302px",
           margin: "0 auto",
           padding: "4px 8px",
           backgroundColor: "#fff",

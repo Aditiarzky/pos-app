@@ -314,7 +314,7 @@ export async function PATCH(
           variantId: product.variants[0].id, // Attach to first variant as primary ref
           type: "adjustment",
           qtyBaseUnit: diff.toFixed(4),
-          reference: "Stock Adjustment (Manual)",
+          reference: "Adjustment",
           userId: userId,
         });
       }

@@ -8,11 +8,14 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-const baseInsertCustomerReturnSchema = createInsertSchema(customerReturns);
-const baseInsertCustomerReturnItemSchema =
+export const baseInsertCustomerReturnSchema =
+  createInsertSchema(customerReturns);
+export const baseInsertCustomerReturnItemSchema =
   createInsertSchema(customerReturnItems);
 
-const customerReturnItemInputSchema = createInsertSchema(customerReturnItems)
+export const customerReturnItemInputSchema = createInsertSchema(
+  customerReturnItems,
+)
   .omit({
     id: true,
     returnId: true,
@@ -24,7 +27,7 @@ const customerReturnItemInputSchema = createInsertSchema(customerReturnItems)
     returnedToStock: baseInsertCustomerReturnItemSchema.shape.returnedToStock,
   });
 
-const customerExchangeItemInputSchema = createInsertSchema(
+export const customerExchangeItemInputSchema = createInsertSchema(
   customerExchangeItems,
 )
   .omit({
@@ -50,8 +53,9 @@ export const insertCustomerReturnSchema = z.object({
   exchangeItems: z.array(customerExchangeItemInputSchema).optional(),
 });
 
-export type insertCustomerReturnType = z.infer<
-  typeof insertCustomerReturnSchema
+export type insertCustomerReturnType = Omit<
+  z.infer<typeof insertCustomerReturnSchema>,
+  "returnNumber" | "totalRefund"
 >;
 
 export type insertCustomerReturnItemType = Omit<

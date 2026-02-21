@@ -16,7 +16,17 @@ export default function QueryProvider({
     <QueryClientProvider client={queryClient}>
       <NextTopLoader />
       {children}
-      <Toaster richColors position="bottom-right" />
+      <Toaster
+        toastOptions={{
+          classNames: {
+            error: "bg-destructive text-white",
+            success: "bg-primary text-white",
+            warning: "text-yellow-400",
+            info: "bg-secondary text-primary",
+          },
+        }}
+        position="bottom-right"
+      />
     </QueryClientProvider>
   );
 }

@@ -66,6 +66,7 @@ export interface SaleFormItem {
   sku?: string | null;
   currentStock?: number;
   image?: string | null;
+  conversionToBase: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   variants?: any[];
 }

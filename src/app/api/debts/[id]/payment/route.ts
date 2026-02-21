@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { debts, debtPayments, sales } from "@/drizzle/schema";
-import { eq, sql } from "drizzle-orm";
+import { debts } from "@/drizzle/schema";
+import { eq } from "drizzle-orm";
 import { handleApiError } from "@/lib/api-utils";
 import { payDebtSchema } from "@/lib/validations/debt";
+import { processDebtPayment } from "../../_lib/debt-service";
 
 export async function POST(
   request: NextRequest,
@@ -63,52 +64,13 @@ export async function POST(
     }
 
     const result = await db.transaction(async (tx) => {
-      // 1. Record Payment
-      const [payment] = await tx
-        .insert(debtPayments)
-        .values({
-          debtId,
-          amountPaid: amount.toString(),
-          paymentDate: new Date(paymentDate), // valid date object
-          note,
-        })
-        .returning();
-
-      // 2. Update Debt Remaining Amount
-      const [updatedDebt] = await tx
-        .update(debts)
-        .set({
-          remainingAmount: sql`${debts.remainingAmount} - ${amount.toFixed(2)}`,
-        })
-        .where(eq(debts.id, debtId))
-        .returning();
-
-      const newRemaining = Number(updatedDebt.remainingAmount);
-
-      // 3. Check for Full Payment
-      if (newRemaining <= 0) {
-        // Mark debt as paid
-        await tx
-          .update(debts)
-          .set({ status: "paid" })
-          .where(eq(debts.id, debtId));
-
-        // Mark associated sale as completed
-        await tx
-          .update(sales)
-          .set({ status: "completed" })
-          .where(eq(sales.id, debt.saleId));
-      } else {
-        // Mark debt as partial if not already
-        if (debt.status === "unpaid") {
-          await tx
-            .update(debts)
-            .set({ status: "partial" })
-            .where(eq(debts.id, debtId));
-        }
-      }
-
-      return { payment, newRemaining };
+      return await processDebtPayment(
+        tx,
+        debtId,
+        amount,
+        note ?? "",
+        new Date(paymentDate),
+      );
     });
 
     return NextResponse.json({ success: true, data: result });

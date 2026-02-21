@@ -1,16 +1,61 @@
 import { axiosInstance } from "@/lib/axios";
 import { ApiResponse } from "./productService";
 import {
-  insertCustomerReturnItemType,
-  insertCustomerReturnType,
+  baseInsertCustomerReturnItemSchema,
+  customerExchangeItemInputSchema,
 } from "@/lib/validations/customer-return";
-import { CustomerReturnItemType, CustomerReturnType } from "@/drizzle/type";
+import { CompensationTypeEnumType, CustomerReturnType } from "@/drizzle/type";
+import z from "zod";
 
 // Define Response Types based on schema relations
 export type CustomerReturnResponse = CustomerReturnType & {
   customer?: { id: number; name: string };
   user?: { id: number; name: string };
   items?: Array<insertCustomerReturnItemType>;
+};
+
+// 1. Tentukan apa saja yang mau kita buang secara global (kolom internal/audit)
+type AuditColumns =
+  | "id"
+  | "createdAt"
+  | "updatedAt"
+  | "isArchived"
+  | "userId"
+  | "returnId";
+
+// 2. Buat tipe untuk Item Retur
+export type insertCustomerReturnItemType = Omit<
+  z.infer<typeof baseInsertCustomerReturnItemSchema>,
+  AuditColumns | "priceAtReturn" | "unitFactorAtReturn" | "qty"
+> & {
+  productId: number;
+  variantId: number;
+  qty: number;
+  reason?: string | null;
+  returnedToStock?: boolean;
+};
+
+// 3. Buat tipe untuk Item Tukar (Exchange)
+export type insertCustomerExchangeItemType = Omit<
+  z.infer<typeof customerExchangeItemInputSchema>,
+  AuditColumns | "priceAtExchange" | "unitFactorAtExchange" | "qty"
+> & {
+  productId: number;
+  variantId: number;
+  qty: number;
+};
+
+// 4. Buat tipe Payload Utama yang akan dikirim Frontend
+export type insertCustomerReturnPayload = {
+  saleId: number;
+  customerId?: number | null;
+  userId: number;
+  compensationType: CompensationTypeEnumType;
+  items: insertCustomerReturnItemType[];
+  exchangeItems?: insertCustomerExchangeItemType[];
+  // Opsional: tambah field lain jika memang dikirim dari depan
+  totalRefund?: number;
+  returnNumber?: string;
 };
 
 export const getCustomerReturns = async (params?: {
@@ -23,7 +68,7 @@ export const getCustomerReturns = async (params?: {
 };
 
 export const createCustomerReturn = async (
-  data: insertCustomerReturnType,
+  data: insertCustomerReturnPayload,
 ): Promise<ApiResponse<CustomerReturnResponse>> => {
   const response = await axiosInstance.post("/customer-returns", data);
   return response.data;

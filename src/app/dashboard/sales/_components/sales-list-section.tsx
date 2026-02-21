@@ -43,7 +43,7 @@ import {
 
 import { ApiResponse } from "@/services/productService";
 import { SaleResponse } from "../_types/sale-type";
-import { SaleReceipt } from "./ui/sale-receipt";
+import { SaleReceipt } from "./_ui/sale-receipt";
 
 interface SalesListSectionProps {
   viewMode: "table" | "card";
@@ -64,14 +64,13 @@ export function SalesListSection({
   const deleteMutation = useDeleteSale();
 
   const handleDelete = async (id: number) => {
-    try {
-      await deleteMutation.mutateAsync(id);
-      toast.success("Penjualan berhasil dibatalkan");
-    } catch (error) {
-      toast.error(
-        (error as ApiResponse).error || "Gagal membatalkan penjualan",
-      );
-    }
+    const deletePromise = deleteMutation.mutateAsync(id);
+
+    toast.promise(deletePromise, {
+      loading: "Membatalkan penjualan...",
+      success: "Penjualan berhasil dibatalkan",
+      error: (err: ApiResponse) => err.error || "Gagal membatalkan penjualan",
+    });
   };
 
   const openReceipt = (sale: SaleResponse) => {

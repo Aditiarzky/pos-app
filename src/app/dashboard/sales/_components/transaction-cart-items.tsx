@@ -136,6 +136,12 @@ export function TransactionCartItems({
                                         `items.${index}.sku`,
                                         newVariant.sku,
                                       );
+                                      form.setValue(
+                                        `items.${index}.conversionToBase`,
+                                        Number(
+                                          newVariant.conversionToBase || 1,
+                                        ),
+                                      );
                                     }
                                   }}
                                 >
@@ -169,9 +175,18 @@ export function TransactionCartItems({
                             type="number"
                             min={1}
                             className="h-8 w-16 text-center mx-auto"
-                            {...form.register(`items.${index}.qty`, {
-                              valueAsNumber: true,
-                            })}
+                            value={qty || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "") {
+                                form.setValue(`items.${index}.qty`, 0);
+                              } else {
+                                const num = Number(val);
+                                if (!isNaN(num)) {
+                                  form.setValue(`items.${index}.qty`, num);
+                                }
+                              }
+                            }}
                           />
                         </td>
                         <td className="px-4 py-3 text-right tabular-nums">
@@ -260,6 +275,10 @@ export function TransactionCartItems({
                                       `items.${index}.sku`,
                                       newVariant.sku,
                                     );
+                                    form.setValue(
+                                      `items.${index}.conversionToBase`,
+                                      Number(newVariant.conversionToBase || 1),
+                                    );
                                   }
                                 }}
                               >
@@ -314,9 +333,18 @@ export function TransactionCartItems({
                             type="number"
                             min={1}
                             className="h-10 text-sm font-semibold bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/30 rounded-lg shadow-none"
-                            {...form.register(`items.${index}.qty`, {
-                              valueAsNumber: true,
-                            })}
+                            value={qty || ""}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === "") {
+                                form.setValue(`items.${index}.qty`, 0);
+                              } else {
+                                const num = Number(val);
+                                if (!isNaN(num)) {
+                                  form.setValue(`items.${index}.qty`, num);
+                                }
+                              }
+                            }}
                           />
                         </div>
 

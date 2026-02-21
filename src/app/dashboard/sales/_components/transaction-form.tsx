@@ -20,7 +20,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { SearchResultsDropdown } from "@/components/ui/search-product-dropdown";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SaleSuccessModal } from "./ui/sale-success-modal";
+import { SaleSuccessModal } from "./_ui/sale-success-modal";
+import { StockWarningModal } from "./_ui/stock-warning-modal";
 
 interface TransactionFormProps {
   onSuccess?: () => void;
@@ -51,6 +52,11 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     lastSale,
     setLastSale,
     selectedCustomer,
+    isStockModalOpen,
+    setIsStockModalOpen,
+    insufficientItems,
+    handleAdjustStock,
+    isAdjustingStock,
   } = useSaleForm({
     onSuccess,
     createMutation,
@@ -111,6 +117,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         sku: variant.sku,
         currentStock: Number(product.stock),
         image: product.image,
+        conversionToBase: Number(variant.conversionToBase || 1),
         variants: product.variants,
       });
     }
@@ -387,6 +394,14 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
           isOpen={!!lastSale}
           onClose={() => setLastSale(null)}
           sale={lastSale}
+        />
+
+        <StockWarningModal
+          isOpen={isStockModalOpen}
+          onClose={() => setIsStockModalOpen(false)}
+          items={insufficientItems}
+          onAdjustStock={handleAdjustStock}
+          isAdjusting={isAdjustingStock}
         />
       </div>
     </form>

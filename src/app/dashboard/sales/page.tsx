@@ -9,7 +9,6 @@ import {
   Receipt,
   Loader2,
   Undo2,
-  RefreshCcw,
   LayoutGrid,
   Table2,
 } from "lucide-react";
@@ -20,6 +19,7 @@ import { TransactionForm } from "./_components/transaction-form";
 import { SalesListSection } from "./_components/sales-list-section";
 import { ReturnListSection } from "./_components/return-list-section";
 import { DebtListSection } from "./_components/debt-list-section";
+import { ReturnForm } from "./_components/return-form";
 import { cn } from "@/lib/utils";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
@@ -151,16 +151,7 @@ function SalesContent() {
             {cashierMode === "sales" ? (
               <TransactionForm onSuccess={() => {}} />
             ) : (
-              <div className="p-12 text-center border-2 border-dashed rounded-xl bg-muted/20">
-                <RefreshCcw className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-20" />
-                <h3 className="text-lg font-bold text-muted-foreground">
-                  Mode Retur Belum Tersedia
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Silahkan gunakan menu Riwayat Penjualan untuk membatalkan
-                  transaksi.
-                </p>
-              </div>
+              <ReturnForm />
             )}
           </TabsContent>
 

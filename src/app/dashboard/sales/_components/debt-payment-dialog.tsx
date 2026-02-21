@@ -55,20 +55,20 @@ export function DebtPaymentDialog({
       return;
     }
 
-    try {
-      await payMutation.mutateAsync({
-        debtId: debt.id,
-        data: {
-          amount,
-          note,
-          paymentDate: new Date(),
-        },
-      });
-      toast.success("Pembayaran berhasil dicatat");
-      onOpenChange(false);
-    } catch (error) {
-      toast.error((error as ApiResponse).error || "Gagal mencatat pembayaran");
-    }
+    const payPromise = payMutation.mutateAsync({
+      debtId: debt.id,
+      data: {
+        amount,
+        note,
+        paymentDate: new Date(),
+      },
+    });
+    toast.promise(payPromise, {
+      loading: "Membayar hutang...",
+      success: "Pembayaran berhasil dicatat",
+      error: (err: ApiResponse) => err.error || "Gagal membayar hutang",
+    });
+    onOpenChange(false);
   };
 
   if (!debt) return null;

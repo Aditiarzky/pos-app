@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { useState, useEffect, useMemo } from "react";
 import { useCustomers } from "@/hooks/master/use-customers";
 import { CustomerResponse } from "@/services/customerService";
+import { InsufficientStockItem } from "../_components/_ui/stock-warning-modal";
+import { useAdjustStock } from "@/hooks/products/use-adjust-stock";
 
 interface UseSaleFormProps {
   onSuccess?: () => void;
@@ -49,6 +51,12 @@ interface UseSaleFormReturn {
   selectedCustomer: (CustomerResponse & { totalDebt: number }) | null;
   lastSale: SaleResponse | null;
   setLastSale: (sale: SaleResponse | null) => void;
+  // Stock Validation
+  isStockModalOpen: boolean;
+  setIsStockModalOpen: (open: boolean) => void;
+  insufficientItems: InsufficientStockItem[];
+  handleAdjustStock: () => Promise<void>;
+  isAdjustingStock: boolean;
 }
 
 export function useSaleForm({
@@ -58,12 +66,20 @@ export function useSaleForm({
   const { user } = useAuth();
 
   // New State
+  const adjustStockMutation = useAdjustStock();
   const [transactionMode, setTransactionMode] = useState<"guest" | "customer">(
     "guest",
   );
   const [isVoucherUsed, setIsVoucherUsed] = useState(false);
   const [isDebt, setIsDebt] = useState(false);
   const [lastSale, setLastSale] = useState<SaleResponse | null>(null);
+
+  // Stock Validation State
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [insufficientItems, setInsufficientItems] = useState<
+    InsufficientStockItem[]
+  >([]);
+  const [isAdjustingStock, setIsAdjustingStock] = useState(false);
 
   // Initialize form
   const form = useForm<SaleFormData>({
@@ -166,12 +182,94 @@ export function useSaleForm({
   const deficiency = Math.max(0, grandTotal - totalPaid);
   const isInsufficient = totalPaid < grandTotal;
 
+  const validateStock = () => {
+    const problematicItems: InsufficientStockItem[] = [];
+
+    items.forEach((item) => {
+      const requestedQty = Number(item.qty);
+      const conversionFactor = Number(item.conversionToBase || 1);
+      const requestedTotalBase = requestedQty * conversionFactor;
+      const currentStock = Number(item.currentStock || 0);
+
+      if (requestedTotalBase > currentStock) {
+        problematicItems.push({
+          variantId: item.variantId,
+          productId: item.productId,
+          productName: item.productName || "Unknown",
+          variantName: item.variantName || "Default",
+          qty: item.qty,
+          requestedQty: requestedTotalBase,
+          currentStock,
+          difference: requestedTotalBase - currentStock,
+        });
+      }
+    });
+
+    if (problematicItems.length > 0) {
+      setInsufficientItems(problematicItems);
+      setIsStockModalOpen(true);
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleAdjustStock = async () => {
+    setIsAdjustingStock(true);
+    const toastId = toast.loading("Menyesuaikan stok...");
+
+    try {
+      for (const item of insufficientItems) {
+        await adjustStockMutation.mutateAsync({
+          id: item.productId,
+          userId: user?.id || 0,
+          variants: [{ variantId: item.variantId || 0, qty: item.qty }],
+        });
+      }
+
+      toast.success("Stok berhasil disesuaikan, memproses transaksi...", {
+        id: toastId,
+      });
+
+      // Update local currentStock in form fields so validateStock passes on retry
+      const currentItems = form.getValues().items;
+      currentItems.forEach((item, index) => {
+        const problem = insufficientItems.find(
+          (p) => p.productId === item.productId,
+        );
+        if (problem) {
+          form.setValue(`items.${index}.currentStock`, problem.requestedQty);
+        }
+      });
+
+      await handleSubmit(form.getValues());
+      setIsStockModalOpen(false);
+    } catch (error) {
+      toast.error(
+        error ? (error as ApiResponse).error : "Gagal menyesuaikan stok",
+        { id: toastId },
+      );
+    } finally {
+      setIsAdjustingStock(false);
+    }
+  };
+
   const handleSubmit = async (data: SaleFormData) => {
+    const toastId = toast.loading("Memproses transaksi...");
+
+    // 1. Validate Stock first if not already in modal flow
+    if (!isAdjustingStock) {
+      const isStockValid = validateStock();
+      if (!isStockValid) {
+        toast.dismiss(toastId);
+        return;
+      }
+    }
     try {
       const cleanedItems = data.items.map((item) => ({
         productId: item.productId,
         variantId: item.variantId,
-        unitFactorAtSale: "1", // Placeholder, will be handled by server or should be passed from variant
+        unitFactorAtSale: "1",
         qty: item.qty,
       }));
 
@@ -203,8 +301,12 @@ export function useSaleForm({
       setIsDebt(false);
       setTransactionMode("guest");
       onSuccess?.();
+
+      toast.success("Transaksi berhasil diproses", { id: toastId });
     } catch (error) {
-      toast.error((error as ApiResponse).error || "Gagal memproses transaksi");
+      toast.error((error as ApiResponse).error || "Gagal memproses transaksi", {
+        id: toastId,
+      });
     }
   };
 
@@ -233,5 +335,10 @@ export function useSaleForm({
     deficiency,
     customers,
     selectedCustomer,
+    isStockModalOpen,
+    setIsStockModalOpen,
+    insufficientItems,
+    handleAdjustStock,
+    isAdjustingStock,
   };
 }

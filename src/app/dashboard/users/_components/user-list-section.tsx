@@ -55,6 +55,7 @@ interface UserListSectionProps {
 export function UserListSection({ onEdit }: UserListSectionProps) {
   // Local State
   const [page, setPage] = useState(1);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");

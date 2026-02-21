@@ -61,3 +61,5 @@ export type InsertDebtPaymentType = InferInsertModel<
 >;
 export type DebtStatusEnumType =
   (typeof schema.debtStatusEnum.enumValues)[number];
+export type CompensationTypeEnumType =
+  (typeof schema.compensationType.enumValues)[number];
