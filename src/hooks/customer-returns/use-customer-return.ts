@@ -32,24 +32,45 @@ export const useCustomerReturnList = ({
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 500);
 
+  const [dateRange, setDateRange] = useState<{
+    startDate?: string;
+    endDate?: string;
+  }>({});
+
+  const [compensationType, setCompensationType] = useState<
+    string | undefined
+  >();
+  const [customerId, setCustomerId] = useState<number | undefined>();
+
   const validParams = {
     page,
     limit,
     search: debouncedSearch || undefined,
+    ...dateRange,
+    compensationType,
+    customerId,
   };
 
   const query = useQuery(getCustomerReturnsQueryOptions(validParams));
 
-  const hasActiveFilters = !!debouncedSearch;
+  const hasActiveFilters =
+    !!debouncedSearch ||
+    !!dateRange.startDate ||
+    !!compensationType ||
+    !!customerId;
 
   const resetFilters = () => {
     setSearchInput("");
+    setDateRange({});
+    setCompensationType(undefined);
+    setCustomerId(undefined);
     setPage(1);
   };
 
   return {
     customerReturns: query.data?.data,
     meta: query.data?.meta,
+    analytics: query.data?.analytics,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
@@ -59,6 +80,12 @@ export const useCustomerReturnList = ({
     setLimit,
     searchInput,
     setSearchInput,
+    dateRange,
+    setDateRange,
+    compensationType,
+    setCompensationType,
+    customerId,
+    setCustomerId,
     hasActiveFilters,
     resetFilters,
     refetch: query.refetch,

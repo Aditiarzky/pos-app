@@ -100,6 +100,7 @@ export const salesRelations = relations(schema.sales, ({ one, many }) => ({
     fields: [schema.sales.customerId],
     references: [schema.customers.id],
   }),
+  customerReturns: many(schema.customerReturns),
 }));
 
 export const saleItemsRelations = relations(schema.saleItems, ({ one }) => ({

@@ -1,67 +1,54 @@
 import { axiosInstance } from "@/lib/axios";
 import { ApiResponse } from "./productService";
 import {
-  baseInsertCustomerReturnItemSchema,
-  customerExchangeItemInputSchema,
+  insertCustomerExchangeItemType,
+  insertCustomerReturnItemType,
+  insertCustomerReturnType,
 } from "@/lib/validations/customer-return";
-import { CompensationTypeEnumType, CustomerReturnType } from "@/drizzle/type";
-import z from "zod";
+import { CustomerReturnType } from "@/drizzle/type";
 
 // Define Response Types based on schema relations
 export type CustomerReturnResponse = CustomerReturnType & {
   customer?: { id: number; name: string };
   user?: { id: number; name: string };
-  items?: Array<insertCustomerReturnItemType>;
+  items?: Array<
+    insertCustomerReturnItemType & {
+      product?: { name: string };
+      productVariant?: { name: string };
+    }
+  >;
+  exchangeItems: Array<
+    insertCustomerExchangeItemType & {
+      product?: { name: string };
+      productVariant?: { name: string };
+    }
+  >;
+  sales: Array<{
+    id: number;
+    invoiceNumber: string;
+    createdAt: Date;
+    customer?: { id: number; name: string };
+    user?: { id: number; name: string };
+    items?: Array<
+      insertCustomerReturnItemType & {
+        product?: { name: string };
+        productVariant?: { name: string };
+      }
+    >;
+  }>;
 };
 
-// 1. Tentukan apa saja yang mau kita buang secara global (kolom internal/audit)
-type AuditColumns =
-  | "id"
-  | "createdAt"
-  | "updatedAt"
-  | "isArchived"
-  | "userId"
-  | "returnId";
-
-// 2. Buat tipe untuk Item Retur
-export type insertCustomerReturnItemType = Omit<
-  z.infer<typeof baseInsertCustomerReturnItemSchema>,
-  AuditColumns | "priceAtReturn" | "unitFactorAtReturn" | "qty"
-> & {
-  productId: number;
-  variantId: number;
-  qty: number;
-  reason?: string | null;
-  returnedToStock?: boolean;
-};
-
-// 3. Buat tipe untuk Item Tukar (Exchange)
-export type insertCustomerExchangeItemType = Omit<
-  z.infer<typeof customerExchangeItemInputSchema>,
-  AuditColumns | "priceAtExchange" | "unitFactorAtExchange" | "qty"
-> & {
-  productId: number;
-  variantId: number;
-  qty: number;
-};
-
-// 4. Buat tipe Payload Utama yang akan dikirim Frontend
-export type insertCustomerReturnPayload = {
-  saleId: number;
-  customerId?: number | null;
-  userId: number;
-  compensationType: CompensationTypeEnumType;
-  items: insertCustomerReturnItemType[];
-  exchangeItems?: insertCustomerExchangeItemType[];
-  // Opsional: tambah field lain jika memang dikirim dari depan
-  totalRefund?: number;
-  returnNumber?: string;
-};
+// Use the type from validation as the payload
+export type insertCustomerReturnPayload = insertCustomerReturnType;
 
 export const getCustomerReturns = async (params?: {
   page?: number;
   limit?: number;
   search?: string;
+  startDate?: string;
+  endDate?: string;
+  compensationType?: string;
+  customerId?: number;
 }): Promise<ApiResponse<CustomerReturnResponse[]>> => {
   const response = await axiosInstance.get("/customer-returns", { params });
   return response.data;

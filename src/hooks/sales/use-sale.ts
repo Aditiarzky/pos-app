@@ -34,26 +34,35 @@ export const useSaleList = ({
     endDate?: string;
   }>({});
 
+  const [status, setStatus] = useState<string | undefined>();
+  const [customerId, setCustomerId] = useState<number | undefined>();
+
   const validParams = {
     page,
     limit,
     search: debouncedSearch || undefined,
     ...dateRange,
+    status,
+    customerId,
   };
 
   const query = useQuery(getSalesQueryOptions(validParams));
 
-  const hasActiveFilters = !!debouncedSearch || !!dateRange.startDate;
+  const hasActiveFilters =
+    !!debouncedSearch || !!dateRange.startDate || !!status || !!customerId;
 
   const resetFilters = () => {
     setSearchInput("");
     setDateRange({});
+    setStatus(undefined);
+    setCustomerId(undefined);
     setPage(1);
   };
 
   return {
     sales: query.data?.data,
     meta: query.data?.meta,
+    analytics: query.data?.analytics,
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,
@@ -65,6 +74,10 @@ export const useSaleList = ({
     setSearchInput,
     dateRange,
     setDateRange,
+    status,
+    setStatus,
+    customerId,
+    setCustomerId,
     hasActiveFilters,
     resetFilters,
     refetch: query.refetch,

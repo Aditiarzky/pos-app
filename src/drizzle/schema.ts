@@ -9,10 +9,12 @@ export const stockMutationType = p.pgEnum("stock_mutation_type", [
   "sale",
   "sale_cancel",
   "return_restock",
+  "return_cancel",
   "waste",
   "supplier_return",
   "adjustment",
   "exchange",
+  "exchange_cancel",
 ]);
 
 export const saleStatus = p.pgEnum("sale_status", [

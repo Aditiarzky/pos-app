@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, not, sql } from "drizzle-orm";
 import {
   sales,
   saleItems,
@@ -12,6 +12,7 @@ import {
 } from "@/drizzle/schema";
 import { validateInsertSaleData } from "@/lib/validations/sale";
 import { handleApiError } from "@/lib/api-utils";
+import { voidCustomerReturn } from "../../customer-returns/_lib/return-service";
 
 export async function GET(
   request: NextRequest,
@@ -29,14 +30,17 @@ export async function GET(
     }
 
     const result = await db.query.sales.findFirst({
-      where: eq(sales.id, saleId),
+      where: and(eq(sales.id, saleId), not(sales.isArchived)),
       with: {
         items: {
           columns: {
             id: true,
+            productId: true,
+            variantId: true,
             qty: true,
             priceAtSale: true,
             costAtSale: true,
+            unitFactorAtSale: true,
             subtotal: true,
           },
           with: {
@@ -55,6 +59,39 @@ export async function GET(
                 conversionToBase: true,
               },
             },
+          },
+        },
+        customerReturns: {
+          where: (customerReturns, { not }) => not(customerReturns.isArchived),
+          columns: {
+            id: true,
+            compensationType: true,
+            returnNumber: true,
+            customerId: true,
+            saleId: true,
+            totalRefund: true,
+            userId: true,
+          },
+          with: {
+            items: {
+              columns: {
+                id: true,
+                productId: true,
+                variantId: true,
+                qty: true,
+                priceAtReturn: true,
+                unitFactorAtReturn: true,
+              },
+            },
+          },
+        },
+        customer: {
+          columns: {
+            id: true,
+            name: true,
+            creditBalance: true,
+            phone: true,
+            address: true,
           },
         },
       },
@@ -242,6 +279,7 @@ export async function DELETE(
     const result = await db.transaction(async (tx) => {
       const existingSale = await tx.query.sales.findFirst({
         where: eq(sales.id, saleId),
+        with: { customerReturns: true },
       });
 
       if (!existingSale) throw new Error("Penjualan tidak ditemukan");
@@ -304,6 +342,14 @@ export async function DELETE(
             status: "cancelled",
           })
           .where(eq(debts.id, existingDebt.id));
+      }
+
+      if (existingSale.customerReturns.length > 0) {
+        for (const ret of existingSale.customerReturns) {
+          if (!ret.isArchived) {
+            await voidCustomerReturn(tx, ret.id);
+          }
+        }
       }
 
       const [archivedSale] = await tx

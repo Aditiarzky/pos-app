@@ -70,9 +70,16 @@ export function StockMutationsSection() {
       case "adjustment":
         return "default";
       case "sale":
+      case "return_cancel":
+        return "destructive";
       case "waste":
+        return "destructive";
       case "supplier_return":
         return "destructive";
+      case "exchange":
+        return "destructive";
+      case "exchange_cancel":
+        return "secondary";
       default:
         return "secondary";
     }
@@ -90,6 +97,8 @@ export function StockMutationsSection() {
         return "Penjualan";
       case "return_restock":
         return "Retur (Restock)";
+      case "return_cancel":
+        return "Batal Retur";
       case "waste":
         return "Terbuang/Rusak";
       case "supplier_return":
@@ -97,7 +106,9 @@ export function StockMutationsSection() {
       case "adjustment":
         return "Penyesuaian";
       case "exchange":
-        return "Pertukaran";
+        return "Tukar Barang";
+      case "exchange_cancel":
+        return "Batal Tukar";
       default:
         return type;
     }
@@ -220,9 +231,11 @@ export function StockMutationsSection() {
                           })}
                         </span>
                         <span className="hidden sm:block">
-                          {format(mutation.createdAt!, "dd MMM yyyy", {
-                            locale: id,
-                          })}
+                          {mutation.createdAt
+                            ? format(mutation.createdAt, "dd/MM/yy", {
+                                locale: id,
+                              })
+                            : "-"}
                         </span>
                       </div>
                     </TableCell>
@@ -254,7 +267,9 @@ export function StockMutationsSection() {
                       </p>
                     </TableCell>
                     <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2">
-                      {mutation.user?.name?.split(" ")[0] || "System"}
+                      {mutation.user?.name
+                        ? mutation.user.name.split(" ")[0]
+                        : "System"}
                     </TableCell>
                   </TableRow>
                 ))
@@ -339,9 +354,11 @@ export function StockMutationsSection() {
                           Waktu
                         </span>
                         <span className="truncate text-right ml-1">
-                          {format(mutation.createdAt!, "dd/MM/yy HH:mm", {
-                            locale: id,
-                          })}
+                          {mutation.createdAt
+                            ? format(mutation.createdAt, "dd/MM/yy HH:mm", {
+                                locale: id,
+                              })
+                            : "-"}
                         </span>
                       </div>
                     </div>

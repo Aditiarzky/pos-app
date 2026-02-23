@@ -62,6 +62,15 @@ export type ApiResponse<T = unknown> = {
     totalPurchasesThisMonth?: number;
     newTransactions?: number;
     activeSuppliers?: number;
+    // Sales analytics
+    totalSalesToday?: number;
+    transactionsTodayCount?: number;
+    totalReceivedToday?: number;
+    // Returns analytics
+    totalRefundsToday?: number;
+    returnsTodayCount?: number;
+    totalTransactionsLifetime?: number;
+    totalReturnsLifetime?: number;
     [key: string]: number | undefined;
   };
   meta?: {

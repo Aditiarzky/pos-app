@@ -14,7 +14,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { useDebts } from "@/hooks/debt/use-debts";
 import { useState } from "react";
 import { Debt } from "@/services/debtService";
-import { DebtPaymentDialog } from "./debt-payment-dialog";
+import { DebtPaymentDialog } from "../debt-payment-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
 

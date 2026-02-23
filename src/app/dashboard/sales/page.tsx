@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -11,18 +11,21 @@ import {
   Undo2,
   LayoutGrid,
   Table2,
+  ChevronsDownIcon,
 } from "lucide-react";
 import { useQueryState } from "@/hooks/use-query-state";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { CardBg } from "@/assets/card-background/card-bg";
-import { TransactionForm } from "./_components/transaction-form";
-import { SalesListSection } from "./_components/sales-list-section";
-import { ReturnListSection } from "./_components/return-list-section";
-import { DebtListSection } from "./_components/debt-list-section";
-import { ReturnForm } from "./_components/return-form";
+import { TransactionForm } from "./_components/_forms/transaction-form";
+import { SalesListSection } from "./_components/_sections/sales-list-section";
+import { ReturnListSection } from "./_components/_sections/return-list-section";
+import { DebtListSection } from "./_components/_sections/debt-list-section";
+import { ReturnForm } from "./_components/_forms/return-form";
 import { cn } from "@/lib/utils";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
+import { useSaleList } from "@/hooks/sales/use-sale";
+import { useCustomerReturnList } from "@/hooks/customer-returns/use-customer-return";
 
 // ============================================
 // MAIN CONTENT COMPONENT
@@ -36,6 +39,22 @@ function SalesContent() {
   // Shared Filter States for History
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const [searchInput, setSearchInput] = useState("");
+
+  // Summary Toggle State (Default Open on Desktop, Closed on Mobile)
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+
+  useEffect(() => {
+    // Client-side only check
+    if (window.innerWidth >= 768) {
+      setIsSummaryOpen(true);
+    }
+  }, []);
+
+  // Fetch Analytics Data
+  const { analytics: salesAnalytics } = useSaleList({ initialLimit: 1 });
+  const { analytics: returnAnalytics } = useCustomerReturnList({
+    initialLimit: 1,
+  });
 
   return (
     <>
@@ -55,37 +74,120 @@ function SalesContent() {
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
         {/* Analytics Cards */}
         {tab !== "cashier" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in slide-in-from-top-4">
-            <Card className="relative overflow-hidden">
-              <CardBg />
-              <CardHeader className="pb-2 z-10">
-                <CardTitle className="text-sm font-medium flex items-center justify-between">
-                  Total Penjualan (Hari Ini)
-                  <ShoppingCart className="h-5 w-5 text-muted-foreground/50" />
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="z-10 text-primary">
-                <div className="text-3xl font-bold">
-                  <span className="text-lg opacity-70 mr-1">Rp</span>
-                  <AnimatedNumber value={0} />{" "}
-                  {/* TODO: Integrate Analytics Data */}
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="relative overflow-hidden">
-              <CardBg />
-              <CardHeader className="pb-2 z-10">
-                <CardTitle className="text-sm font-medium flex items-center justify-between">
-                  Transaksi Hari Ini
-                  <Receipt className="h-5 w-5 text-muted-foreground/50" />
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="z-10 text-primary">
-                <div className="text-3xl font-bold">
-                  <AnimatedNumber value={0} />
-                </div>
-              </CardContent>
-            </Card>
+          <div
+            className={cn(
+              "relative transition-all duration-500 ease-in-out overflow-hidden",
+              isSummaryOpen ? "max-h-full mb-4 pb-2" : "max-h-24",
+            )}
+          >
+            <span
+              className={cn(
+                "absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent z-20 pointer-events-none transition-opacity duration-500",
+                isSummaryOpen ? "opacity-0" : "opacity-100",
+              )}
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4">
+              <Card className="relative overflow-hidden">
+                <CardBg />
+                <CardHeader className="pb-2 z-10">
+                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                    Penjualan (Hari Ini)
+                    <ShoppingCart className="h-5 w-5 text-primary/40" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="z-10 text-primary">
+                  <div className="text-2xl font-bold">
+                    <span className="text-sm opacity-70 mr-1">Rp</span>
+                    <AnimatedNumber
+                      value={salesAnalytics?.totalSalesToday || 0}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative overflow-hidden">
+                <CardBg />
+                <CardHeader className="pb-2 z-10">
+                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                    Diterima (Hari Ini)
+                    <Receipt className="h-5 w-5 text-primary/40" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="z-10 text-emerald-600">
+                  <div className="text-2xl font-bold">
+                    <span className="text-sm opacity-70 mr-1">Rp</span>
+                    <AnimatedNumber
+                      value={salesAnalytics?.totalReceivedToday || 0}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative overflow-hidden">
+                <CardBg />
+                <CardHeader className="pb-2 z-10">
+                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                    Retur (Hari Ini)
+                    <Undo2 className="h-5 w-5 text-destructive/40" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="z-10 text-destructive">
+                  <div className="text-2xl font-bold">
+                    <span className="text-sm opacity-70 mr-1">Rp</span>
+                    <AnimatedNumber
+                      value={returnAnalytics?.totalRefundsToday || 0}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative overflow-hidden">
+                <CardBg />
+                <CardHeader className="pb-2 z-10">
+                  <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+                    Volume Aktivitas (Hari Ini)
+                    <History className="h-5 w-5 text-primary/40" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="z-10 text-primary">
+                  <div className="text-2xl font-bold">
+                    <AnimatedNumber
+                      value={
+                        (salesAnalytics?.transactionsTodayCount || 0) +
+                        (returnAnalytics?.returnsTodayCount || 0)
+                      }
+                    />
+                    <span className="text-xs font-medium ml-2 text-muted-foreground">
+                      Transaksi
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-1 font-medium bg-secondary/30 w-fit px-1.5 py-0.5 rounded border border-border/50">
+                    Total Semua:{" "}
+                    {(salesAnalytics?.totalTransactionsLifetime || 0) +
+                      (returnAnalytics?.totalReturnsLifetime || 0)}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            <span
+              className={cn(
+                "absolute z-20 w-full flex flex-col items-center gap-0 justify-center transition-all duration-500",
+                isSummaryOpen ? "relative pt-4" : "top-14",
+              )}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-card text-muted-foreground hover:brightness-95 shadow-sm rounded-full px-4 h-8"
+                onClick={() => setIsSummaryOpen(!isSummaryOpen)}
+              >
+                {isSummaryOpen ? "Tutup Ringkasan" : "Lihat Ringkasan"}
+                <ChevronsDownIcon
+                  className={cn("h-4 w-4", isSummaryOpen ? "rotate-180" : "")}
+                />
+              </Button>
+            </span>
           </div>
         )}
 

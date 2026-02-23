@@ -48,6 +48,8 @@ export function ReturnItemSelector({
               id={`return-item-${index}`}
               checked={item.selected}
               onCheckedChange={() => onToggle(index)}
+              disabled={item.isFullyReturned}
+              onClick={(e) => e.stopPropagation()}
               className="mt-1 border-destructive/50 data-[state=checked]:bg-destructive data-[state=checked]:border-destructive"
             />
 
@@ -63,8 +65,19 @@ export function ReturnItemSelector({
                 <span className="font-medium">
                   {formatCurrency(item.priceAtSale)}
                 </span>{" "}
-                × {item.maxQty}
+                × {item.maxQty} sisa
               </p>
+              {item.previouslyReturnedQty > 0 && (
+                <p className="text-[10px] text-destructive/80 font-medium bg-destructive/5 inline-block px-1.5 py-0.5 rounded mt-1">
+                  Sudah diretur: {item.previouslyReturnedQty} /{" "}
+                  {item.originalQty}
+                </p>
+              )}
+              {item.isFullyReturned && (
+                <p className="text-[10px] text-muted-foreground italic mt-0.5">
+                  Item ini sudah diretur sepenuhnya.
+                </p>
+              )}
             </div>
 
             <div className="text-right shrink-0">

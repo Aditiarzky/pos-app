@@ -14,12 +14,11 @@ import { AppPagination } from "@/components/app-pagination";
 import { Button } from "@/components/ui/button";
 import { Trash2, Eye, PrinterIcon, ListIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
 import { useSaleList, useDeleteSale } from "@/hooks/sales/use-sale";
 import { useState } from "react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { usePrintReceipt } from "../_hooks/use-print-receipt";
+import { usePrintReceipt } from "../../_hooks/use-print-receipt";
 
 import {
   AlertDialog,
@@ -42,8 +41,11 @@ import {
 } from "@/components/ui/dialog";
 
 import { ApiResponse } from "@/services/productService";
-import { SaleResponse } from "../_types/sale-type";
-import { SaleReceipt } from "./_ui/sale-receipt";
+import { SaleResponse } from "../../_types/sale-type";
+import { SaleReceipt } from "../_ui/sale-receipt";
+import { Separator } from "@/components/ui/separator";
+import { FilterWrap } from "@/components/filter-wrap";
+import { SalesFilterForm } from "../_ui/sales-filter-form";
 
 interface SalesListSectionProps {
   viewMode: "table" | "card";
@@ -52,10 +54,26 @@ interface SalesListSectionProps {
 
 export function SalesListSection({
   viewMode,
-  searchInput,
+  searchInput: externalSearch,
 }: SalesListSectionProps) {
-  const { sales, isLoading, meta, page, setPage, limit, setLimit } =
-    useSaleList({ search: searchInput });
+  const {
+    sales,
+    isLoading,
+    meta,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    dateRange,
+    setDateRange,
+    status,
+    setStatus,
+    customerId,
+    setCustomerId,
+    hasActiveFilters,
+    resetFilters,
+    searchInput,
+  } = useSaleList({ search: externalSearch });
 
   const [selectedSale, setSelectedSale] = useState<SaleResponse | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
@@ -93,14 +111,37 @@ export function SalesListSection({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold flex items-center gap-2 text-primary">
-          <ListIcon className="h-5 w-5" />
-          Semua Penjualan
-        </h3>
-        <div className="text-sm font-medium">
-          Total Penjualan:{" "}
-          <span className="text-primary font-bold">{meta?.total || 0}</span>
+      <div className="flex flex-col sm:flex-row gap-3 bg-background rounded-md">
+        <div className="flex-1">
+          <h3 className="text-lg font-bold flex items-center gap-2 text-primary">
+            <ListIcon className="h-5 w-5" />
+            Semua Penjualan
+          </h3>
+        </div>
+
+        <div className="flex w-full justify-between sm:w-fit gap-2">
+          <FilterWrap hasActiveFilters={hasActiveFilters}>
+            <SalesFilterForm
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              status={status}
+              setStatus={setStatus}
+              customerId={customerId}
+              setCustomerId={setCustomerId}
+              setPage={setPage}
+              resetFilters={resetFilters}
+              isDropdown
+            />
+          </FilterWrap>
+
+          <Separator orientation="vertical" className="h-10 mx-1 block" />
+
+          <div className="text-sm font-medium flex items-center bg-muted/30 px-3 rounded-lg border">
+            Total:{" "}
+            <span className="text-primary font-bold ml-1">
+              {meta?.total || 0}
+            </span>
+          </div>
         </div>
       </div>
 

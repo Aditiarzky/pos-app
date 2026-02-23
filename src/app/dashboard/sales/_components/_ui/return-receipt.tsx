@@ -102,7 +102,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
             <span>Tipe: {compensationLabel}</span>
           </div>
           <div style={flexBetween}>
-            <span>Customer: {result.saleData.customer?.name || "Guest"}</span>
+            <span>Customer: {result.customerName || "Guest"}</span>
           </div>
         </div>
 

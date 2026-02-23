@@ -26,6 +26,7 @@ export type SaleType = InferSelectModel<typeof schema.sales>;
 export type InsertSaleType = InferInsertModel<typeof schema.sales>;
 export type SaleItemType = InferSelectModel<typeof schema.saleItems>;
 export type InsertSaleItemType = InferInsertModel<typeof schema.saleItems>;
+export type SaleStatusEnumType = (typeof schema.saleStatus.enumValues)[number];
 export type SupplierReturnType = InferSelectModel<
   typeof schema.supplierReturns
 >;

@@ -12,16 +12,16 @@ import { Card } from "@/components/ui/card";
 import { CustomerSelect } from "@/components/ui/customer-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Loader2, Search, QrCode, Ticket } from "lucide-react";
-import { useProductSearch } from "../_hooks/use-product-search";
-import { useSaleForm } from "../_hooks/use-sale-form";
-import { TransactionCartItems } from "./transaction-cart-items";
+import { useProductSearch } from "../../_hooks/use-product-search";
+import { useSaleForm } from "../../_hooks/use-sale-form";
+import { TransactionCartItems } from "../transaction-cart-items";
 import { ProductResponse } from "@/services/productService";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { SearchResultsDropdown } from "@/components/ui/search-product-dropdown";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SaleSuccessModal } from "./_ui/sale-success-modal";
-import { StockWarningModal } from "./_ui/stock-warning-modal";
+import { SaleSuccessModal } from "../_ui/sale-success-modal";
+import { StockWarningModal } from "../_ui/stock-warning-modal";
 
 interface TransactionFormProps {
   onSuccess?: () => void;

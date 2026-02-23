@@ -18,11 +18,20 @@ import {
 } from "@/lib/query-helper";
 import { handleApiError } from "@/lib/api-utils";
 import { processDebtPayment } from "../debts/_lib/debt-service";
+import { SaleStatusEnumType } from "@/drizzle/type";
 
-// GET all sales with serach
+// GET all sales with search and filters
 export async function GET(request: NextRequest) {
   try {
     const params = parsePagination(request);
+    const { searchParams } = new URL(request.url);
+
+    // Advanced Filters
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const status = searchParams.get("status");
+    const customerId = searchParams.get("customerId");
+
     const { searchFilter, searchOrder } = getSearchAndOrderBasic(
       params.search,
       params.order,
@@ -30,73 +39,125 @@ export async function GET(request: NextRequest) {
       sales.invoiceNumber,
     );
 
-    const [salesData, totalRes] = await Promise.all([
-      db.query.sales.findMany({
-        where: and(searchFilter, not(sales.isArchived)),
-        with: {
-          user: {
-            columns: {
-              id: true,
-              name: true,
-            },
-          },
-          debt: {
-            columns: {
-              id: true,
-              originalAmount: true,
-              remainingAmount: true,
-              status: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          },
-          customer: {
-            columns: {
-              id: true,
-              name: true,
-              creditBalance: true,
-            },
-          },
-          items: {
-            columns: {
-              id: true,
-              qty: true,
-              priceAtSale: true,
-              costAtSale: true,
-              subtotal: true,
-            },
-            with: {
-              product: {
-                columns: {
-                  id: true,
-                  name: true,
-                },
-              },
-              productVariant: {
-                columns: {
-                  id: true,
-                  name: true,
-                },
-              },
-            },
-          },
-        },
-        orderBy: searchOrder,
-        limit: params.limit,
-        offset: params.offset,
-      }),
+    let filter = and(searchFilter, not(sales.isArchived));
 
-      db
-        .select({ count: sql<number>`count(*)` })
-        .from(sales)
-        .where(and(searchFilter, not(sales.isArchived))),
-    ]);
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      filter = and(filter, sql`${sales.createdAt} >= ${start}`);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filter = and(filter, sql`${sales.createdAt} <= ${end}`);
+    }
+    if (status) {
+      filter = and(filter, eq(sales.status, status as SaleStatusEnumType));
+    }
+    if (customerId) {
+      filter = and(filter, eq(sales.customerId, Number(customerId)));
+    }
+
+    const now = new Date();
+    const startOfToday = new Date(now.setHours(0, 0, 0, 0));
+
+    const [salesData, totalRes, todayAnalyticsRes, lifetimeRes] =
+      await Promise.all([
+        db.query.sales.findMany({
+          where: filter,
+          with: {
+            user: {
+              columns: {
+                id: true,
+                name: true,
+              },
+            },
+            debt: {
+              columns: {
+                id: true,
+                originalAmount: true,
+                remainingAmount: true,
+                status: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+            },
+            customer: {
+              columns: {
+                id: true,
+                name: true,
+                creditBalance: true,
+              },
+            },
+            items: {
+              columns: {
+                id: true,
+                qty: true,
+                priceAtSale: true,
+                costAtSale: true,
+                subtotal: true,
+              },
+              with: {
+                product: {
+                  columns: {
+                    id: true,
+                    name: true,
+                  },
+                },
+                productVariant: {
+                  columns: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: searchOrder,
+          limit: params.limit,
+          offset: params.offset,
+        }),
+
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(sales)
+          .where(filter),
+
+        db
+          .select({
+            totalSales: sql<string>`sum(${sales.totalPrice})`,
+            totalPaid: sql<string>`sum(${sales.totalPaid})`,
+            count: sql<number>`count(*)`,
+          })
+          .from(sales)
+          .where(
+            and(
+              not(sales.isArchived),
+              sql`${sales.createdAt} >= ${startOfToday}`,
+            ),
+          ),
+
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(sales)
+          .where(not(sales.isArchived)),
+      ]);
 
     const totalCount = Number(totalRes[0]?.count || 0);
+    const todaySales = Number(todayAnalyticsRes[0]?.totalSales || 0);
+    const todayPaid = Number(todayAnalyticsRes[0]?.totalPaid || 0);
+    const todayCount = Number(todayAnalyticsRes[0]?.count || 0);
+    const lifetimeCount = Number(lifetimeRes[0]?.count || 0);
 
     return NextResponse.json({
       success: true,
       data: salesData,
+      analytics: {
+        totalSalesToday: todaySales,
+        transactionsTodayCount: todayCount,
+        totalReceivedToday: todayPaid,
+        totalTransactionsLifetime: lifetimeCount,
+      },
       meta: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {

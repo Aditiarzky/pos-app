@@ -4,7 +4,7 @@ import {
   getSearchAndOrderBasic,
   parsePagination,
 } from "@/lib/query-helper";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, not, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import {
   customerExchangeItems,
@@ -16,18 +16,27 @@ import {
   sales,
   stockMutations,
 } from "@/drizzle/schema";
-import {
-  insertCustomerExchangeItemType,
-  insertCustomerReturnItemType,
-  validateInsertCustomerReturnData,
-} from "@/lib/validations/customer-return";
+import { validateInsertCustomerReturnData } from "@/lib/validations/customer-return";
 import { handleApiError } from "@/lib/api-utils";
-import { InsertStockMutationType } from "@/drizzle/type";
+import {
+  CompensationTypeEnumType,
+  CustomerReturnExchangeItemType,
+  CustomerReturnItemType,
+  InsertStockMutationType,
+} from "@/drizzle/type";
 
-// GET all customer-returns with search
+// GET all customer-returns with search and filters
 export async function GET(request: NextRequest) {
   try {
     const params = parsePagination(request);
+    const { searchParams } = new URL(request.url);
+
+    // Advanced Filters
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const compensationType = searchParams.get("compensationType");
+    const customerId = searchParams.get("customerId");
+
     const { searchFilter, searchOrder } = getSearchAndOrderBasic(
       params.search,
       params.order,
@@ -35,28 +44,83 @@ export async function GET(request: NextRequest) {
       customerReturns.returnNumber,
     );
 
-    const [customerReturnsData, totalRes] = await Promise.all([
-      db.query.customerReturns.findMany({
-        where: and(eq(customerReturns.isArchived, false), searchFilter),
-        orderBy: searchOrder,
-        limit: params.limit,
-        offset: params.offset,
-        with: {
-          customer: true,
-          sales: true,
-        },
-      }),
-      db
-        .select({ count: sql<number>`count(*)` })
-        .from(customerReturns)
-        .where(and(eq(customerReturns.isArchived, false), searchFilter)),
-    ]);
+    let filter = and(eq(customerReturns.isArchived, false), searchFilter);
+
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      filter = and(filter, sql`${customerReturns.createdAt} >= ${start}`);
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      filter = and(filter, sql`${customerReturns.createdAt} <= ${end}`);
+    }
+    if (compensationType) {
+      filter = and(
+        filter,
+        eq(
+          customerReturns.compensationType,
+          compensationType as CompensationTypeEnumType,
+        ),
+      );
+    }
+    if (customerId) {
+      filter = and(filter, eq(customerReturns.customerId, Number(customerId)));
+    }
+
+    const now = new Date();
+    const startOfToday = new Date(now.setHours(0, 0, 0, 0));
+
+    const [customerReturnsData, totalRes, todayAnalyticsRes, lifetimeRes] =
+      await Promise.all([
+        db.query.customerReturns.findMany({
+          where: filter,
+          orderBy: searchOrder,
+          limit: params.limit,
+          offset: params.offset,
+          with: {
+            customer: true,
+            sales: true,
+            items: true,
+            exchangeItems: true,
+          },
+        }),
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(customerReturns)
+          .where(filter),
+        db
+          .select({
+            totalRefund: sql<string>`sum(${customerReturns.totalRefund})`,
+            count: sql<number>`count(*)`,
+          })
+          .from(customerReturns)
+          .where(
+            and(
+              not(customerReturns.isArchived),
+              sql`${customerReturns.createdAt} >= ${startOfToday}`,
+            ),
+          ),
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(customerReturns)
+          .where(not(customerReturns.isArchived)),
+      ]);
 
     const totalCount = Number(totalRes[0]?.count || 0);
+    const todayRefund = Number(todayAnalyticsRes[0]?.totalRefund || 0);
+    const todayCount = Number(todayAnalyticsRes[0]?.count || 0);
+    const lifetimeCount = Number(lifetimeRes[0]?.count || 0);
 
     return NextResponse.json({
       success: true,
       data: customerReturnsData,
+      analytics: {
+        totalRefundsToday: todayRefund,
+        returnsTodayCount: todayCount,
+        totalReturnsLifetime: lifetimeCount,
+      },
       meta: formatMeta(totalCount, params.page, params.limit),
     });
   } catch (error) {
@@ -73,6 +137,7 @@ export async function POST(request: NextRequest) {
     const validation = await validateInsertCustomerReturnData(body);
     const {
       saleId,
+      customerId: payloadCustomerId, // Customer ID dari payload (untuk guest sale)
       userId,
       items: returnedItems, // Array barang yang dikembalikan
       exchangeItems, // Array barang pengganti (opsional)
@@ -83,12 +148,30 @@ export async function POST(request: NextRequest) {
       // 1. Ambil Data Penjualan Asal
       const existingSale = await tx.query.sales.findFirst({
         where: eq(sales.id, saleId),
-        with: { items: true },
+        with: {
+          items: true,
+          customerReturns: {
+            where: eq(customerReturns.isArchived, false),
+            with: {
+              items: true,
+            },
+          },
+        },
       });
 
       if (!existingSale) throw new Error("Data penjualan tidak ditemukan");
       if (existingSale.isArchived)
         throw new Error("Penjualan ini sudah dibatalkan/archived");
+
+      // --- 1.5 UPDATE CUSTOMER ID JIKA GUEST SALE ---
+      let finalCustomerId = existingSale.customerId;
+      if (!existingSale.customerId && payloadCustomerId) {
+        await tx
+          .update(sales)
+          .set({ customerId: payloadCustomerId })
+          .where(eq(sales.id, saleId));
+        finalCustomerId = payloadCustomerId;
+      }
 
       const returnNumber = `RET-${Date.now()}`;
 
@@ -97,7 +180,7 @@ export async function POST(request: NextRequest) {
       let totalValueExchange = 0; // Nilai barang pengganti (Harga JUAL sekarang)
 
       // --- A. PROSES BARANG MASUK (RETURN) ---
-      const returnItemsToInsert: insertCustomerReturnItemType[] = [];
+      const returnItemsToInsert: CustomerReturnItemType[] = [];
       const stockMutationsToInsert: InsertStockMutationType[] = [];
 
       for (const rItem of returnedItems) {
@@ -113,10 +196,24 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Cek kuantitas retur vs beli
-        if (Number(rItem.qty) > Number(originalSaleItem.qty)) {
+        // Hitung akumulasi retur sebelumnya untuk item ini
+        const previouslyReturnedQty = existingSale.customerReturns.reduce(
+          (sum, ret) => {
+            const itemMatch = ret.items.find(
+              (i) => i.variantId === rItem.variantId,
+            );
+            return sum + (itemMatch ? Number(itemMatch.qty) : 0);
+          },
+          0,
+        );
+
+        const remainingQty =
+          Number(originalSaleItem.qty) - previouslyReturnedQty;
+
+        // Cek kuantitas retur vs sisa yang bisa diretur
+        if (Number(rItem.qty) > remainingQty) {
           throw new Error(
-            `Jumlah retur melebihi jumlah pembelian untuk item ID ${rItem.variantId}`,
+            `Jumlah retur (${rItem.qty}) melebihi sisa pembelian (${remainingQty}) untuk item ID ${rItem.variantId}`,
           );
         }
 
@@ -148,12 +245,13 @@ export async function POST(request: NextRequest) {
         returnItemsToInsert.push({
           productId: rItem.productId,
           variantId: rItem.variantId,
-          qty: rItem.qty,
-          priceAtReturn: originalSaleItem.priceAtSale,
-          unitFactorAtReturn: variantData.conversionToBase,
+          qty: rItem.qty.toString(),
+          priceAtReturn: originalSaleItem.priceAtSale.toString(),
+          unitFactorAtReturn: variantData.conversionToBase.toString(),
           reason: rItem.reason || "Customer Return",
           returnedToStock: rItem.returnedToStock,
           userId,
+          returnId: 0,
         });
         if (rItem.returnedToStock) {
           stockMutationsToInsert.push({
@@ -169,7 +267,7 @@ export async function POST(request: NextRequest) {
       }
 
       // --- B. PROSES BARANG KELUAR (EXCHANGE) ---
-      const exchangeItemsToInsert: insertCustomerExchangeItemType[] = [];
+      const exchangeItemsToInsert: CustomerReturnExchangeItemType[] = [];
 
       if (compensationType === "exchange") {
         // Wajib ada barang pengganti jika tipe exchange
@@ -215,9 +313,10 @@ export async function POST(request: NextRequest) {
           exchangeItemsToInsert.push({
             productId: eItem.productId,
             variantId: eItem.variantId,
-            unitFactorAtExchange: variantData.conversionToBase,
-            priceAtExchange: variantData.sellPrice,
-            qty: eItem.qty,
+            unitFactorAtExchange: variantData.conversionToBase.toString(),
+            priceAtExchange: variantData.sellPrice.toString(),
+            qty: eItem.qty.toString(),
+            returnId: 0,
           });
 
           stockMutationsToInsert.push({
@@ -255,10 +354,10 @@ export async function POST(request: NextRequest) {
             .set({
               creditBalance: sql`${customers.creditBalance} - ${netRefundAmount.toFixed(2)}`,
             })
-            .where(eq(customers.id, Number(existingSale.customerId)));
+            .where(eq(customers.id, Number(finalCustomerId)));
         }
 
-        if (!existingSale.customerId) {
+        if (!finalCustomerId) {
           throw new Error(
             "Transaksi tanpa data Customer tidak bisa dijadikan saldo (Credit Note).",
           );
@@ -270,7 +369,7 @@ export async function POST(request: NextRequest) {
           .set({
             creditBalance: sql`${customers.creditBalance} + ${netRefundAmount.toFixed(2)}`,
           })
-          .where(eq(customers.id, Number(existingSale.customerId)));
+          .where(eq(customers.id, Number(finalCustomerId)));
       }
 
       if (compensationType === "refund") {
@@ -292,7 +391,7 @@ export async function POST(request: NextRequest) {
         .values({
           returnNumber,
           saleId,
-          customerId: existingSale.customerId || null, // Nullable di schema jika ada
+          customerId: finalCustomerId || null, // Nullable di schema jika ada
 
           // Penting:
           // Jika Positif: Toko keluar uang/saldo
@@ -309,7 +408,6 @@ export async function POST(request: NextRequest) {
         await tx.insert(customerReturnItems).values(
           returnItemsToInsert.map((i) => ({
             ...i,
-            qty: i.qty.toString(),
             returnId: newReturn.id,
           })),
         );
@@ -320,7 +418,6 @@ export async function POST(request: NextRequest) {
         await tx.insert(customerExchangeItems).values(
           exchangeItemsToInsert.map((i) => ({
             ...i,
-            qty: i.qty.toString(),
             returnId: newReturn.id,
           })),
         );

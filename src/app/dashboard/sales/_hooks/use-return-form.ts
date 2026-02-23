@@ -8,12 +8,7 @@ import { SaleResponse } from "@/services/saleService";
 import { ProductResponse } from "@/services/productService";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
-import { insertCustomerReturnType } from "@/lib/validations/customer-return";
 import { insertCustomerReturnPayload } from "@/services/customerReturnService";
-
-// ============================================
-// TYPES
-// ============================================
 
 export interface ReturnItemEntry {
   productId: number;
@@ -21,12 +16,15 @@ export interface ReturnItemEntry {
   productName: string;
   variantName: string;
   priceAtSale: number;
-  maxQty: number;
+  originalQty: number; // Qty asli di invoice
+  previouslyReturnedQty: number; // Qty yang sudah pernah diretur sebelumnya
+  maxQty: number; // Sisa yang bisa diretur (original - previous)
   unitFactorAtReturn: number;
   qty: number;
   returnedToStock: boolean;
   reason: string;
   selected: boolean;
+  isFullyReturned: boolean;
 }
 
 export interface ExchangeItemEntry {
@@ -51,6 +49,7 @@ export interface ReturnResult {
   returnNumber: string;
   compensationType: CompensationType;
   netRefundAmount: number;
+  customerName: string;
   message: string;
   saleData: SaleResponse;
   returnItems: ReturnItemEntry[];
@@ -78,6 +77,11 @@ export function useReturnForm() {
 
   // Return items (derived from sale items)
   const [returnItems, setReturnItems] = useState<ReturnItemEntry[]>([]);
+
+  // Customer selection (for guest sales)
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(
+    null,
+  );
 
   // Compensation
   const [compensationType, setCompensationType] =
@@ -127,22 +131,48 @@ export function useReturnForm() {
         }
 
         setSaleData(fullSale);
+        setSelectedCustomerId(fullSale.customerId || null);
 
         // Build return items from sale items
         const items: ReturnItemEntry[] =
-          fullSale.items?.map((item) => ({
-            productId: item.productId,
-            variantId: item.variantId,
-            productName: item.product?.name || "Unknown",
-            variantName: item.productVariant?.name || "Default",
-            priceAtSale: Number(item.priceAtSale),
-            unitFactorAtReturn: Number(item.unitFactorAtSale),
-            maxQty: Number(item.qty),
-            qty: 0,
-            returnedToStock: true,
-            reason: "",
-            selected: false,
-          })) || [];
+          fullSale.items?.map((item) => {
+            // Hitung total yang sudah diretur sebelumnya untuk item ini
+            // @ts-expect-error - customerReturns is included in fullSale via relations
+            const previousItems = (fullSale.customerReturns || [])
+              // @ts-expect-error - Retyping nested relation items
+              .flatMap((ret) => ret.items || [])
+              // @ts-expect-error - Filter variantId from nested items
+              .filter((ri) => ri.variantId === item.variantId);
+
+            const previouslyReturnedQty = previousItems.reduce(
+              // @ts-expect-error - Summing qty from nested objects
+              (sum, ri) => sum + Number(ri.qty),
+              0,
+            );
+
+            const originalQty = Number(item.qty);
+            const remainingQty = Math.max(
+              0,
+              originalQty - previouslyReturnedQty,
+            );
+
+            return {
+              productId: item.productId,
+              variantId: item.variantId,
+              productName: item.product?.name || "Unknown",
+              variantName: item.productVariant?.name || "Default",
+              priceAtSale: Number(item.priceAtSale),
+              unitFactorAtReturn: Number(item.unitFactorAtSale),
+              originalQty,
+              previouslyReturnedQty,
+              maxQty: remainingQty,
+              qty: 0,
+              returnedToStock: true,
+              reason: "",
+              selected: false,
+              isFullyReturned: remainingQty <= 0,
+            };
+          }) || [];
 
         setReturnItems(items);
         setStep("items");
@@ -288,8 +318,17 @@ export function useReturnForm() {
       if (isExchangeOverLimit) return false;
     }
 
-    // Credit note: must have customer on the sale
-    if (compensationType === "credit_note" && !saleData?.customerId) {
+    // Credit note: must have customer on the sale or selected
+    if (
+      compensationType === "credit_note" &&
+      !saleData?.customerId &&
+      !selectedCustomerId
+    ) {
+      return false;
+    }
+
+    // Guest sale with selected compensation but no customer selected
+    if (!saleData?.customerId && !selectedCustomerId) {
       return false;
     }
 
@@ -300,6 +339,7 @@ export function useReturnForm() {
     exchangeItems,
     isExchangeOverLimit,
     saleData,
+    selectedCustomerId,
   ]);
 
   // ============================================
@@ -316,7 +356,7 @@ export function useReturnForm() {
         saleId: saleData.id!,
         userId: user?.id || 0,
         compensationType,
-        customerId: saleData.customerId || null,
+        customerId: saleData.customerId || selectedCustomerId || null,
         items: selectedReturnItems.map((item) => ({
           productId: item.productId,
           variantId: item.variantId,
@@ -348,6 +388,7 @@ export function useReturnForm() {
           compensationType,
           netRefundAmount: resultData.netChange,
           message: resultData.message,
+          customerName: saleData.customer?.name || "Guest",
           saleData,
           returnItems: selectedReturnItems,
           exchangeItems,
@@ -372,6 +413,7 @@ export function useReturnForm() {
     createReturnMutation,
     totalValueReturned,
     totalValueExchange,
+    selectedCustomerId,
   ]);
 
   // ============================================
@@ -384,6 +426,7 @@ export function useReturnForm() {
     setSaleData(null);
     setLookupError(null);
     setReturnItems([]);
+    setSelectedCustomerId(null);
     setCompensationType("refund");
     setExchangeItems([]);
     setReturnResult(null);
@@ -394,6 +437,7 @@ export function useReturnForm() {
     setSaleData(null);
     setReturnItems([]);
     setExchangeItems([]);
+    setSelectedCustomerId(null);
     setCompensationType("refund");
   }, []);
 
@@ -435,6 +479,10 @@ export function useReturnForm() {
     selectedReturnItems,
     toggleItemSelected,
     updateReturnItem,
+
+    // Customer
+    selectedCustomerId,
+    setSelectedCustomerId,
 
     // Compensation
     compensationType,

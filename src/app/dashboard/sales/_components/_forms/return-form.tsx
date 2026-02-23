@@ -19,11 +19,12 @@ import {
   User,
   Calendar,
 } from "lucide-react";
-import { useReturnForm, CompensationType } from "../_hooks/use-return-form";
-import { ReturnItemSelector } from "./return-item-selector";
-import { ExchangeItemPicker } from "./exchange-item-picker";
-import { ReturnSuccessModal } from "./_ui/return-success-modal";
+import { useReturnForm, CompensationType } from "../../_hooks/use-return-form";
+import { ReturnItemSelector } from "../return-item-selector";
+import { ExchangeItemPicker } from "../exchange-item-picker";
+import { ReturnSuccessModal } from "../_ui/return-success-modal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { CustomerSelect } from "@/components/ui/customer-select";
 import BarcodeScannerCamera from "@/components/barcode-scanner-camera";
 import { useState } from "react";
 
@@ -57,6 +58,8 @@ export function ReturnForm() {
     returnResult,
     resetForm,
     goBackToInvoice,
+    selectedCustomerId,
+    setSelectedCustomerId,
   } = useReturnForm();
 
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -262,6 +265,26 @@ export function ReturnForm() {
             </Card>
           )}
 
+          {/* Customer Selection for Guest Sale */}
+          {step === "items" && saleData && !saleData.customerId && (
+            <Card className="p-4 gap-0 animate-in fade-in duration-300">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">
+                Pilih Customer (Guest Sale)
+              </Label>
+              <div className="space-y-3">
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Penjualan ini dilakukan tanpa customer (Guest). Silahkan pilih
+                  customer untuk melanjutkan retur.
+                </p>
+                <CustomerSelect
+                  value={selectedCustomerId || undefined}
+                  onValueChange={setSelectedCustomerId}
+                  placeholder="Pilih customer untuk retur..."
+                />
+              </div>
+            </Card>
+          )}
+
           {/* Compensation Type (shown on step 2) */}
           {step === "items" && (
             <Card className="p-4 gap-0 animate-in fade-in duration-300">
@@ -270,8 +293,9 @@ export function ReturnForm() {
               </Label>
               <div className="space-y-2">
                 {compensationOptions.map((opt) => {
-                  const isDisabled =
-                    opt.requiresCustomer && !saleData?.customerId;
+                  const hasCustomer =
+                    saleData?.customerId || selectedCustomerId;
+                  const isDisabled = opt.requiresCustomer && !hasCustomer;
                   return (
                     <button
                       key={opt.value}
@@ -401,7 +425,8 @@ export function ReturnForm() {
 
                 {/* Credit note warning for guest */}
                 {compensationType === "credit_note" &&
-                  !saleData?.customerId && (
+                  !saleData?.customerId &&
+                  !selectedCustomerId && (
                     <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30 text-yellow-700 text-xs font-medium flex items-start gap-2">
                       <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                       <span>
@@ -410,6 +435,17 @@ export function ReturnForm() {
                       </span>
                     </div>
                   )}
+
+                {/* Guest sale but no customer selected warning */}
+                {!saleData?.customerId && !selectedCustomerId && (
+                  <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/30 text-destructive text-[10px] font-medium flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>
+                      Silahkan pilih customer terlebih dahulu untuk memproses
+                      retur transaksi guest.
+                    </span>
+                  </div>
+                )}
 
                 <Button
                   type="button"
