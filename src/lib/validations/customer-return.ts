@@ -35,19 +35,20 @@ export const customerExchangeItemInputSchema = createInsertSchema(
   .omit({
     id: true,
     returnId: true,
-    priceAtExchange: true,
     unitFactorAtExchange: true,
   })
   .extend({
     qty: z.coerce.number().positive("Qty must be positive"),
     productId: z.number().int(),
     variantId: z.number().int(),
+    priceAtExchange: z.number().nullable(),
   });
 
 export const insertCustomerReturnSchema = z.object({
   saleId: z.number().int(),
   customerId: z.number().int().nullable().optional(),
   compensationType: z.enum(["refund", "credit_note", "exchange"]),
+  surplusStrategy: z.enum(["cash", "credit_balance"]).optional(),
   userId: z.number().int(),
   items: z
     .array(customerReturnItemInputSchema)
@@ -55,7 +56,8 @@ export const insertCustomerReturnSchema = z.object({
   exchangeItems: z.array(customerExchangeItemInputSchema).optional(),
   // These are optional because server can generate/calculate them
   returnNumber: z.string().optional(),
-  totalRefund: z.coerce.number().min(0).optional(),
+  totalRefund: z.coerce.number().optional(),
+  totalValueReturned: z.coerce.number().min(0).optional(),
 });
 
 export type insertCustomerReturnType = z.infer<

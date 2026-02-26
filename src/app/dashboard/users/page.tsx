@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { UserListSection } from "./_components/user-list-section";
 import { UserFormModal } from "./_components/user-form-modal";
 import { UserResponse } from "@/services/userService";
+import { IconShieldLock } from "@tabler/icons-react";
 
 function UsersContent() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -23,14 +24,12 @@ function UsersContent() {
 
   return (
     <>
-      <header className="sticky top-0 mx-auto container z-10 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
-        <div className="overflow-hidden">
-          <h1 className="text-3xl text-primary font-geist font-semibold truncate">
+      <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
+        <div className="overflow-hidden flex gap-2">
+          <IconShieldLock className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl text-primary font-geist font-semibold truncate">
             User & Akses
           </h1>
-          <p className="text-muted-foreground font-sans text-base truncate">
-            Kelola pengguna aplikasi dan hak akses mereka
-          </p>
         </div>
         <div>
           <Button onClick={handleCreateNew}>

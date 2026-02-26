@@ -5,17 +5,21 @@ import { useAuth } from "@/hooks/use-auth";
 import { useCreateCustomerReturn } from "@/hooks/customer-returns/use-customer-return";
 import { getSaleByInvoice, getSaleById } from "@/services/saleService";
 import { SaleResponse } from "@/services/saleService";
-import { ProductResponse } from "@/services/productService";
+import { ApiResponse, ProductResponse } from "@/services/productService";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/format";
 import { insertCustomerReturnPayload } from "@/services/customerReturnService";
+import { usePayDebt } from "@/hooks/debt/use-debts";
+import { useQueryClient } from "@tanstack/react-query";
+import { saleKeys } from "@/hooks/sales/sale-query-options";
 
 export interface ReturnItemEntry {
   productId: number;
   variantId: number;
   productName: string;
   variantName: string;
-  priceAtSale: number;
+  priceAtSale?: number;
+  priceAtReturn?: number;
   originalQty: number; // Qty asli di invoice
   previouslyReturnedQty: number; // Qty yang sudah pernah diretur sebelumnya
   maxQty: number; // Sisa yang bisa diretur (original - previous)
@@ -65,6 +69,8 @@ export interface ReturnResult {
 export function useReturnForm() {
   const { user } = useAuth();
   const createReturnMutation = useCreateCustomerReturn();
+  const payDebtMutation = usePayDebt();
+  const queryClient = useQueryClient();
 
   // Step management
   const [step, setStep] = useState<ReturnStep>("invoice");
@@ -89,6 +95,9 @@ export function useReturnForm() {
 
   // Exchange items
   const [exchangeItems, setExchangeItems] = useState<ExchangeItemEntry[]>([]);
+  const [surplusStrategy, setSurplusStrategy] = useState<
+    "cash" | "credit_balance"
+  >("cash");
 
   // Result (after successful submit)
   const [returnResult, setReturnResult] = useState<ReturnResult | null>(null);
@@ -274,7 +283,7 @@ export function useReturnForm() {
   const totalValueReturned = useMemo(
     () =>
       selectedReturnItems.reduce(
-        (acc, item) => acc + item.qty * item.priceAtSale,
+        (acc, item) => acc + item.qty * (item.priceAtSale || 0),
         0,
       ),
     [selectedReturnItems],
@@ -299,11 +308,26 @@ export function useReturnForm() {
     [compensationType, totalValueExchange, totalValueReturned],
   );
 
+  const debtInfo = useMemo(() => {
+    if (!saleData?.debt) return null;
+    const debt = saleData.debt;
+    if (debt.status === "paid" || debt.status === "cancelled" || !debt.isActive)
+      return null;
+
+    return {
+      id: debt.id,
+      remainingAmount: Number(debt.remainingAmount),
+    };
+  }, [saleData]);
+
+  const hasDebt = !!debtInfo;
+
   // ============================================
   // VALIDATION
   // ============================================
 
   const canSubmit = useMemo(() => {
+    if (hasDebt) return false;
     if (selectedReturnItems.length === 0) return false;
 
     // All selected items must have qty > 0 and qty <= maxQty
@@ -334,12 +358,13 @@ export function useReturnForm() {
 
     return true;
   }, [
+    hasDebt,
     selectedReturnItems,
     compensationType,
-    exchangeItems,
-    isExchangeOverLimit,
-    saleData,
+    saleData?.customerId,
     selectedCustomerId,
+    exchangeItems.length,
+    isExchangeOverLimit,
   ]);
 
   // ============================================
@@ -353,10 +378,13 @@ export function useReturnForm() {
 
     try {
       const payload: insertCustomerReturnPayload = {
-        saleId: saleData.id!,
+        saleId: saleData.id,
+        customerId: selectedCustomerId || saleData.customerId,
         userId: user?.id || 0,
         compensationType,
-        customerId: saleData.customerId || selectedCustomerId || null,
+        surplusStrategy,
+        totalValueReturned,
+        totalRefund: netRefundAmount,
         items: selectedReturnItems.map((item) => ({
           productId: item.productId,
           variantId: item.variantId,
@@ -370,6 +398,7 @@ export function useReturnForm() {
                 productId: item.productId,
                 variantId: item.variantId,
                 qty: item.qty,
+                priceAtExchange: item.sellPrice,
               }))
             : undefined,
       };
@@ -380,6 +409,7 @@ export function useReturnForm() {
         const resultData = response.data as unknown as {
           returnHeader: { returnNumber: string };
           netChange: number;
+          totalValueReturned: number;
           message: string;
         };
 
@@ -414,7 +444,42 @@ export function useReturnForm() {
     totalValueReturned,
     totalValueExchange,
     selectedCustomerId,
+    surplusStrategy,
+    netRefundAmount,
   ]);
+
+  const handleMarkAsPaid = useCallback(async () => {
+    if (!debtInfo) return;
+
+    const toastId = toast.loading("Menandai sebagai lunas...");
+    try {
+      await payDebtMutation.mutateAsync({
+        debtId: debtInfo.id,
+        data: {
+          amount: debtInfo.remainingAmount,
+          note: `Pelunasan otomatis untuk retur invoice ${saleData?.invoiceNumber}`,
+          paymentDate: new Date(),
+        },
+      });
+
+      // Invalidate the specific sale to refresh debt info
+      if (saleData?.id) {
+        await queryClient.invalidateQueries({
+          queryKey: saleKeys.detail(saleData.id),
+        });
+        // Also refetch for current invoice if needed, or rely on invalidation
+        lookupInvoice(saleData.invoiceNumber);
+      }
+
+      toast.success("Transaksi berhasil ditandai sebagai lunas", {
+        id: toastId,
+      });
+    } catch (error) {
+      const errMsg =
+        (error as ApiResponse)?.error || "Gagal menandai sebagai lunas";
+      toast.error(errMsg, { id: toastId });
+    }
+  }, [debtInfo, payDebtMutation, saleData, queryClient, lookupInvoice]);
 
   // ============================================
   // RESET
@@ -429,6 +494,7 @@ export function useReturnForm() {
     setSelectedCustomerId(null);
     setCompensationType("refund");
     setExchangeItems([]);
+    setSurplusStrategy("cash");
     setReturnResult(null);
   }, []);
 
@@ -439,6 +505,7 @@ export function useReturnForm() {
     setExchangeItems([]);
     setSelectedCustomerId(null);
     setCompensationType("refund");
+    setSurplusStrategy("cash");
   }, []);
 
   // ============================================
@@ -448,7 +515,10 @@ export function useReturnForm() {
   const summaryText = useMemo(() => {
     if (compensationType === "exchange") {
       if (netRefundAmount > 0) {
-        return `Sisa uang ${formatCurrency(netRefundAmount)} dikembalikan ke pelanggan`;
+        if (surplusStrategy === "credit_balance") {
+          return `Sisa uang ${formatCurrency(netRefundAmount)} ditambahkan ke saldo pelanggan`;
+        }
+        return `Sisa uang ${formatCurrency(netRefundAmount)} dikembalikan tunai ke pelanggan`;
       } else if (netRefundAmount < 0) {
         return `Pelanggan perlu membayar kekurangan ${formatCurrency(Math.abs(netRefundAmount))}`;
       }
@@ -458,7 +528,7 @@ export function useReturnForm() {
       return `Saldo ${formatCurrency(totalValueReturned)} ditambahkan ke akun pelanggan`;
     }
     return `Refund tunai ${formatCurrency(totalValueReturned)} ke pelanggan`;
-  }, [compensationType, netRefundAmount, totalValueReturned]);
+  }, [compensationType, netRefundAmount, totalValueReturned, surplusStrategy]);
 
   return {
     // Step
@@ -509,6 +579,16 @@ export function useReturnForm() {
     // Result
     returnResult,
     setReturnResult,
+
+    // Surplus
+    surplusStrategy,
+    setSurplusStrategy,
+
+    // Debt
+    hasDebt,
+    debtRemainingAmount: debtInfo?.remainingAmount || 0,
+    handleMarkAsPaid,
+    isPayingDebt: payDebtMutation.isPending,
 
     // Reset
     resetForm,

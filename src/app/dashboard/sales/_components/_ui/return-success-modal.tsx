@@ -54,7 +54,7 @@ export function ReturnSuccessModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 bg-muted/50 rounded-xl text-center">
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Nilai Retur
+                Nilai Kompensasi
               </p>
               <p className="text-lg font-black text-primary">
                 {formatCurrency(result.totalValueReturned)}

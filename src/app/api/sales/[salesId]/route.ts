@@ -69,6 +69,7 @@ export async function GET(
             returnNumber: true,
             customerId: true,
             saleId: true,
+            totalValueReturned: true,
             totalRefund: true,
             userId: true,
           },
@@ -92,6 +93,14 @@ export async function GET(
             creditBalance: true,
             phone: true,
             address: true,
+          },
+        },
+        debt: {
+          columns: {
+            id: true,
+            remainingAmount: true,
+            isActive: true,
+            status: true,
           },
         },
       },

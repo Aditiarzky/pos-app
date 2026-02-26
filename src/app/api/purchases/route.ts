@@ -41,12 +41,22 @@ export async function GET(request: NextRequest) {
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfToday = new Date(now.setHours(0, 0, 0, 0));
 
+    // Previous Month Range
+    const firstDayOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    );
+    const lastDayOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
     const [
       purchasesData,
       totalRes,
       monthlyTotalRes,
+      lastMonthlyTotalRes,
       todayTransactionsRes,
       activeSuppliersRes,
+      todayItemsQtyRes,
     ] = await Promise.all([
       db.query.purchaseOrders.findMany({
         where: and(searchFilter, not(purchaseOrders.isArchived)),
@@ -101,6 +111,18 @@ export async function GET(request: NextRequest) {
           ),
         ),
 
+      // Total Purchases Last Month
+      db
+        .select({ total: sql<string>`sum(${purchaseOrders.total})` })
+        .from(purchaseOrders)
+        .where(
+          and(
+            not(purchaseOrders.isArchived),
+            sql`${purchaseOrders.createdAt} >= ${firstDayOfLastMonth}`,
+            sql`${purchaseOrders.createdAt} <= ${lastDayOfLastMonth}`,
+          ),
+        ),
+
       // Transactions Today
       db
         .select({ count: sql<number>`count(*)` })
@@ -119,10 +141,26 @@ export async function GET(request: NextRequest) {
         })
         .from(purchaseOrders)
         .where(not(purchaseOrders.isArchived)),
+
+      // Total Items Purchased Today
+      db
+        .select({ totalQty: sql<string>`sum(${purchaseItems.qty})` })
+        .from(purchaseItems)
+        .innerJoin(
+          purchaseOrders,
+          eq(purchaseItems.purchaseId, purchaseOrders.id),
+        )
+        .where(
+          and(
+            not(purchaseOrders.isArchived),
+            sql`${purchaseOrders.createdAt} >= ${startOfToday}`,
+          ),
+        ),
     ]);
 
     const totalCount = Number(totalRes[0]?.count || 0);
     const monthlyTotal = Number(monthlyTotalRes[0]?.total || 0);
+    const lastMonthlyTotal = Number(lastMonthlyTotalRes[0]?.total || 0);
     const transactionsToday = Number(todayTransactionsRes[0]?.count || 0);
     const activeSuppliers = Number(activeSuppliersRes[0]?.count || 0);
 
@@ -132,8 +170,10 @@ export async function GET(request: NextRequest) {
       analytics: {
         totalPurchases: totalCount,
         totalPurchasesThisMonth: monthlyTotal,
+        totalPurchasesLastMonth: lastMonthlyTotal,
         newTransactions: transactionsToday, // Matching the frontend key name from plan
         activeSuppliers: activeSuppliers,
+        todayItemsQty: Number(todayItemsQtyRes[0]?.totalQty || 0),
       },
       meta: formatMeta(totalCount, params.page, params.limit),
     });

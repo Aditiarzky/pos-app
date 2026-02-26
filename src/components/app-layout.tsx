@@ -13,7 +13,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
 
   useEffect(() => {
     // Check if mobile on initial load
@@ -53,6 +53,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       <div className="flex-1 flex flex-col md:ml-0">
         <TopNavbar
+          user={user}
           onLogout={logout}
           onToggleSidebar={toggleSidebar}
           sidebarOpen={sidebarOpen}

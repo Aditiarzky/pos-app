@@ -158,9 +158,14 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
               </span>
               <div style={{ ...flexBetween, fontSize: "10px" }}>
                 <span>
-                  {item.qty} x {formatCurrency(item.priceAtSale)}
+                  {item.qty} x{" "}
+                  {formatCurrency(item.priceAtSale || item.priceAtReturn || 0)}
                 </span>
-                <span>{formatCurrency(item.qty * item.priceAtSale)}</span>
+                <span>
+                  {formatCurrency(
+                    item.qty * (item.priceAtSale || item.priceAtReturn || 0),
+                  )}
+                </span>
               </div>
               <span
                 style={{

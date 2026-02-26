@@ -37,6 +37,11 @@ export const compensationType = p.pgEnum("compensation_type", [
   "refund",
 ]);
 
+export const surplusStrategyType = p.pgEnum("surplus_strategy_type", [
+  "cash",
+  "credit_balance",
+]);
+
 export const userRole = p.pgEnum("user_role", ["admin toko", "admin sistem"]);
 
 // Table
@@ -492,9 +497,15 @@ export const customerReturns = p.pgTable("customer_returns", {
     .integer("customer_id")
     .references(() => customers.id, { onDelete: "cascade" }),
 
+  totalValueReturned: p.decimal("total_value_returned", {
+    precision: 12,
+    scale: 2,
+  }),
   totalRefund: p.decimal("total_refund", { precision: 12, scale: 2 }).notNull(),
 
   compensationType: compensationType("compensation_type").notNull(),
+
+  surplusStrategy: surplusStrategyType("surplus_strategy_type"),
 
   isArchived: p.boolean("is_archived").default(false),
 
@@ -595,3 +606,27 @@ export const customerExchangeItems = p.pgTable("customer_exchange_items", {
     .defaultNow()
     .$onUpdateFn(() => new Date()),
 });
+
+export const customerBalanceMutations = p.pgTable(
+  "customer_balance_mutations",
+  {
+    id: p.serial("id").primaryKey(),
+    customerId: p.integer("customer_id").notNull(),
+    amount: p.decimal("amount", { precision: 15, scale: 2 }).notNull(),
+    balanceBefore: p
+      .decimal("balance_before", {
+        precision: 15,
+        scale: 2,
+      })
+      .notNull(),
+    balanceAfter: p
+      .decimal("balance_after", { precision: 15, scale: 2 })
+      .notNull(),
+    type: p.text("type").notNull(),
+    referenceId: p.integer("reference_id"),
+    referenceType: p.text("reference_type"),
+    note: p.text("note"),
+    createdAt: p.timestamp("created_at").defaultNow(),
+    userId: p.integer("user_id"),
+  },
+);

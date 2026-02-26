@@ -9,6 +9,7 @@ import { CustomerReturnType } from "@/drizzle/type";
 
 // Define Response Types based on schema relations
 export type CustomerReturnResponse = CustomerReturnType & {
+  totalValueReturned: string | number;
   customer?: { id: number; name: string };
   user?: { id: number; name: string };
   items?: Array<

@@ -63,7 +63,7 @@ export function ReturnItemSelector({
               <p className="text-xs text-muted-foreground mt-0.5">
                 Varian: {item.variantName} ·{" "}
                 <span className="font-medium">
-                  {formatCurrency(item.priceAtSale)}
+                  {formatCurrency(item.priceAtSale || 0)}
                 </span>{" "}
                 × {item.maxQty} sisa
               </p>
@@ -82,7 +82,7 @@ export function ReturnItemSelector({
 
             <div className="text-right shrink-0">
               <span className="text-sm font-bold tabular-nums">
-                {formatCurrency(item.priceAtSale * item.maxQty)}
+                {formatCurrency((item.priceAtSale || 0) * item.maxQty)}
               </span>
             </div>
           </div>
@@ -118,7 +118,7 @@ export function ReturnItemSelector({
                   </div>
                   {item.qty > 0 && (
                     <p className="text-xs text-destructive font-medium mt-1">
-                      Nilai: {formatCurrency(item.qty * item.priceAtSale)}
+                      Nilai: {formatCurrency(item.qty * (item.priceAtSale || 0))}
                     </p>
                   )}
                 </div>

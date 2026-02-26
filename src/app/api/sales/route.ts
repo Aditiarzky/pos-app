@@ -8,6 +8,7 @@ import {
   productVariants,
   customers,
   debts,
+  customerReturns,
 } from "@/drizzle/schema";
 import { and, eq, not, sql } from "drizzle-orm";
 import { validateInsertSaleData } from "@/lib/validations/sale";
@@ -59,103 +60,242 @@ export async function GET(request: NextRequest) {
     }
 
     const now = new Date();
-    const startOfToday = new Date(now.setHours(0, 0, 0, 0));
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
 
-    const [salesData, totalRes, todayAnalyticsRes, lifetimeRes] =
-      await Promise.all([
-        db.query.sales.findMany({
-          where: filter,
-          with: {
-            user: {
-              columns: {
-                id: true,
-                name: true,
-              },
+    const startOfYesterday = new Date(startOfToday);
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+
+    const endOfYesterday = new Date(startOfYesterday);
+    endOfYesterday.setHours(23, 59, 59, 999);
+
+    const [
+      salesData,
+      totalRes,
+      todayAnalytics,
+      yesterdayAnalytics,
+      lifetimeRes,
+    ] = await Promise.all([
+      db.query.sales.findMany({
+        where: filter,
+        with: {
+          user: {
+            columns: {
+              id: true,
+              name: true,
             },
-            debt: {
-              columns: {
-                id: true,
-                originalAmount: true,
-                remainingAmount: true,
-                status: true,
-                createdAt: true,
-                updatedAt: true,
-              },
+          },
+          debt: {
+            columns: {
+              id: true,
+              originalAmount: true,
+              remainingAmount: true,
+              status: true,
+              createdAt: true,
+              updatedAt: true,
             },
-            customer: {
-              columns: {
-                id: true,
-                name: true,
-                creditBalance: true,
-              },
+          },
+          customer: {
+            columns: {
+              id: true,
+              name: true,
+              creditBalance: true,
             },
-            items: {
-              columns: {
-                id: true,
-                qty: true,
-                priceAtSale: true,
-                costAtSale: true,
-                subtotal: true,
-              },
-              with: {
-                product: {
-                  columns: {
-                    id: true,
-                    name: true,
-                  },
+          },
+          items: {
+            columns: {
+              id: true,
+              qty: true,
+              priceAtSale: true,
+              costAtSale: true,
+              subtotal: true,
+            },
+            with: {
+              product: {
+                columns: {
+                  id: true,
+                  name: true,
                 },
-                productVariant: {
-                  columns: {
-                    id: true,
-                    name: true,
-                  },
+              },
+              productVariant: {
+                columns: {
+                  id: true,
+                  name: true,
                 },
               },
             },
           },
-          orderBy: searchOrder,
-          limit: params.limit,
-          offset: params.offset,
-        }),
+        },
+        orderBy: searchOrder,
+        limit: params.limit,
+        offset: params.offset,
+      }),
 
-        db
-          .select({ count: sql<number>`count(*)` })
-          .from(sales)
-          .where(filter),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(sales)
+        .where(filter),
 
+      // Analytics Queries
+      // -----------------
+
+      // TODAY
+      Promise.all([
+        // Sales & Activity Today
         db
           .select({
-            totalSales: sql<string>`sum(${sales.totalPrice})`,
-            totalPaid: sql<string>`sum(${sales.totalPaid})`,
+            totalSales: sql<string>`coalesce(sum(${sales.totalPrice}), 0)`,
             count: sql<number>`count(*)`,
           })
           .from(sales)
           .where(
             and(
               not(sales.isArchived),
+              not(eq(sales.status, "cancelled")),
               sql`${sales.createdAt} >= ${startOfToday}`,
             ),
           ),
-
+        // Net Revenue Today
+        db
+          .select({
+            netRevenue: sql<string>`coalesce(sum(${saleItems.subtotal} - (${saleItems.costAtSale} * ${saleItems.qty} * ${saleItems.unitFactorAtSale})), 0)`,
+          })
+          .from(saleItems)
+          .innerJoin(sales, eq(sales.id, saleItems.saleId))
+          .where(
+            and(
+              not(sales.isArchived),
+              not(eq(sales.status, "cancelled")),
+              sql`${sales.createdAt} >= ${startOfToday}`,
+            ),
+          ),
+        // Piutang Today (Remaining from debts created today)
+        db
+          .select({
+            totalDebt: sql<string>`coalesce(sum(${debts.remainingAmount}), 0)`,
+          })
+          .from(debts)
+          .where(
+            and(
+              eq(debts.isActive, true),
+              sql`${debts.createdAt} >= ${startOfToday}`,
+            ),
+          ),
+        // Returns Count Today (for Activity)
         db
           .select({ count: sql<number>`count(*)` })
+          .from(customerReturns)
+          .where(
+            and(
+              not(customerReturns.isArchived),
+              sql`${customerReturns.createdAt} >= ${startOfToday}`,
+            ),
+          ),
+      ]),
+
+      // YESTERDAY
+      Promise.all([
+        // Sales & Activity Yesterday
+        db
+          .select({
+            totalSales: sql<string>`coalesce(sum(${sales.totalPrice}), 0)`,
+            count: sql<number>`count(*)`,
+          })
           .from(sales)
-          .where(not(sales.isArchived)),
-      ]);
+          .where(
+            and(
+              not(sales.isArchived),
+              not(eq(sales.status, "cancelled")),
+              sql`${sales.createdAt} >= ${startOfYesterday}`,
+              sql`${sales.createdAt} <= ${endOfYesterday}`,
+            ),
+          ),
+        // Net Revenue Yesterday
+        db
+          .select({
+            netRevenue: sql<string>`coalesce(sum(${saleItems.subtotal} - (${saleItems.costAtSale} * ${saleItems.qty} * ${saleItems.unitFactorAtSale})), 0)`,
+          })
+          .from(saleItems)
+          .innerJoin(sales, eq(sales.id, saleItems.saleId))
+          .where(
+            and(
+              not(sales.isArchived),
+              not(eq(sales.status, "cancelled")),
+              sql`${sales.createdAt} >= ${startOfYesterday}`,
+              sql`${sales.createdAt} <= ${endOfYesterday}`,
+            ),
+          ),
+        // Piutang Yesterday (Remaining from debts created yesterday)
+        db
+          .select({
+            totalDebt: sql<string>`coalesce(sum(${debts.remainingAmount}), 0)`,
+          })
+          .from(debts)
+          .where(
+            and(
+              eq(debts.isActive, true),
+              sql`${debts.createdAt} >= ${startOfYesterday}`,
+              sql`${debts.createdAt} <= ${endOfYesterday}`,
+            ),
+          ),
+        // Returns Count Yesterday (for Activity)
+        db
+          .select({ count: sql<number>`count(*)` })
+          .from(customerReturns)
+          .where(
+            and(
+              not(customerReturns.isArchived),
+              sql`${customerReturns.createdAt} >= ${startOfYesterday}`,
+              sql`${customerReturns.createdAt} <= ${endOfYesterday}`,
+            ),
+          ),
+      ]),
+
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(sales)
+        .where(not(sales.isArchived)),
+    ]);
 
     const totalCount = Number(totalRes[0]?.count || 0);
-    const todaySales = Number(todayAnalyticsRes[0]?.totalSales || 0);
-    const todayPaid = Number(todayAnalyticsRes[0]?.totalPaid || 0);
-    const todayCount = Number(todayAnalyticsRes[0]?.count || 0);
     const lifetimeCount = Number(lifetimeRes[0]?.count || 0);
+
+    // Extract Today
+    const [todaySalesData, todayNetRes, todayDebtRes, todayReturnRes] =
+      todayAnalytics;
+    const todaySales = Number(todaySalesData[0]?.totalSales || 0);
+    const todayNet = Number(todayNetRes[0]?.netRevenue || 0);
+    const todayDebt = Number(todayDebtRes[0]?.totalDebt || 0);
+    const todayActivity =
+      Number(todaySalesData[0]?.count || 0) +
+      Number(todayReturnRes[0]?.count || 0);
+
+    // Extract Yesterday
+    const [
+      yesterdaySalesData,
+      yesterdayNetRes,
+      yesterdayDebtRes,
+      yesterdayReturnRes,
+    ] = yesterdayAnalytics;
+    const yesterdaySales = Number(yesterdaySalesData[0]?.totalSales || 0);
+    const yesterdayNet = Number(yesterdayNetRes[0]?.netRevenue || 0);
+    const yesterdayDebt = Number(yesterdayDebtRes[0]?.totalDebt || 0);
+    const yesterdayActivity =
+      Number(yesterdaySalesData[0]?.count || 0) +
+      Number(yesterdayReturnRes[0]?.count || 0);
 
     return NextResponse.json({
       success: true,
       data: salesData,
       analytics: {
         totalSalesToday: todaySales,
-        transactionsTodayCount: todayCount,
-        totalReceivedToday: todayPaid,
+        totalSalesYesterday: yesterdaySales,
+        netRevenueToday: todayNet,
+        netRevenueYesterday: yesterdayNet,
+        piutangToday: todayDebt,
+        piutangYesterday: yesterdayDebt,
+        transactionsTodayCount: todayActivity,
+        transactionsYesterdayCount: yesterdayActivity,
         totalTransactionsLifetime: lifetimeCount,
       },
       meta: formatMeta(totalCount, params.page, params.limit),

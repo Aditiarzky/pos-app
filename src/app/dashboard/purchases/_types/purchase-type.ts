@@ -127,7 +127,7 @@ export interface PurchasePageState {
 
 export interface PurchaseAnalytics {
   totalPurchasesThisMonth: number;
+  totalPurchasesLastMonth: number;
   newTransactions: number;
   activeSuppliers: number;
-  percentageChange: number;
 }

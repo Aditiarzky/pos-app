@@ -11,6 +11,7 @@ import {
   customerReturnItems,
   customerReturns,
   customers,
+  customerBalanceMutations,
   products,
   productVariants,
   sales,
@@ -142,6 +143,7 @@ export async function POST(request: NextRequest) {
       items: returnedItems, // Array barang yang dikembalikan
       exchangeItems, // Array barang pengganti (opsional)
       compensationType, // 'refund' | 'credit_note' | 'exchange'
+      surplusStrategy, // 'cash' | 'credit_balance'
     } = validation;
 
     const result = await db.transaction(async (tx) => {
@@ -176,8 +178,8 @@ export async function POST(request: NextRequest) {
       const returnNumber = `RET-${Date.now()}`;
 
       // Variable penampung nilai uang
-      let totalValueReturned = 0; // Nilai barang yang dikembalikan (Harga BELI dulu)
-      let totalValueExchange = 0; // Nilai barang pengganti (Harga JUAL sekarang)
+      let totalValueReturned = 0; // Nilai bruto semua barang yang dikembalikan (qty * harga saat beli)
+      let totalValueExchange = 0; // Nilai bruto semua barang pengganti (qty * harga sekarang)
 
       // --- A. PROSES BARANG MASUK (RETURN) ---
       const returnItemsToInsert: CustomerReturnItemType[] = [];
@@ -223,8 +225,7 @@ export async function POST(request: NextRequest) {
         });
         if (!variantData) throw new Error("Varian produk tidak valid");
 
-        // Hitung Nilai Uang: Menggunakan 'priceAtSale' (Harga dulu)
-        // Agar customer mendapat nilai sesuai yang mereka bayar saat itu.
+        // Hitung Nilai Uang: Menggunakan 'priceAtSale' (Harga dulu, sesuai yang customer bayar)
         const value = Number(rItem.qty) * Number(originalSaleItem.priceAtSale);
         totalValueReturned += value;
 
@@ -257,7 +258,7 @@ export async function POST(request: NextRequest) {
           stockMutationsToInsert.push({
             productId: rItem.productId,
             variantId: rItem.variantId,
-            type: rItem.returnedToStock ? "return_restock" : "waste",
+            type: "return_restock",
             qtyBaseUnit: qtyInBase.toFixed(4),
             unitFactorAtMutation: variantData.conversionToBase,
             reference: returnNumber,
@@ -338,52 +339,105 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // --- C. HITUNG SELISIH & EKSEKUSI KEUANGAN ---
+      // --- C. HITUNG NILAI KEUANGAN ---
+      //
+      // totalValueReturned : Nilai bruto barang yang dikembalikan customer
+      // totalValueExchange  : Nilai bruto barang pengganti yang diterima customer
+      //
+      // Untuk REFUND      : totalRefund = totalValueReturned (kembali penuh ke customer secara tunai)
+      // Untuk CREDIT NOTE : totalRefund = totalValueReturned (masuk saldo penuh ke customer)
+      // Untuk EXCHANGE    : totalRefund = totalValueReturned - totalValueExchange
+      //                      > 0 : ada sisa (bisa dikembalikan tunai atau masuk saldo)
+      //                      = 0 : impas, tidak ada transaksi keuangan tambahan
+      //                      < 0 : customer harus bayar kekurangan (tagih ke customer)
 
-      // Rumus: Nilai Barang Masuk (Retur) - Nilai Barang Keluar (Exchange)
-      // Positif (+) : Toko hutang ke Customer (Harus Refund/Deposit)
-      // Negatif (-) : Customer hutang ke Toko (Harus Bayar Kurangnya)
-      const netRefundAmount = totalValueReturned - totalValueExchange;
+      let totalRefund: number;
 
-      // Logic Keuangan Berdasarkan Tipe Kompensasi
+      if (compensationType === "exchange") {
+        totalRefund = totalValueReturned - totalValueExchange; // Bisa 0, positif, atau negatif
+      } else {
+        // refund & credit_note: customer menerima kembali seluruh nilai barang yang diretur
+        totalRefund = totalValueReturned;
+      }
+
+      // surplusStrategy hanya relevan untuk exchange dengan sisa positif
+      const finalSurplusStrategy =
+        compensationType === "exchange" && totalRefund > 0
+          ? surplusStrategy || "cash"
+          : null;
+
+      // --- D. EKSEKUSI KEUANGAN (Balance Update) ---
+
+      // Flag apakah ada mutasi saldo yang disisipkan
+      let didInsertBalanceMutation = false;
+
       if (compensationType === "credit_note") {
-        // Skenario: Masuk Saldo
-        if (netRefundAmount < 0) {
-          await tx
-            .update(customers)
-            .set({
-              creditBalance: sql`${customers.creditBalance} - ${netRefundAmount.toFixed(2)}`,
-            })
-            .where(eq(customers.id, Number(finalCustomerId)));
-        }
-
+        // Seluruh nilai barang masuk ke saldo pelanggan
         if (!finalCustomerId) {
           throw new Error(
-            "Transaksi tanpa data Customer tidak bisa dijadikan saldo (Credit Note).",
+            "Credit Note hanya bisa diproses untuk customer terdaftar.",
           );
         }
+        const customerData = await tx.query.customers.findFirst({
+          where: eq(customers.id, Number(finalCustomerId)),
+        });
+        if (!customerData) throw new Error("Data customer tidak ditemukan");
 
-        // Update Saldo Customer
+        const balanceBefore = Number(customerData.creditBalance);
+        const balanceAfter = balanceBefore + totalRefund;
+
         await tx
           .update(customers)
-          .set({
-            creditBalance: sql`${customers.creditBalance} + ${netRefundAmount.toFixed(2)}`,
-          })
+          .set({ creditBalance: balanceAfter.toFixed(2) })
           .where(eq(customers.id, Number(finalCustomerId)));
-      }
 
-      if (compensationType === "refund") {
-        // Skenario: Uang Tunai Kembali
-        // Tidak ada update saldo, uang dianggap keluar dari kasir (Cash Out)
-        // netRefundAmount dicatat di table customerReturns sebagai record pengeluaran kas
-        if (netRefundAmount < 0) {
+        await tx.insert(customerBalanceMutations).values({
+          customerId: Number(finalCustomerId),
+          amount: totalRefund.toFixed(2),
+          balanceBefore: balanceBefore.toFixed(2),
+          balanceAfter: balanceAfter.toFixed(2),
+          type: "return_deposit",
+          referenceId: 0, // Diupdate setelah header return diinsert
+        });
+        didInsertBalanceMutation = true;
+      } else if (
+        compensationType === "exchange" &&
+        totalRefund > 0 &&
+        finalSurplusStrategy === "credit_balance"
+      ) {
+        // Ada sisa uang exchange yang diminta masuk ke saldo
+        if (!finalCustomerId) {
           throw new Error(
-            "Tidak bisa Refund jika customer harus menambah bayar.",
+            "Saldo pelanggan tidak bisa diupdate tanpa data customer.",
           );
         }
-      }
+        const customerData = await tx.query.customers.findFirst({
+          where: eq(customers.id, Number(finalCustomerId)),
+        });
+        if (!customerData) throw new Error("Data customer tidak ditemukan");
 
-      // --- D. INSERT DATABASE ---
+        const balanceBefore = Number(customerData.creditBalance);
+        const balanceAfter = balanceBefore + totalRefund;
+
+        await tx
+          .update(customers)
+          .set({ creditBalance: balanceAfter.toFixed(2) })
+          .where(eq(customers.id, Number(finalCustomerId)));
+
+        await tx.insert(customerBalanceMutations).values({
+          customerId: Number(finalCustomerId),
+          amount: totalRefund.toFixed(2),
+          balanceBefore: balanceBefore.toFixed(2),
+          balanceAfter: balanceAfter.toFixed(2),
+          type: "exchange_surplus",
+          referenceId: 0, // Diupdate setelah header return diinsert
+        });
+        didInsertBalanceMutation = true;
+      }
+      // Skenario lainnya (refund tunai, exchange impas, exchange tagih ke customer, exchange sisa cash):
+      // Tidak ada perubahan saldo — kasir yang handle secara fisik.
+
+      // --- E. INSERT DATABASE ---
 
       // 1. Insert Header Return
       const [newReturn] = await tx
@@ -391,14 +445,11 @@ export async function POST(request: NextRequest) {
         .values({
           returnNumber,
           saleId,
-          customerId: finalCustomerId || null, // Nullable di schema jika ada
-
-          // Penting:
-          // Jika Positif: Toko keluar uang/saldo
-          // Jika Negatif: Toko terima uang (Customer bayar kekurangan exchange)
-          totalRefund: netRefundAmount.toFixed(2),
-
+          customerId: finalCustomerId || null,
+          totalRefund: totalRefund.toFixed(2),
+          totalValueReturned: totalValueReturned.toFixed(2),
           compensationType,
+          surplusStrategy: finalSurplusStrategy,
           userId,
         })
         .returning();
@@ -430,28 +481,58 @@ export async function POST(request: NextRequest) {
           .values(stockMutationsToInsert as InsertStockMutationType[]);
       }
 
-      // --- E. RETURN RESPONSE MESSAGES ---
+      // 5. Update referenceId di customerBalanceMutations (hanya jika ada mutasi yang disisipkan)
+      if (didInsertBalanceMutation && finalCustomerId) {
+        const mutationType =
+          compensationType === "credit_note"
+            ? "return_deposit"
+            : "exchange_surplus";
+
+        await tx
+          .update(customerBalanceMutations)
+          .set({ referenceId: newReturn.id })
+          .where(
+            and(
+              eq(customerBalanceMutations.customerId, Number(finalCustomerId)),
+              eq(customerBalanceMutations.referenceId, 0),
+              eq(customerBalanceMutations.type, mutationType),
+            ),
+          );
+      }
+
+      // --- F. RETURN RESPONSE MESSAGES ---
       let message = "";
-      const formattedAmount = new Intl.NumberFormat("id-ID", {
+      const formattedTotalReturn = new Intl.NumberFormat("id-ID", {
         style: "currency",
         currency: "IDR",
-      }).format(Math.abs(netRefundAmount));
+      }).format(totalValueReturned);
+      const formattedRefund = new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+      }).format(Math.abs(totalRefund));
 
       if (compensationType === "credit_note") {
-        message = `Retur sukses. Saldo sebesar ${formattedAmount} ditambahkan ke akun pelanggan.`;
+        message = `Retur sukses. Saldo sebesar ${formattedTotalReturn} ditambahkan ke akun pelanggan.`;
       } else if (compensationType === "refund") {
-        message = `Retur sukses. Silahkan berikan uang tunai ${formattedAmount} kepada pelanggan.`;
+        message = `Retur sukses. Berikan uang tunai ${formattedTotalReturn} kepada pelanggan.`;
       } else if (compensationType === "exchange") {
-        if (netRefundAmount >= 0) {
-          message = `Tukar barang sukses. Kembalikan sisa uang tunai ${formattedAmount} ke pelanggan.`;
+        if (totalRefund > 0) {
+          if (finalSurplusStrategy === "credit_balance") {
+            message = `Tukar barang sukses. Sisa ${formattedRefund} ditambahkan ke saldo pelanggan.`;
+          } else {
+            message = `Tukar barang sukses. Kembalikan sisa uang tunai ${formattedRefund} ke pelanggan.`;
+          }
+        } else if (totalRefund < 0) {
+          message = `Tukar barang sukses. Tagih kekurangan ${formattedRefund} dari pelanggan.`;
         } else {
-          message = `Tukar barang sukses. Tagih kekurangan pembayaran ${formattedAmount} dari pelanggan.`;
+          message = `Tukar barang sukses. Nilai barang impas, tidak ada uang kembali.`;
         }
       }
 
       return {
         returnHeader: newReturn,
-        netChange: netRefundAmount,
+        netChange: totalRefund,
+        totalValueReturned,
         message,
       };
     });

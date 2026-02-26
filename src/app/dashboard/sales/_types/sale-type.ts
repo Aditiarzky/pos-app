@@ -13,6 +13,18 @@ export interface SaleCustomerInfo {
   name: string;
 }
 
+export interface SaleAnalytics {
+  totalSalesToday?: number;
+  totalSalesYesterday?: number;
+  netRevenueToday?: number;
+  netRevenueYesterday?: number;
+  piutangToday?: number;
+  piutangYesterday?: number;
+  transactionsTodayCount?: number;
+  transactionsYesterdayCount?: number;
+  totalTransactionsLifetime?: number;
+}
+
 export interface SaleUserInfo {
   id: number;
   name: string;
@@ -49,6 +61,7 @@ export interface SaleResponse extends SaleType {
   user?: SaleUserInfo;
   items?: SaleItemResponse[];
   debt?: DebtType;
+  analytics?: SaleAnalytics;
 }
 
 // ============================================

@@ -4,6 +4,7 @@ import {
   stockMutations,
   customers,
   productVariants,
+  customerBalanceMutations,
 } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { eq, sql } from "drizzle-orm";
@@ -43,7 +44,7 @@ export async function voidCustomerReturn(
           type: "return_cancel",
           qtyBaseUnit: (-qtyBase).toFixed(4),
           unitFactorAtMutation: variant.conversionToBase,
-          reference: `VOID-${existingReturn.returnNumber} (VOID-${existingReturn.sales.invoiceNumber})`,
+          reference: `VOID-${existingReturn.returnNumber}`,
           userId: existingReturn.userId,
         });
       }
@@ -68,30 +69,63 @@ export async function voidCustomerReturn(
         type: "exchange_cancel",
         qtyBaseUnit: qtyBase.toFixed(4),
         unitFactorAtMutation: variant.conversionToBase,
-        reference: `VOID-RET-${existingReturn.returnNumber} (VOID-${existingReturn.sales.invoiceNumber})`,
+        reference: `VOID-${existingReturn.returnNumber}`,
         userId: existingReturn.userId,
       });
     }
   }
 
-  // 3. Revert Financial Changes (Credit Note)
-  if (
-    existingReturn.compensationType === "credit_note" &&
-    existingReturn.customerId
-  ) {
-    const refundAmount = Number(existingReturn.totalRefund);
-    await tx
-      .update(customers)
-      .set({
-        creditBalance: sql`${customers.creditBalance} - ${refundAmount.toFixed(2)}`,
-      })
-      .where(eq(customers.id, existingReturn.customerId));
+  // 3. Revert Financial Changes (Balance)
+  //
+  // Kapan perlu revert saldo?
+  // - credit_note  : Saldo penuh (totalRefund) sudah dipindah ke customer -> harus dikurangi
+  // - exchange + credit_balance + totalRefund > 0 : Surplus sudah masuk ke saldo -> harus dikurangi
+  // - refund       : Uang sudah dikembalikan tunai secara fisik -> tidak ada saldo yang perlu dibalik
+  // - exchange + cash surplus / impas / tagih : Tidak ada perubahan saldo -> tidak perlu dibalik
+
+  const refundAmount = Number(existingReturn.totalRefund);
+
+  const shouldRevertBalance =
+    existingReturn.customerId !== null &&
+    refundAmount > 0 &&
+    (existingReturn.compensationType === "credit_note" ||
+      (existingReturn.compensationType === "exchange" &&
+        existingReturn.surplusStrategy === "credit_balance"));
+
+  if (shouldRevertBalance && existingReturn.customerId) {
+    const customerData = await tx.query.customers.findFirst({
+      where: eq(customers.id, existingReturn.customerId),
+    });
+
+    if (customerData) {
+      const balanceBefore = Number(customerData.creditBalance);
+      // Pastikan tidak minus (safety guard)
+      const balanceAfter = Math.max(0, balanceBefore - refundAmount);
+
+      await tx
+        .update(customers)
+        .set({ creditBalance: balanceAfter.toFixed(2) })
+        .where(eq(customers.id, existingReturn.customerId));
+
+      // Log mutasi saldo void
+      await tx.insert(customerBalanceMutations).values({
+        customerId: existingReturn.customerId,
+        amount: (-refundAmount).toFixed(2),
+        balanceBefore: balanceBefore.toFixed(2),
+        balanceAfter: balanceAfter.toFixed(2),
+        type:
+          existingReturn.compensationType === "credit_note"
+            ? "return_void"
+            : "exchange_surplus_void",
+        referenceId: existingReturn.id,
+      });
+    }
   }
 
   // 4. Archive the Return
   return await tx
     .update(customerReturns)
-    .set({ isArchived: true })
+    .set({ isArchived: true, deletedAt: new Date() })
     .where(eq(customerReturns.id, returnId))
     .returning();
 }

@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, Settings, ChevronLeft, FileText } from "lucide-react";
+import { Package, Settings, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import LogoNav from "@/assets/logo-nav/logo-nav";
@@ -14,6 +14,7 @@ import {
   IconTrolley,
   IconUsers,
   IconShieldLock,
+  IconReport,
 } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -58,7 +59,7 @@ const navItems: NavItem[] = [
   {
     label: "Laporan",
     href: "/dashboard/report",
-    icon: <FileText className="w-5 h-5" />,
+    icon: <IconReport className="w-5 h-5" />,
     roles: ["admin toko"],
   },
   {

@@ -105,6 +105,11 @@ export function ReturnListSection() {
     return type.replace("_", " ").toUpperCase();
   };
 
+  const totalExchangeValue = selectedReturn?.exchangeItems?.reduce(
+    (acc, item) => acc + item.qty * (Number(item.priceAtExchange) || 0),
+    0,
+  );
+
   const returnDataResult = selectedReturn
     ? ({
         ...selectedReturn,
@@ -115,10 +120,12 @@ export function ReturnListSection() {
         saleData: selectedReturn.sales || {},
         returnItems: selectedReturn.items || [],
         exchangeItems: selectedReturn.exchangeItems || [],
-        totalValueReturned: Number(selectedReturn.totalRefund),
-        totalValueExchange: 0,
+        totalValueReturned: Number(selectedReturn.totalValueReturned),
+        totalValueExchange: totalExchangeValue,
       } as unknown as ReturnResult)
     : null;
+
+  console.log(returnDataResult);
 
   return (
     <div className="space-y-6">

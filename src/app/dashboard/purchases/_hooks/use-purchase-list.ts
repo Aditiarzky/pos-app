@@ -56,8 +56,10 @@ export interface UsePurchaseListReturn {
   analytics?: {
     totalPurchases?: number;
     totalPurchasesThisMonth?: number;
+    totalPurchasesLastMonth?: number;
     newTransactions?: number;
     activeSuppliers?: number;
+    todayItemsQty?: number;
   };
   // Actions
   handleDelete: (purchase: PurchaseResponse) => Promise<void>;

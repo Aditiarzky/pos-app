@@ -13,17 +13,20 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import LogoNav from "@/assets/logo-nav/logo-nav";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
+import { UserResponse } from "@/services/authService";
 
 interface TopNavbarProps {
   onToggleSidebar: () => void;
   sidebarOpen?: boolean;
   onLogout: () => void;
+  user: UserResponse | undefined;
 }
 
 export function TopNavbar({
   onToggleSidebar,
   sidebarOpen,
   onLogout,
+  user,
 }: TopNavbarProps) {
   return (
     <div className="fixed top-0 left-0 right-0 h-16 bg-card/80 backdrop-blur-sm border-b border-border z-20 flex items-center justify-between px-4 md:pl-4 md:px-8">
@@ -54,12 +57,18 @@ export function TopNavbar({
             <Button variant="ghost" className="flex items-center gap-2 px-2">
               <Avatar className="w-8 h-8">
                 <AvatarFallback className="bg-primary text-primary-foreground text-xs font-bold">
-                  JD
+                  {user?.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="hidden sm:flex flex-col items-start text-xs">
-                <span className="font-semibold text-foreground">John Doe</span>
-                <span className="text-muted-foreground">Manager</span>
+                <span className="font-semibold text-foreground">
+                  {user ? user.name : "User"}
+                </span>
+                <span className="text-muted-foreground">
+                  {user?.roles
+                    ? user.roles.map((role) => role.role).join(", ")
+                    : "admin"}
+                </span>
               </div>
             </Button>
           </DropdownMenuTrigger>
@@ -67,15 +76,18 @@ export function TopNavbar({
             <div className="flex items-center gap-2 p-2">
               <Avatar className="w-10 h-10">
                 <AvatarFallback className="bg-primary text-primary-foreground font-bold">
-                  JD
+                  {user?.name.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
                 <p className="text-sm font-semibold text-foreground">
-                  John Doe
+                  {user?.name}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  john@example.com
+                  {user?.roles
+                    ? user.roles.map((role) => role.role).join(", ")
+                    : "admin"}
                 </p>
               </div>
             </div>

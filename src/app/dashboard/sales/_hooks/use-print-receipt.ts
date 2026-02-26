@@ -47,8 +47,8 @@ export function usePrintReceipt() {
               -webkit-print-color-adjust: exact;
               print-color-adjust: exact;
             }
-            body { 
-              font-family: 'Courier New', Courier, monospace; 
+            body {
+              font-family: 'Courier New', Courier, monospace;
               width: ${receiptWidthMm}mm;
               margin: 0 auto;
             }
@@ -58,7 +58,7 @@ export function usePrintReceipt() {
               max-width: ${receiptWidthMm}mm !important;
               padding: ${receiptPaddingMm}mm !important;
             }
-            
+
             /* Sembunyikan elemen yang tidak perlu saat print */
             @media print {
                @page {
@@ -95,7 +95,7 @@ export function usePrintReceipt() {
                 window.print();
               }, 250);
             };
-            
+
             window.onafterprint = () => {
               window.parent.postMessage({ type: 'RECEIPT_PRINT_DONE' }, '*');
             };

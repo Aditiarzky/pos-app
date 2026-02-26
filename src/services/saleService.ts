@@ -1,7 +1,7 @@
 import { axiosInstance } from "@/lib/axios";
 import { ApiResponse } from "./productService";
 import { insertSaleType } from "@/lib/validations/sale";
-import { SaleItemType, SaleType } from "@/drizzle/type";
+import { DebtStatusEnumType, SaleItemType, SaleType } from "@/drizzle/type";
 
 export interface SaleResponse extends SaleType {
   user?: { id: number; name: string };
@@ -15,6 +15,12 @@ export interface SaleResponse extends SaleType {
       productVariant?: { id?: number; name: string };
     }
   >;
+  debt?: {
+    id: number;
+    remainingAmount: number;
+    isActive: boolean;
+    status: DebtStatusEnumType;
+  };
 }
 
 export const getSales = async (params?: {

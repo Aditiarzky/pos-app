@@ -5,6 +5,7 @@ import {
   productBarcodes,
   productVariants,
   categories,
+  stockMutations,
 } from "@/drizzle/schema";
 import { and, eq, lte, sql, exists } from "drizzle-orm";
 import {
@@ -67,46 +68,58 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const [productsData, totalRes, totalStockCount, countUnderMinimumStock] =
-      await Promise.all([
-        db.query.products.findMany({
-          where: finalFilter,
-          with: {
-            unit: { columns: { id: true, name: true } },
-            category: { columns: { id: true, name: true } },
-            barcodes: {
-              columns: { id: true, barcode: true },
-            },
-            variants: {
-              where: eq(productVariants.isActive, true),
-              columns: {
-                id: true,
-                name: true,
-                sku: true,
-                conversionToBase: true,
-                sellPrice: true,
-              },
-              with: { unit: { columns: { id: true, name: true } } },
-            },
-          },
-          orderBy: searchOrder,
-          limit: params.limit,
-          offset: params.offset,
-        }),
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
 
-        db
-          .select({ count: sql<number>`count(*)` })
-          .from(products)
-          .where(finalFilter),
-        db
-          .select({ countStock: sql<number>`sum(stock)` })
-          .from(products)
-          .where(finalFilter),
-        db
-          .select({ countUnderMinimumStock: sql<number>`count(*)` })
-          .from(products)
-          .where(and(finalFilter, lte(products.stock, products.minStock))),
-      ]);
+    const [
+      productsData,
+      totalRes,
+      totalStockCount,
+      countUnderMinimumStock,
+      countTodayMutations,
+    ] = await Promise.all([
+      db.query.products.findMany({
+        where: finalFilter,
+        with: {
+          unit: { columns: { id: true, name: true } },
+          category: { columns: { id: true, name: true } },
+          barcodes: {
+            columns: { id: true, barcode: true },
+          },
+          variants: {
+            where: eq(productVariants.isActive, true),
+            columns: {
+              id: true,
+              name: true,
+              sku: true,
+              conversionToBase: true,
+              sellPrice: true,
+            },
+            with: { unit: { columns: { id: true, name: true } } },
+          },
+        },
+        orderBy: searchOrder,
+        limit: params.limit,
+        offset: params.offset,
+      }),
+
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(products)
+        .where(finalFilter),
+      db
+        .select({ countStock: sql<number>`sum(stock)` })
+        .from(products)
+        .where(finalFilter),
+      db
+        .select({ countUnderMinimumStock: sql<number>`count(*)` })
+        .from(products)
+        .where(and(finalFilter, lte(products.stock, products.minStock))),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(stockMutations)
+        .where(sql`${stockMutations.createdAt} >= ${startOfToday}`),
+    ]);
 
     const totalCount = Number(totalRes[0]?.count || 0);
 
@@ -119,6 +132,7 @@ export async function GET(request: NextRequest) {
         underMinimumStock: Number(
           countUnderMinimumStock[0]?.countUnderMinimumStock || 0,
         ),
+        todayStockActivity: Number(countTodayMutations[0]?.count || 0),
       },
       meta: formatMeta(totalCount, params.page, params.limit),
     });

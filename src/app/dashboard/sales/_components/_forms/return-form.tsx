@@ -60,6 +60,12 @@ export function ReturnForm() {
     goBackToInvoice,
     selectedCustomerId,
     setSelectedCustomerId,
+    surplusStrategy,
+    setSurplusStrategy,
+    hasDebt,
+    debtRemainingAmount,
+    handleMarkAsPaid,
+    isPayingDebt,
   } = useReturnForm();
 
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -172,6 +178,44 @@ export function ReturnForm() {
             </Card>
           )}
 
+          {/* DEBT WARNING */}
+          {step === "items" && hasDebt && (
+            <Card className="p-4 md:p-6 bg-red-50 border-destructive/20 animate-in zoom-in-95 duration-300">
+              <div className="flex flex-col md:flex-row items-center gap-4 text-center md:text-left">
+                <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="h-8 w-8 text-destructive" />
+                </div>
+                <div className="space-y-1 flex-1">
+                  <h3 className="text-lg font-black text-destructive uppercase tracking-tight">
+                    Transaksi Belum Lunas
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
+                    Invoice ini masih memiliki sisa hutang sebesar{" "}
+                    <span className="font-bold text-destructive">
+                      {formatCurrency(debtRemainingAmount)}
+                    </span>
+                    . Harap lunasi terlebih dahulu sebelum melakukan retur.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="lg"
+                  className="font-bold shadow-lg shadow-destructive/20 w-full md:w-auto"
+                  onClick={handleMarkAsPaid}
+                  disabled={isPayingDebt}
+                >
+                  {isPayingDebt ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Banknote className="mr-2 h-4 w-4" />
+                  )}
+                  Tandai sebagai Lunas
+                </Button>
+              </div>
+            </Card>
+          )}
+
           {/* STEP 2: ITEM SELECTION */}
           {step === "items" && (
             <>
@@ -197,7 +241,12 @@ export function ReturnForm() {
               </div>
 
               {/* Return Items */}
-              <Card className="p-4">
+              <Card
+                className={cn(
+                  "p-4",
+                  hasDebt && "opacity-50 pointer-events-none grayscale-[0.5]",
+                )}
+              >
                 <Label className="text-xs font-bold text-destructive uppercase tracking-wider mb-3 block">
                   Pilih Barang Retur
                 </Label>
@@ -302,6 +351,7 @@ export function ReturnForm() {
                       type="button"
                       disabled={isDisabled}
                       onClick={() => {
+                        if (hasDebt) return;
                         setCompensationType(opt.value);
                         if (opt.value !== "exchange") {
                           // Clear exchange items when switching away
@@ -312,7 +362,8 @@ export function ReturnForm() {
                         compensationType === opt.value
                           ? "border-primary bg-primary/5"
                           : "border-transparent bg-muted/30 hover:bg-muted/50",
-                        isDisabled && "opacity-40 cursor-not-allowed",
+                        (isDisabled || hasDebt) &&
+                          "opacity-40 cursor-not-allowed",
                       )}
                     >
                       <div
@@ -340,6 +391,11 @@ export function ReturnForm() {
                   );
                 })}
               </div>
+              {hasDebt && (
+                <p className="text-[10px] text-destructive font-medium mt-3 italic">
+                  * Kompensasi dinonaktifkan karena transaksi belum lunas
+                </p>
+              )}
             </Card>
           )}
 
@@ -446,6 +502,45 @@ export function ReturnForm() {
                     </span>
                   </div>
                 )}
+
+                {/* Surplus Strategy Selector for Exchange */}
+                {compensationType === "exchange" &&
+                  netRefundAmount > 0 &&
+                  (saleData?.customerId || selectedCustomerId) && (
+                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                      <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block">
+                        Sisa uang retur diberikan lewat:
+                      </Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSurplusStrategy("cash")}
+                          className={cn(
+                            "flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 transition-all text-xs font-bold",
+                            surplusStrategy === "cash"
+                              ? "border-primary bg-primary/5 text-primary"
+                              : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted",
+                          )}
+                        >
+                          <Banknote className="h-4 w-4" />
+                          Tunai
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSurplusStrategy("credit_balance")}
+                          className={cn(
+                            "flex items-center justify-center gap-2 p-2.5 rounded-xl border-2 transition-all text-xs font-bold",
+                            surplusStrategy === "credit_balance"
+                              ? "border-primary bg-primary/5 text-primary"
+                              : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted",
+                          )}
+                        >
+                          <CreditCard className="h-4 w-4" />
+                          Saldo
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                 <Button
                   type="button"

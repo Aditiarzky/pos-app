@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   Receipt,
   Loader2,
+  Box,
 } from "lucide-react";
 import {
   usePurchaseList,
@@ -31,6 +32,8 @@ import { useQueryState } from "@/hooks/use-query-state";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { CardBg } from "@/assets/card-background/card-bg";
 import { Badge } from "@/components/ui/badge";
+import { IconTrolley } from "@tabler/icons-react";
+import { ExpandableContainer } from "@/components/ui/expandable-container";
 
 // ============================================
 // MAIN CONTENT COMPONENT
@@ -94,15 +97,13 @@ function PurchasesContent() {
   return (
     <>
       {/* Header Section */}
-      <header className="sticky top-0 mx-auto container z-10 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
+      <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
         {" "}
-        <div className="overflow-hidden">
-          <h1 className="text-3xl text-primary font-geist font-semibold truncate">
+        <div className="overflow-hidden flex gap-2">
+          <IconTrolley className="h-8 w-8 text-primary" />
+          <h1 className="text-2xl text-primary font-geist font-semibold truncate">
             Pembelian
           </h1>
-          <p className="text-muted-foreground font-sans text-base truncate">
-            Kelola stok masuk dan daftar supplier
-          </p>
         </div>
         <div className="flex gap-2">
           {tab === "history" ? (
@@ -216,75 +217,121 @@ function AnalyticsCards({
 }: {
   analytics?: UsePurchaseListReturn["analytics"];
 }) {
+  const thisMonth = analytics?.totalPurchasesThisMonth ?? 0;
+  const lastMonth = analytics?.totalPurchasesLastMonth ?? 0;
+
+  const percentage =
+    lastMonth > 0
+      ? ((thisMonth - lastMonth) / lastMonth) * 100
+      : thisMonth > 0
+        ? 100
+        : 0;
+
+  const isPositive = percentage >= 0;
+  const formattedPercentage = Math.abs(percentage).toFixed(0);
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* Total Pembelian */}
-      <Card className="relative overflow-hidden">
-        <CardBg />
-        <CardHeader className="pb-2 z-10">
-          <CardTitle className="text-sm font-medium flex items-center justify-between">
-            Total Pembelian (Bulan Ini)
-            <ShoppingCart className="h-5 w-5 text-muted-foreground/50" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="z-10 text-primary">
-          <div className="text-3xl font-bold flex items-baseline gap-1">
-            <span className="text-xl font-medium opacity-70">Rp</span>
-            <AnimatedNumber value={analytics?.totalPurchasesThisMonth ?? 0} />
-          </div>
-          <div className="mt-1 flex items-center gap-2">
-            <Badge
-              variant="outline"
-              className="text-[10px] px-1.5 py-0 bg-emerald-50 text-emerald-600 border-emerald-100 font-bold"
-            >
-              +0%
-            </Badge>
-            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter italic opacity-60">
-              vs bulan lalu
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+    <ExpandableContainer>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4">
+        {/* Total Pembelian */}
+        <Card className="relative overflow-hidden border-none shadow-md">
+          <CardBg />
+          <CardHeader className="pb-2 z-10">
+            <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+              Total Pembelian
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <ShoppingCart className="h-4 w-4 text-primary" />
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="z-10 pt-0 text-primary">
+            <div className="text-2xl font-bold flex items-baseline gap-1">
+              <span className="text-sm font-medium opacity-70">Rp</span>
+              <AnimatedNumber value={thisMonth} />
+            </div>
+            <div className="mt-1 flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className={`text-[8px] px-1 py-0 font-bold ${
+                  isPositive
+                    ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                    : "bg-rose-50 text-rose-600 border-rose-100"
+                }`}
+              >
+                {isPositive ? "+" : "-"}
+                {formattedPercentage}%
+              </Badge>
+              <span className="text-[10px] text-muted-foreground font-medium italic opacity-60">
+                vs bulan lalu
+              </span>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Transaksi Baru */}
-      <Card className="relative overflow-hidden">
-        <CardBg />
-        <CardHeader className="pb-2 z-10">
-          <CardTitle className="text-sm font-medium flex items-center justify-between">
-            Transaksi Hari Ini
-            <Receipt className="h-5 w-5 text-muted-foreground/50" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="z-10 text-primary">
-          <div className="text-3xl font-bold">
-            <AnimatedNumber value={analytics?.newTransactions ?? 0} />
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-2 font-bold uppercase tracking-wider flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-            Terakhir dicatat hari ini
-          </p>
-        </CardContent>
-      </Card>
+        {/* Transaksi Baru */}
+        <Card className="relative overflow-hidden border-none shadow-md">
+          <CardBg />
+          <CardHeader className="pb-2 z-10">
+            <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+              Transaksi Baru
+              <div className="p-2 bg-yellow-500/10 rounded-lg">
+                <Receipt className="h-4 w-4 text-yellow-500" />
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="z-10 pt-0 text-primary">
+            <div className="text-2xl font-bold">
+              <AnimatedNumber value={analytics?.newTransactions ?? 0} />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+              Tercatat hari ini
+            </p>
+          </CardContent>
+        </Card>
 
-      {/* Supplier Aktif */}
-      <Card className="relative overflow-hidden">
-        <CardBg />
-        <CardHeader className="pb-2 z-10">
-          <CardTitle className="text-sm font-medium flex items-center justify-between">
-            Supplier Terlibat
-            <Truck className="h-5 w-5 text-muted-foreground/50" />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="z-10 text-primary">
-          <div className="text-3xl font-bold">
-            <AnimatedNumber value={analytics?.activeSuppliers ?? 0} />
-          </div>
-          <p className="text-[10px] text-muted-foreground mt-2 font-bold uppercase tracking-wider flex items-center gap-1.5 opacity-70">
-            Total mitra supplier aktif
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+        {/* Supplier Aktif */}
+        <Card className="relative overflow-hidden border-none shadow-md">
+          <CardBg />
+          <CardHeader className="pb-2 z-10">
+            <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+              Supplier Terlibat
+              <div className="p-2 bg-green-500/10 rounded-lg">
+                <Truck className="h-4 w-4 text-green-500" />
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="z-10 pt-0 text-primary">
+            <div className="text-2xl font-bold">
+              <AnimatedNumber value={analytics?.activeSuppliers ?? 0} />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+              Mitra aktif bertransaksi
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Total Item Dibeli */}
+        <Card className="relative overflow-hidden border-none shadow-md">
+          <CardBg />
+          <CardHeader className="pb-2 z-10">
+            <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+              Item Dibeli
+              <div className="p-2 bg-blue-500/10 rounded-lg">
+                <Box className="h-4 w-4 text-blue-500" />
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="z-10 pt-0 text-primary">
+            <div className="text-2xl font-bold">
+              <AnimatedNumber value={analytics?.todayItemsQty ?? 0} />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+              Kuantitas masuk hari ini
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </ExpandableContainer>
   );
 }
 

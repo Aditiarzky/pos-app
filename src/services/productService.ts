@@ -60,17 +60,20 @@ export type ApiResponse<T = unknown> = {
     // Purchase analytics
     totalPurchases?: number;
     totalPurchasesThisMonth?: number;
+    totalPurchasesLastMonth?: number;
     newTransactions?: number;
     activeSuppliers?: number;
     // Sales analytics
+    todayStockActivity?: number;
+    todayItemsQty?: number;
     totalSalesToday?: number;
+    totalSalesYesterday?: number;
+    netRevenueToday?: number;
+    netRevenueYesterday?: number;
+    piutangToday?: number;
+    piutangYesterday?: number;
     transactionsTodayCount?: number;
-    totalReceivedToday?: number;
-    // Returns analytics
-    totalRefundsToday?: number;
-    returnsTodayCount?: number;
-    totalTransactionsLifetime?: number;
-    totalReturnsLifetime?: number;
+    transactionsYesterdayCount?: number;
     [key: string]: number | undefined;
   };
   meta?: {

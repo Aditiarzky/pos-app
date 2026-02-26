@@ -92,7 +92,7 @@ export function SalesListSection({
   };
 
   const openReceipt = (sale: SaleResponse) => {
-    setSelectedSale(sale);
+    setSelectedSale(sale as SaleResponse);
     setIsReceiptOpen(true);
   };
 
@@ -195,7 +195,7 @@ export function SalesListSection({
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => openReceipt(sale)}
+                            onClick={() => openReceipt(sale as SaleResponse)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -278,7 +278,7 @@ export function SalesListSection({
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => openReceipt(sale)}
+                      onClick={() => openReceipt(sale as SaleResponse)}
                     >
                       <Eye className="mr-2 h-4 w-4" />
                       Detail

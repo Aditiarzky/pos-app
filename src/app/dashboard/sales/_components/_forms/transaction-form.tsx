@@ -28,7 +28,8 @@ interface TransactionFormProps {
 }
 
 export function TransactionForm({ onSuccess }: TransactionFormProps) {
-  const createMutation = useCreateSale();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const createMutation = useCreateSale() as any;
 
   const {
     form,
