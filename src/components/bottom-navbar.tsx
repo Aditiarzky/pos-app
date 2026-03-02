@@ -10,7 +10,7 @@ import {
   IconLayout,
   IconCalculator,
   IconTrolley,
-  IconUsers,
+  IconReport,
 } from "@tabler/icons-react";
 
 interface NavItem {
@@ -43,7 +43,7 @@ const mainNavItems: NavItem[] = [
   {
     label: "Laporan",
     href: "/dashboard/report",
-    icon: <FileText className="w-6 h-6" />,
+    icon: <IconReport className="w-6 h-6" />,
   },
 ];
 

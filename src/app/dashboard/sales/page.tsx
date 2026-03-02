@@ -27,8 +27,8 @@ import { cn } from "@/lib/utils";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { useSaleList } from "@/hooks/sales/use-sale";
-import { ExpandableContainer } from "@/components/ui/expandable-container";
 import { IconCalculator } from "@tabler/icons-react";
+import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
 
 // ============================================
 // HELPERS
@@ -83,10 +83,15 @@ function SalesContent() {
       {/* Header Section */}
       <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
         <div className="overflow-hidden flex gap-2">
-          <IconCalculator className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl text-primary font-geist font-semibold truncate">
-            Kasir & Penjualan
-          </h1>
+          <span className="w-2 bg-primary" />
+          <div className="flex flex-col">
+            <h1 className="text-2xl text-primary font-geist font-semibold truncate">
+              Kasir & Penjualan
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Transaksi penjualan dan retur barang
+            </p>
+          </div>
         </div>
       </header>
 
@@ -94,147 +99,145 @@ function SalesContent() {
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
         {/* Analytics Cards */}
         {tab !== "cashier" && (
-          <ExpandableContainer>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4">
-              {/* Penjualan */}
-              <Card className="relative overflow-hidden border-none shadow-md">
-                <CardBg />
-                <CardHeader className="pb-2 z-10">
-                  <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
-                    Penjualan
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <ShoppingCart className="h-4 w-4 text-primary" />
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="z-10 pt-0 text-primary">
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <div className="text-2xl font-bold">
-                        <span className="text-sm opacity-70 mr-1">Rp</span>
-                        <AnimatedNumber
-                          value={salesAnalytics?.totalSalesToday || 0}
-                        />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-                        Total hari ini
-                      </p>
-                    </div>
-                    <GrowthIndicator
-                      value={calculateGrowth(
-                        salesAnalytics?.totalSalesToday || 0,
-                        salesAnalytics?.totalSalesYesterday || 0,
-                      )}
-                    />
+          <StickyCardStack className="animate-in fade-in slide-in-from-top-4 duration-500">
+            {/* Penjualan */}
+            <Card className="relative overflow-hidden border-none shadow-md">
+              <CardBg />
+              <CardHeader className="pb-2 z-10">
+                <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+                  Penjualan
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <ShoppingCart className="h-4 w-4 text-primary" />
                   </div>
-                </CardContent>
-              </Card>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="z-10 pt-0 text-primary">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <div className="text-2xl font-bold">
+                      <span className="text-sm opacity-70 mr-1">Rp</span>
+                      <AnimatedNumber
+                        value={salesAnalytics?.totalSalesToday || 0}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+                      Total hari ini
+                    </p>
+                  </div>
+                  <GrowthIndicator
+                    value={calculateGrowth(
+                      salesAnalytics?.totalSalesToday || 0,
+                      salesAnalytics?.totalSalesYesterday || 0,
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Net Revenue */}
-              <Card className="relative overflow-hidden border-none shadow-md">
-                <CardBg />
-                <CardHeader className="pb-2 z-10">
-                  <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
-                    Net Revenue
-                    <div className="p-2 bg-emerald-500/10 rounded-lg">
-                      <CircleDollarSign className="h-4 w-4 text-emerald-600" />
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="z-10 pt-0 text-emerald-600">
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <div className="text-2xl font-bold">
-                        <span className="text-sm opacity-70 mr-1">Rp</span>
-                        <AnimatedNumber
-                          value={salesAnalytics?.netRevenueToday || 0}
-                        />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-                        Profit hari ini
-                      </p>
-                    </div>
-                    <GrowthIndicator
-                      value={calculateGrowth(
-                        salesAnalytics?.netRevenueToday || 0,
-                        salesAnalytics?.netRevenueYesterday || 0,
-                      )}
-                    />
+            {/* Net Revenue */}
+            <Card className="relative overflow-hidden border-none shadow-md">
+              <CardBg />
+              <CardHeader className="pb-2 z-10">
+                <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+                  Net Revenue
+                  <div className="p-2 bg-emerald-500/10 rounded-lg">
+                    <CircleDollarSign className="h-4 w-4 text-emerald-600" />
                   </div>
-                </CardContent>
-              </Card>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="z-10 pt-0 text-emerald-600">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <div className="text-2xl font-bold">
+                      <span className="text-sm opacity-70 mr-1">Rp</span>
+                      <AnimatedNumber
+                        value={salesAnalytics?.netRevenueToday || 0}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+                      Profit hari ini
+                    </p>
+                  </div>
+                  <GrowthIndicator
+                    value={calculateGrowth(
+                      salesAnalytics?.netRevenueToday || 0,
+                      salesAnalytics?.netRevenueYesterday || 0,
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Piutang */}
-              <Card className="relative overflow-hidden border-none shadow-md">
-                <CardBg />
-                <CardHeader className="pb-2 z-10">
-                  <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
-                    Piutang
-                    <div className="p-2 bg-rose-500/10 rounded-lg">
-                      <Wallet className="h-4 w-4 text-rose-600" />
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="z-10 pt-0 text-rose-600">
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <div className="text-2xl font-bold">
-                        <span className="text-sm opacity-70 mr-1">Rp</span>
-                        <AnimatedNumber
-                          value={salesAnalytics?.piutangToday || 0}
-                        />
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-                        Sisa tagihan hari ini
-                      </p>
-                    </div>
-                    <GrowthIndicator
-                      value={calculateGrowth(
-                        salesAnalytics?.piutangToday || 0,
-                        salesAnalytics?.piutangYesterday || 0,
-                      )}
-                    />
+            {/* Piutang */}
+            <Card className="relative overflow-hidden border-none shadow-md">
+              <CardBg />
+              <CardHeader className="pb-2 z-10">
+                <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+                  Piutang
+                  <div className="p-2 bg-rose-500/10 rounded-lg">
+                    <Wallet className="h-4 w-4 text-rose-600" />
                   </div>
-                </CardContent>
-              </Card>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="z-10 pt-0 text-rose-600">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <div className="text-2xl font-bold">
+                      <span className="text-sm opacity-70 mr-1">Rp</span>
+                      <AnimatedNumber
+                        value={salesAnalytics?.piutangToday || 0}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+                      Sisa tagihan hari ini
+                    </p>
+                  </div>
+                  <GrowthIndicator
+                    value={calculateGrowth(
+                      salesAnalytics?.piutangToday || 0,
+                      salesAnalytics?.piutangYesterday || 0,
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Aktivitas */}
-              <Card className="relative overflow-hidden border-none shadow-md">
-                <CardBg />
-                <CardHeader className="pb-2 z-10">
-                  <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
-                    Aktivitas
-                    <div className="p-2 bg-blue-500/10 rounded-lg">
-                      <History className="h-4 w-4 text-blue-600" />
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="z-10 pt-0 text-primary">
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <div className="text-2xl font-bold">
-                        <AnimatedNumber
-                          value={salesAnalytics?.transactionsTodayCount || 0}
-                        />
-                        <span className="text-xs font-medium ml-1 text-muted-foreground">
-                          X
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-                        Total transaksi hari ini
-                      </p>
-                    </div>
-                    <GrowthIndicator
-                      value={calculateGrowth(
-                        salesAnalytics?.transactionsTodayCount || 0,
-                        salesAnalytics?.transactionsYesterdayCount || 0,
-                      )}
-                    />
+            {/* Aktivitas */}
+            <Card className="relative overflow-hidden border-none shadow-md">
+              <CardBg />
+              <CardHeader className="pb-2 z-10">
+                <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+                  Aktivitas
+                  <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <History className="h-4 w-4 text-blue-600" />
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </ExpandableContainer>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="z-10 pt-0 text-primary">
+                <div className="flex items-end justify-between">
+                  <div>
+                    <div className="text-2xl font-bold">
+                      <AnimatedNumber
+                        value={salesAnalytics?.transactionsTodayCount || 0}
+                      />
+                      <span className="text-xs font-medium ml-1 text-muted-foreground">
+                        X
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+                      Total transaksi hari ini
+                    </p>
+                  </div>
+                  <GrowthIndicator
+                    value={calculateGrowth(
+                      salesAnalytics?.transactionsTodayCount || 0,
+                      salesAnalytics?.transactionsYesterdayCount || 0,
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </StickyCardStack>
         )}
 
         {/* Tabs */}

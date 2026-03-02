@@ -8,7 +8,7 @@ import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { ExchangeItemEntry } from "../_hooks/use-return-form";
 import { Search, QrCode, Trash2, PackagePlus, ShoppingBag } from "lucide-react";
-import { useProductSearch } from "../_hooks/use-product-search";
+import { useProductSearch } from "@/hooks/use-product-search";
 import { SearchResultsDropdown } from "@/components/ui/search-product-dropdown";
 import { ProductResponse } from "@/services/productService";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -109,6 +109,20 @@ export function ExchangeItemPicker({
           placeholder="Cari barang pengganti..."
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (searchResults.length > 0) {
+                const product = searchResults[0];
+                const matchedVariant =
+                  product.variants.find((v) => v.sku === searchInput) ||
+                  product.variants[0];
+                if (matchedVariant) {
+                  handleAddProduct(product, matchedVariant);
+                }
+              }
+            }
+          }}
         />
         <div className="absolute right-1 top-1/2 -translate-y-1/2">
           <Button

@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, ShieldCheck, Sparkles } from "lucide-react";
 import { useRouter } from "nextjs-toploader/app";
 import { toast } from "sonner";
 import {
@@ -14,6 +14,7 @@ import {
   authRegister,
   UserRegisterInputType,
 } from "@/services/authService";
+import LogoNav from "@/assets/logo-nav/logo-nav";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
   const router = useRouter();
   const queryClient = useQueryClient();
 
@@ -52,8 +54,6 @@ export default function LoginPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    // Validasi password
     if (password !== confirmPassword) {
       toast.error("Password dan konfirmasi password tidak sama");
       setLoading(false);
@@ -90,10 +90,6 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Panggil API reset password di sini
-      // const response = await authForgotPassword({ email });
-
-      // Untuk sementara, simulasi berhasil
       toast.success("Link reset password telah dikirim ke email Anda.");
       setCurrentView("login");
     } catch (error: unknown) {
@@ -104,7 +100,6 @@ export default function LoginPage() {
     }
   };
 
-  // Fungsi untuk menentukan handler berdasarkan view
   const handleSubmit = (e: React.FormEvent) => {
     switch (currentView) {
       case "login":
@@ -119,293 +114,248 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex font-sans">
-      {/* Bagian kiri (biru) tetap sama */}
-      <div
-        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
-        style={{ backgroundColor: "#3F3FF3" }}
-      >
-        <div className="relative z-10 flex flex-col justify-between w-full px-12 py-12">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center mr-3">
-              <div
-                className="w-4 h-4 rounded-sm"
-                style={{ backgroundColor: "#3F3FF3" }}
-              ></div>
-            </div>
-            <h1 className="text-xl font-semibold text-white">Frello</h1>
+    <div className="min-h-screen bg-muted/30">
+      <div className="container mx-auto grid min-h-screen grid-cols-1 lg:grid-cols-2 gap-0 p-4 lg:p-6">
+        <section className="hidden lg:flex rounded-3xl border border-border bg-card p-10 xl:p-12 flex-col justify-between relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background" />
+          <div className="relative z-10 flex items-center justify-between">
+            <LogoNav height={36} type="sidebar" />
+            <span className="text-xs text-muted-foreground">POS Platform</span>
           </div>
 
-          <div className="flex-1 flex flex-col justify-center">
-            <h2 className="text-4xl text-white mb-6 leading-tight">
-              Effortlessly manage your team and operations.
+          <div className="relative z-10 space-y-6">
+            <h2 className="text-4xl leading-tight font-semibold text-foreground">
+              Kelola penjualan, stok, dan operasional toko dalam satu dashboard.
             </h2>
-            <p className="text-white/90 text-lg leading-relaxed">
-              Log in to access your CRM dashboard and manage your team.
+            <p className="text-muted-foreground text-base leading-relaxed max-w-xl">
+              Masuk untuk melihat ringkasan bisnis, memantau transaksi, dan
+              mengambil keputusan lebih cepat.
             </p>
-          </div>
-
-          <div className="flex justify-between items-center text-white/70 text-sm">
-            <span>Copyright © 2025 Frello Enterprises LTD.</span>
-            <span className="cursor-pointer hover:text-white/90">
-              Privacy Policy
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Bagian kanan (form) */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md space-y-8">
-          {/* Logo untuk mobile */}
-          <div className="lg:hidden text-center mb-8">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-3"
-              style={{ backgroundColor: "#3F3FF3" }}
-            >
-              <div className="w-4 h-4 bg-white rounded-sm"></div>
+            <div className="grid grid-cols-2 gap-3 max-w-md">
+              <div className="rounded-xl border bg-background/70 p-3">
+                <p className="text-xs text-muted-foreground">Monitoring</p>
+                <p className="text-sm font-medium mt-1">Penjualan harian</p>
+              </div>
+              <div className="rounded-xl border bg-background/70 p-3">
+                <p className="text-xs text-muted-foreground">Kontrol</p>
+                <p className="text-sm font-medium mt-1">Stok & piutang</p>
+              </div>
             </div>
-            <h1 className="text-xl font-semibold text-foreground">Frello</h1>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Header dengan tombol back untuk forgot password */}
-            <div className="space-y-2 text-center relative">
-              {currentView === "forgot" && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setCurrentView("login")}
-                  className="absolute left-0 top-0 p-2 hover:bg-gray-100 cursor-pointer"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
-              )}
-              <h2 className="text-3xl text-foreground">
-                {currentView === "login" && "Welcome Back"}
-                {currentView === "register" && "Create Account"}
-                {currentView === "forgot" && "Reset Password"}
-              </h2>
-              <p className="text-muted-foreground">
-                {currentView === "login" &&
-                  "Enter your email and password to access your account."}
-                {currentView === "register" &&
-                  "Create a new account to get started with Frello."}
-                {currentView === "forgot" &&
-                  "Enter your email address and we'll send you a reset link."}
-              </p>
+          <div className="relative z-10 flex items-center justify-between text-xs text-muted-foreground">
+            <span>© 2026 Gunung Muria Grosir</span>
+            <span>Konsisten, cepat, akurat.</span>
+          </div>
+        </section>
+        <section className="flex items-center justify-center px-2 py-6 lg:px-10">
+          <div className="w-full max-w-md rounded-2xl border bg-card shadow-sm p-6 sm:p-8">
+            <div className="lg:hidden mb-6 flex justify-center">
+              <LogoNav height={34} type="sidebar" />
             </div>
-
-            <div className="space-y-4">
-              {/* Field untuk register */}
-              {currentView === "register" && (
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="name"
-                    className="text-sm font-medium text-foreground"
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2 text-center relative">
+                {currentView === "forgot" && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setCurrentView("login")}
+                    className="absolute left-0 top-0 p-2"
                   >
-                    Full Name
-                  </Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="John Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="h-12 border-gray-200 focus:ring-0 shadow-none rounded-lg bg-white focus:border-[#3F3FF3]"
-                    required={currentView === "register"}
-                  />
-                </div>
-              )}
-
-              {/* Email field (selalu ditampilkan) */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="email"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="user@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 border-gray-200 focus:ring-0 shadow-none rounded-lg bg-white focus:border-[#3F3FF3]"
-                  required
-                />
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                )}
+                <h1 className="text-2xl font-semibold text-foreground">
+                  {currentView === "login" && "Masuk ke akun"}
+                  {currentView === "register" && "Buat akun baru"}
+                  {currentView === "forgot" && "Reset password"}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {currentView === "login" &&
+                    "Gunakan email dan password Anda untuk mengakses dashboard."}
+                  {currentView === "register" &&
+                    "Daftarkan akun operator untuk mulai menggunakan sistem POS."}
+                  {currentView === "forgot" &&
+                    "Masukkan email Anda, kami akan kirim tautan reset password."}
+                </p>
               </div>
 
-              {/* Password field (tidak untuk forgot password) */}
-              {currentView !== "forgot" && (
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="password"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Password
-                  </Label>
-                  <div className="relative">
+              <div className="space-y-4">
+                {currentView === "register" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nama Lengkap</Label>
                     <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 pr-10 border-gray-200 focus:ring-0 shadow-none rounded-lg bg-white focus:border-[#3F3FF3]"
-                      required={
-                        currentView === "login" || currentView === "register"
-                      }
+                      id="name"
+                      type="text"
+                      placeholder="Nama pengguna"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="h-11"
+                      required
                     />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="nama@toko.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-11"
+                    required
+                  />
+                </div>
+                {currentView !== "forgot" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Masukkan password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="h-11 pr-11"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {currentView === "register" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Konfirmasi Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Ulangi password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="h-11 pr-11"
+                        required
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {currentView === "login" && (
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        id="remember"
+                        className="rounded border-input"
+                      />
+                      Ingat saya
+                    </label>
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent cursor-pointer"
-                      onClick={() => setShowPassword(!showPassword)}
+                      variant="link"
+                      className="h-auto p-0 text-sm"
+                      onClick={() => setCurrentView("forgot")}
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
+                      Lupa password?
                     </Button>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+              <Button type="submit" className="w-full h-11" disabled={loading}>
+                {loading ? (
+                  "Memproses..."
+                ) : (
+                  <>
+                    {currentView === "login" && "Masuk"}
+                    {currentView === "register" && "Buat Akun"}
+                    {currentView === "forgot" && "Kirim Link Reset"}
+                  </>
+                )}
+              </Button>
 
-              {/* Confirm password (hanya untuk register) */}
-              {currentView === "register" && (
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="confirmPassword"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Confirm Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className="h-12 pr-10 border-gray-200 focus:ring-0 shadow-none rounded-lg bg-white focus:border-[#3F3FF3]"
-                      required={currentView === "register"}
-                    />
+              <div className="rounded-lg border bg-muted/40 px-3 py-2.5 text-xs text-muted-foreground flex items-center gap-2">
+                {currentView === "login" ? (
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" />
+                )}
+                {currentView === "login"
+                  ? "Akses aman untuk pengguna terdaftar."
+                  : "Gunakan data valid untuk membuat akun operator."}
+              </div>
+
+              <div className="text-center text-sm text-muted-foreground">
+                {/* {currentView === "login" && (
+                  <>
+                    Belum punya akun?{" "}
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent cursor-pointer"
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
+                      variant="link"
+                      className="h-auto p-0"
+                      onClick={() => setCurrentView("register")}
                     >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      )}
+                      Daftar sekarang
                     </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Remember me dan forgot password (hanya untuk login) */}
-              {currentView === "login" && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="remember"
-                      className="rounded border-gray-300 cursor-pointer"
-                    />
-                    <Label
-                      htmlFor="remember"
-                      className="text-sm text-muted-foreground cursor-pointer"
+                  </>
+                )} */}
+                {currentView === "register" && (
+                  <>
+                    Sudah punya akun?{" "}
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0"
+                      onClick={() => setCurrentView("login")}
                     >
-                      Remember Me
-                    </Label>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="p-0 h-auto text-sm hover:text-opacity-80 cursor-pointer"
-                    style={{ color: "#3F3FF3" }}
-                    onClick={() => setCurrentView("forgot")}
-                  >
-                    Forgot Your Password?
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Submit button */}
-            <Button
-              type="submit"
-              className="w-full h-12 text-sm font-medium text-white hover:opacity-90 rounded-lg shadow-none cursor-pointer"
-              style={{ backgroundColor: "#3F3FF3" }}
-              disabled={loading}
-            >
-              {loading ? (
-                "Loading..."
-              ) : (
-                <>
-                  {currentView === "login" && "Log In"}
-                  {currentView === "register" && "Create Account"}
-                  {currentView === "forgot" && "Send Reset Link"}
-                </>
-              )}
-            </Button>
-            {/* Link untuk pindah antar view */}
-            <div className="text-center text-sm text-muted-foreground">
-              {currentView === "login" && (
-                <>
-                  Belum punya akun?{" "}
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="p-0 h-auto text-sm hover:text-opacity-80 font-medium cursor-pointer"
-                    style={{ color: "#3F3FF3" }}
-                    onClick={() => setCurrentView("register")}
-                  >
-                    Register Now.
-                  </Button>
-                </>
-              )}
-              {currentView === "register" && (
-                <>
-                  Already Have An Account?{" "}
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="p-0 h-auto text-sm hover:text-opacity-80 font-medium cursor-pointer"
-                    style={{ color: "#3F3FF3" }}
-                    onClick={() => setCurrentView("login")}
-                  >
-                    Sign In.
-                  </Button>
-                </>
-              )}
-              {currentView === "forgot" && (
-                <>
-                  Remember Your Password?{" "}
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="p-0 h-auto text-sm hover:text-opacity-80 font-medium cursor-pointer"
-                    style={{ color: "#3F3FF3" }}
-                    onClick={() => setCurrentView("login")}
-                  >
-                    Back to Login.
-                  </Button>
-                </>
-              )}
-            </div>
-          </form>
-        </div>
+                      Masuk
+                    </Button>
+                  </>
+                )}
+                {currentView === "forgot" && (
+                  <>
+                    Ingat password?{" "}
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto p-0"
+                      onClick={() => setCurrentView("login")}
+                    >
+                      Kembali ke login
+                    </Button>
+                  </>
+                )}
+              </div>
+            </form>
+          </div>
+        </section>
       </div>
     </div>
   );

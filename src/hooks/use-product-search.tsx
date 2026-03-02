@@ -1,3 +1,6 @@
+// src/hooks/use-product-search.ts
+// atau src/_hooks/use-product-search.ts (sesuaikan struktur project kamu)
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -6,38 +9,6 @@ import { useProducts } from "@/hooks/products/use-products";
 import { ProductResponse } from "@/services/productService";
 import { toast } from "sonner";
 
-// ============================================
-// HOOK RETURN TYPE
-// ============================================
-
-interface UseProductSearchReturn {
-  // Search state
-  searchInput: string;
-  setSearchInput: (value: string) => void;
-  debouncedSearch: string;
-
-  // Search results
-  searchResults: ProductResponse[];
-  isSearching: boolean;
-
-  // Scanner state
-  isScannerOpen: boolean;
-  openScanner: () => void;
-  closeScanner: () => void;
-  handleScanSuccess: (barcode: string) => void;
-  lastScannedBarcode: string | null;
-  setLastScannedBarcode: (value: string | null) => void;
-
-  // Input ref
-  searchInputRef: React.RefObject<HTMLInputElement | null>;
-  focusSearchInput: () => void;
-  clearSearch: () => void;
-}
-
-// ============================================
-// HOOK PROPS TYPE
-// ============================================
-
 interface UseProductSearchProps {
   minSearchLength?: number;
   searchLimit?: number;
@@ -45,9 +16,25 @@ interface UseProductSearchProps {
   isOpen?: boolean;
 }
 
-// ============================================
-// HOOK IMPLEMENTATION
-// ============================================
+interface UseProductSearchReturn {
+  searchInput: string;
+  setSearchInput: (value: string) => void;
+  debouncedSearch: string;
+  searchResults: ProductResponse[];
+  isSearching: boolean;
+
+  isScannerOpen: boolean;
+  openScanner: () => void;
+  closeScanner: () => void;
+  handleScanSuccess: (barcode: string) => void;
+
+  lastScannedBarcode: string | null;
+  setLastScannedBarcode: (value: string | null) => void;
+
+  searchInputRef: React.RefObject<HTMLInputElement | null>;
+  focusSearchInput: () => void;
+  clearSearch: () => void;
+}
 
 export function useProductSearch({
   minSearchLength = 2,
@@ -55,63 +42,53 @@ export function useProductSearch({
   autoFocusOnMount = true,
   isOpen,
 }: UseProductSearchProps = {}): UseProductSearchReturn {
-  // Search state
   const [searchInput, setSearchInput] = useState("");
-  const debouncedSearch = useDebounce(searchInput, 300);
+  const debouncedSearch = useDebounce(searchInput, 150); // lebih cepat untuk POS
 
-  // Scanner state
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-
-  // Input ref
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch products ketika ada search query
+  // ← PERBAIKAN UTAMA: pakai searchInput langsung supaya Enter langsung jalan
   const { data: productsResult, isLoading: isSearching } = useProducts({
     params: {
-      search: debouncedSearch,
+      search: searchInput, // penting!
       limit: searchLimit,
     },
     queryConfig: {
-      enabled: debouncedSearch.length >= minSearchLength,
+      enabled: searchInput.length >= minSearchLength,
     },
   });
 
   const searchResults = productsResult?.data ?? [];
 
-  // Clear search input when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSearchInput("");
-    }
-  }, [isOpen]);
-
-  // Auto focus on open
-  useEffect(() => {
-    if (isOpen && autoFocusOnMount) {
-      searchInputRef.current?.focus();
-    }
-  }, [isOpen, autoFocusOnMount]);
-
-  // Last scanned barcode state for auto-add
+  // Scanner
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [lastScannedBarcode, setLastScannedBarcode] = useState<string | null>(
     null,
   );
 
-  // Scanner handlers
+  // Auto focus
+  useEffect(() => {
+    if (isOpen && autoFocusOnMount) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    }
+  }, [isOpen, autoFocusOnMount]);
+
+  // Clear saat modal ditutup
+  useEffect(() => {
+    if (!isOpen) setSearchInput("");
+  }, [isOpen]);
+
   const openScanner = () => setIsScannerOpen(true);
   const closeScanner = () => setIsScannerOpen(false);
 
   const handleScanSuccess = (barcode: string) => {
     closeScanner();
     setSearchInput(barcode);
-    setLastScannedBarcode(barcode); // Set barcode for auto-add consumption
+    setLastScannedBarcode(barcode);
     toast.success("Barcode berhasil dipindai");
   };
 
-  // Helper functions
-  const focusSearchInput = () => {
-    searchInputRef.current?.focus();
-  };
+  const focusSearchInput = () => searchInputRef.current?.focus();
 
   const clearSearch = () => {
     setSearchInput("");
@@ -120,24 +97,20 @@ export function useProductSearch({
   };
 
   return {
-    // Search state
     searchInput,
     setSearchInput,
     debouncedSearch,
-
-    // Search results
     searchResults,
     isSearching,
 
-    // Scanner state
     isScannerOpen,
     openScanner,
     closeScanner,
     handleScanSuccess,
+
     lastScannedBarcode,
     setLastScannedBarcode,
 
-    // Input ref
     searchInputRef,
     focusSearchInput,
     clearSearch,

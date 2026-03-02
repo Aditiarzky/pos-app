@@ -33,7 +33,7 @@ import { AnimatedNumber } from "@/components/ui/animated-number";
 import { CardBg } from "@/assets/card-background/card-bg";
 import { Badge } from "@/components/ui/badge";
 import { IconTrolley } from "@tabler/icons-react";
-import { ExpandableContainer } from "@/components/ui/expandable-container";
+import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
 
 // ============================================
 // MAIN CONTENT COMPONENT
@@ -100,14 +100,22 @@ function PurchasesContent() {
       <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
         {" "}
         <div className="overflow-hidden flex gap-2">
-          <IconTrolley className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl text-primary font-geist font-semibold truncate">
-            Pembelian
-          </h1>
+          <span className="w-2 bg-primary" />
+          <div className="flex flex-col">
+            <h1 className="text-2xl text-primary font-geist font-semibold truncate">
+              Pembelian
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Catat transaksi stok masuk dan supplier
+            </p>
+          </div>
         </div>
         <div className="flex gap-2">
           {tab === "history" ? (
-            <Button onClick={handleOpenNewPurchase}>
+            <Button
+              onClick={handleOpenNewPurchase}
+              className="bg-gradient-to-br from-primary to-green-600 dark:to-green-400 hover:brightness-90 rounded-xl"
+            >
               <Plus className="mr-0 sm:mr-2 h-4 w-4" />
               <p className="hidden sm:block">Catat Pembelian</p>
             </Button>
@@ -117,6 +125,7 @@ function PurchasesContent() {
                 setEditingSupplier(null);
                 setIsSupplierFormOpen(true);
               }}
+              className="bg-gradient-to-br from-primary to-green-600 dark:to-green-400 hover:brightness-90 rounded-xl"
             >
               <Plus className="mr-0 sm:mr-2 h-4 w-4" />
               <p className="hidden sm:block">Tambah Supplier</p>
@@ -231,107 +240,105 @@ function AnalyticsCards({
   const formattedPercentage = Math.abs(percentage).toFixed(0);
 
   return (
-    <ExpandableContainer>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4">
-        {/* Total Pembelian */}
-        <Card className="relative overflow-hidden border-none shadow-md">
-          <CardBg />
-          <CardHeader className="pb-2 z-10">
-            <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
-              Total Pembelian
-              <div className="p-2 bg-primary/10 rounded-lg">
-                <ShoppingCart className="h-4 w-4 text-primary" />
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="z-10 pt-0 text-primary">
-            <div className="text-2xl font-bold flex items-baseline gap-1">
-              <span className="text-sm font-medium opacity-70">Rp</span>
-              <AnimatedNumber value={thisMonth} />
+    <StickyCardStack className="animate-in fade-in slide-in-from-top-4 duration-500">
+      {/* Total Pembelian */}
+      <Card className="relative overflow-hidden border-none shadow-md">
+        <CardBg />
+        <CardHeader className="pb-2 z-10">
+          <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+            Total Pembelian
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <ShoppingCart className="h-4 w-4 text-primary" />
             </div>
-            <div className="mt-1 flex items-center gap-2">
-              <Badge
-                variant="outline"
-                className={`text-[8px] px-1 py-0 font-bold ${
-                  isPositive
-                    ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                    : "bg-rose-50 text-rose-600 border-rose-100"
-                }`}
-              >
-                {isPositive ? "+" : "-"}
-                {formattedPercentage}%
-              </Badge>
-              <span className="text-[10px] text-muted-foreground font-medium italic opacity-60">
-                vs bulan lalu
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="z-10 pt-0 text-primary">
+          <div className="text-2xl font-bold flex items-baseline gap-1">
+            <span className="text-sm font-medium opacity-70">Rp</span>
+            <AnimatedNumber value={thisMonth} />
+          </div>
+          <div className="mt-1 flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className={`text-[8px] px-1 py-0 font-bold ${
+                isPositive
+                  ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                  : "bg-rose-50 text-rose-600 border-rose-100"
+              }`}
+            >
+              {isPositive ? "+" : "-"}
+              {formattedPercentage}%
+            </Badge>
+            <span className="text-[10px] text-muted-foreground font-medium italic opacity-60">
+              vs bulan lalu
+            </span>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Transaksi Baru */}
-        <Card className="relative overflow-hidden border-none shadow-md">
-          <CardBg />
-          <CardHeader className="pb-2 z-10">
-            <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
-              Transaksi Baru
-              <div className="p-2 bg-yellow-500/10 rounded-lg">
-                <Receipt className="h-4 w-4 text-yellow-500" />
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="z-10 pt-0 text-primary">
-            <div className="text-2xl font-bold">
-              <AnimatedNumber value={analytics?.newTransactions ?? 0} />
+      {/* Transaksi Baru */}
+      <Card className="relative overflow-hidden border-none shadow-md">
+        <CardBg />
+        <CardHeader className="pb-2 z-10">
+          <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+            Transaksi Baru
+            <div className="p-2 bg-yellow-500/10 rounded-lg">
+              <Receipt className="h-4 w-4 text-yellow-500" />
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-              Tercatat hari ini
-            </p>
-          </CardContent>
-        </Card>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="z-10 pt-0 text-primary">
+          <div className="text-2xl font-bold">
+            <AnimatedNumber value={analytics?.newTransactions ?? 0} />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+            Tercatat hari ini
+          </p>
+        </CardContent>
+      </Card>
 
-        {/* Supplier Aktif */}
-        <Card className="relative overflow-hidden border-none shadow-md">
-          <CardBg />
-          <CardHeader className="pb-2 z-10">
-            <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
-              Supplier Terlibat
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <Truck className="h-4 w-4 text-green-500" />
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="z-10 pt-0 text-primary">
-            <div className="text-2xl font-bold">
-              <AnimatedNumber value={analytics?.activeSuppliers ?? 0} />
+      {/* Supplier Aktif */}
+      <Card className="relative overflow-hidden border-none shadow-md">
+        <CardBg />
+        <CardHeader className="pb-2 z-10">
+          <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+            Supplier Terlibat
+            <div className="p-2 bg-green-500/10 rounded-lg">
+              <Truck className="h-4 w-4 text-green-500" />
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-              Mitra aktif bertransaksi
-            </p>
-          </CardContent>
-        </Card>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="z-10 pt-0 text-primary">
+          <div className="text-2xl font-bold">
+            <AnimatedNumber value={analytics?.activeSuppliers ?? 0} />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+            Mitra aktif bertransaksi
+          </p>
+        </CardContent>
+      </Card>
 
-        {/* Total Item Dibeli */}
-        <Card className="relative overflow-hidden border-none shadow-md">
-          <CardBg />
-          <CardHeader className="pb-2 z-10">
-            <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
-              Item Dibeli
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Box className="h-4 w-4 text-blue-500" />
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="z-10 pt-0 text-primary">
-            <div className="text-2xl font-bold">
-              <AnimatedNumber value={analytics?.todayItemsQty ?? 0} />
+      {/* Total Item Dibeli */}
+      <Card className="relative overflow-hidden border-none shadow-md">
+        <CardBg />
+        <CardHeader className="pb-2 z-10">
+          <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+            Item Dibeli
+            <div className="p-2 bg-blue-500/10 rounded-lg">
+              <Box className="h-4 w-4 text-blue-500" />
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-              Kuantitas masuk hari ini
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </ExpandableContainer>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="z-10 pt-0 text-primary">
+          <div className="text-2xl font-bold">
+            <AnimatedNumber value={analytics?.todayItemsQty ?? 0} />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1 font-medium">
+            Kuantitas masuk hari ini
+          </p>
+        </CardContent>
+      </Card>
+    </StickyCardStack>
   );
 }
 

@@ -26,13 +26,21 @@ function UsersContent() {
     <>
       <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
         <div className="overflow-hidden flex gap-2">
-          <IconShieldLock className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl text-primary font-geist font-semibold truncate">
-            User & Akses
-          </h1>
+          <span className="w-2 bg-primary" />
+          <div className="flex flex-col">
+            <h1 className="text-2xl text-primary font-geist font-semibold truncate">
+              User & Akses
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Kelola pengguna dan izin sistem
+            </p>
+          </div>
         </div>
         <div>
-          <Button onClick={handleCreateNew}>
+          <Button
+            onClick={handleCreateNew}
+            className="bg-gradient-to-br from-primary to-green-600 dark:to-green-400 hover:brightness-90 rounded-xl"
+          >
             <Plus className="mr-0 sm:mr-2 h-4 w-4" />
             <p className="hidden sm:block">Tambah User</p>
           </Button>

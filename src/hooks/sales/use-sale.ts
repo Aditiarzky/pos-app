@@ -6,6 +6,9 @@ import { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { productKeys } from "../products/product-query-options";
 import { debtKeys } from "../debt/debt-query-options";
+import { dashboardKeys } from "../dashboard/dashboard-query-options";
+import { reportKeys } from "../report/report-query-options";
+import { invalidateBusinessData } from "@/lib/query-utils";
 
 type UseCreateSaleOptions = {
   mutationConfig?: MutationConfig<typeof createSale>;
@@ -94,7 +97,7 @@ export const useCreateSale = ({
     ...mutationConfig,
     onSuccess: (data, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({ queryKey: saleKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      invalidateBusinessData(queryClient);
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });
@@ -110,8 +113,7 @@ export const useDeleteSale = ({
     ...mutationConfig,
     onSuccess: (data, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({ queryKey: saleKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: debtKeys.lists() });
+      invalidateBusinessData(queryClient);
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });

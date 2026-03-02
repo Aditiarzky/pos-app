@@ -11,6 +11,9 @@ import {
 import { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { productKeys } from "../products/product-query-options";
+import { dashboardKeys } from "../dashboard/dashboard-query-options";
+import { reportKeys } from "../report/report-query-options";
+import { invalidateBusinessData } from "@/lib/query-utils";
 
 type UseCreateCustomerReturnOptions = {
   mutationConfig?: MutationConfig<typeof createCustomerReturn>;
@@ -102,7 +105,7 @@ export const useCreateCustomerReturn = ({
     ...mutationConfig,
     onSuccess: (data, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({ queryKey: customerReturnKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      invalidateBusinessData(queryClient);
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });
@@ -118,7 +121,7 @@ export const useDeleteCustomerReturn = ({
     ...mutationConfig,
     onSuccess: (data, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({ queryKey: customerReturnKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      invalidateBusinessData(queryClient);
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });

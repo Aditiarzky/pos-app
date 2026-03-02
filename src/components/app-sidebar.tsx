@@ -52,7 +52,7 @@ const navItems: NavItem[] = [
   },
   {
     label: "Pelanggan & Saldo",
-    href: "/dashboard/customer",
+    href: "/dashboard/customers",
     icon: <IconUsers className="w-5 h-5" />,
     roles: ["admin toko"],
   },

@@ -34,11 +34,11 @@ import {
   useUpdatePurchase,
 } from "@/hooks/purchases/use-purchases";
 import { usePurchaseForm } from "../_hooks/use-purchase-form";
-import { useProductSearch } from "../_hooks/use-product-search";
 import { PurchaseFormItem, PurchaseFormProps } from "../_types/purchase-type";
 import { Switch } from "@/components/ui/switch";
 import { ProductResponse } from "@/services/productService";
 import { SearchResultsDropdown } from "@/components/ui/search-product-dropdown";
+import { useProductSearch } from "@/hooks/use-product-search";
 
 export function PurchaseForm({
   isOpen,
@@ -101,7 +101,7 @@ export function PurchaseForm({
     searchInputRef,
     lastScannedBarcode,
     setLastScannedBarcode,
-  } = useProductSearch({ isOpen });
+  } = useProductSearch({ isOpen, autoFocusOnMount: true });
 
   // Auto-add item when barcode is scanned
   useEffect(() => {
@@ -237,6 +237,21 @@ export function PurchaseForm({
                       placeholder="Nama / SKU / Scan..."
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          if (searchResults.length > 0) {
+                            const product = searchResults[0];
+                            const matchedVariant =
+                              product.variants.find(
+                                (v) => v.sku === searchInput,
+                              ) || product.variants[0];
+                            if (matchedVariant) {
+                              handleAddProduct(product, matchedVariant);
+                            }
+                          }
+                        }
+                      }}
                     />
                     <div className="absolute right-1 top-1/2 -translate-y-1/2">
                       <Button

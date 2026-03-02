@@ -10,6 +10,8 @@ import {
   purchaseKeys,
 } from "./purchase-query-options";
 import { productKeys } from "../products/product-query-options";
+import { dashboardKeys } from "../dashboard/dashboard-query-options";
+import { reportKeys } from "../report/report-query-options";
 
 type UseUpdatePurchaseOptions = {
   mutationConfig?: MutationConfig<typeof updatePurchase>;
@@ -49,6 +51,9 @@ export const useCreatePurchase = ({
     onSuccess: (data, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({ queryKey: purchaseKeys.lists() });
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.summary() });
+      queryClient.invalidateQueries({ queryKey: reportKeys.purchases() });
+      queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });

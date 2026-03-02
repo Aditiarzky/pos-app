@@ -30,21 +30,44 @@ import {
   PieChart as PieChartIcon,
 } from "lucide-react";
 import { IconReport } from "@tabler/icons-react";
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
+import {
+  ChartAreaInteractive,
+  ChartData,
+} from "@/components/chart-area-interactive";
 import { ReportPieChart } from "./_components/report-pie-chart";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { CardBg } from "@/assets/card-background/card-bg";
 import { cn } from "@/lib/utils";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Calendar as CalendarIcon } from "lucide-react";
+import {
+  eachDayOfInterval,
+  format,
+  isSameDay,
+  parseISO,
+  startOfDay,
+} from "date-fns";
+import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
 
 const FILTER_OPTIONS = [
+  { label: "Hari Ini", value: "today" },
+  { label: "Kemarin", value: "yesterday" },
   { label: "7 Hari", value: "7d" },
   { label: "30 Hari", value: "30d" },
   { label: "Bulan Ini", value: "thisMonth" },
+  { label: "Bulan Lalu", value: "lastMonth" },
   { label: "Tahun Ini", value: "thisYear" },
+  { label: "Kustom", value: "custom" },
 ];
 
 const getRangeFromOption = (option: string) => {
   const now = new Date();
+  // Set default End of Day (23:59:59)
   const end = new Date(
     now.getFullYear(),
     now.getMonth(),
@@ -54,9 +77,25 @@ const getRangeFromOption = (option: string) => {
     59,
     999,
   );
-  let start = new Date();
+  let start = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0,
+    0,
+    0,
+    0,
+  );
 
   switch (option) {
+    case "today":
+      // start sudah diatur ke 00:00 hari ini
+      break;
+    case "yesterday":
+      start.setDate(now.getDate() - 1);
+      end.setDate(now.getDate() - 1);
+      end.setHours(23, 59, 59, 999);
+      break;
     case "7d":
       start.setDate(now.getDate() - 7);
       break;
@@ -66,9 +105,22 @@ const getRangeFromOption = (option: string) => {
     case "thisMonth":
       start = new Date(now.getFullYear(), now.getMonth(), 1);
       break;
+    case "lastMonth":
+      // Set ke tanggal 1 bulan ini, lalu mundur 1 bulan
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      // End adalah hari terakhir bulan lalu (tanggal 0 dari bulan ini)
+      const lastDayPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+      end.setFullYear(lastDayPrevMonth.getFullYear());
+      end.setMonth(lastDayPrevMonth.getMonth());
+      end.setDate(lastDayPrevMonth.getDate());
+      end.setHours(23, 59, 59, 999);
+      break;
     case "thisYear":
       start = new Date(now.getFullYear(), 0, 1);
       break;
+    case "custom":
+      // Untuk kustom, kita tidak otomatis set range di sini karena butuh input user
+      return null;
     default:
       start = new Date(now.getFullYear(), now.getMonth(), 1);
   }
@@ -80,12 +132,43 @@ const getRangeFromOption = (option: string) => {
 };
 
 const getDefaultDateFilter = () => {
-  return getRangeFromOption("thisMonth");
+  return getRangeFromOption("thisMonth")!;
 };
 
 const calculatePercentageChange = (current: number, previous: number) => {
   if (previous === 0) return current > 0 ? 100 : 0;
   return ((current - previous) / previous) * 100;
+};
+
+const fillDailyGaps = (
+  data: Record<string, string | number>[],
+  startDate: string,
+  endDate: string,
+  keys: string[],
+): ChartData[] => {
+  const start = startOfDay(parseISO(startDate));
+  const end = startOfDay(parseISO(endDate));
+
+  // Generate all days in the range
+  const days = eachDayOfInterval({ start, end });
+
+  return days.map((day) => {
+    const dateStr = format(day, "yyyy-MM-dd");
+    const existing = data.find((d) => isSameDay(parseISO(String(d.date)), day));
+
+    if (existing) {
+      return {
+        ...existing,
+        date: dateStr,
+      };
+    }
+
+    const obj: ChartData = { date: dateStr };
+    keys.forEach((key) => {
+      obj[key] = 0;
+    });
+    return obj;
+  });
 };
 
 const PercentageBadge = ({ value }: { value: number }) => {
@@ -119,31 +202,58 @@ export function ReportContent() {
 
   const reportQuery = useReports({ params: appliedFilter });
 
+  const handleFilterChange = (option: string) => {
+    setSelectedFilter(option);
+    const range = getRangeFromOption(option);
+    if (range) {
+      setAppliedFilter(range);
+    }
+  };
+
+  const handleCustomDateChange = (start: string, end: string) => {
+    if (start && end) {
+      setAppliedFilter({ startDate: start, endDate: end });
+    }
+  };
+
   const summary = reportQuery.data?.data?.summary;
   const topProducts = reportQuery.data?.data?.topProducts ?? [];
-  const dailySummary = reportQuery.data?.data?.daily ?? [];
+
+  const dailySummary = useMemo(() => {
+    const rawDailySummary = (reportQuery.data?.data?.daily ?? []) as Record<
+      string,
+      string | number
+    >[];
+    return fillDailyGaps(
+      rawDailySummary,
+      appliedFilter.startDate,
+      appliedFilter.endDate,
+      ["totalSales", "totalPurchases"],
+    );
+  }, [reportQuery.data?.data?.daily, appliedFilter]);
 
   const netFlow = useMemo(() => {
     if (!summary) return 0;
     return (summary.totalSales || 0) - (summary.totalPurchases || 0);
   }, [summary]);
 
-  const handleFilterChange = (option: string) => {
-    setSelectedFilter(option);
-    setAppliedFilter(getRangeFromOption(option));
-  };
-
   return (
     <div className="container mx-auto space-y-4">
       <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
-        {" "}
-        <div className="overflow-hidden flex items-end gap-2">
-          <IconReport className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl font-semibold text-primary">Laporan</h1>
+        <div className="overflow-hidden flex gap-2">
+          <span className="w-2 bg-primary" />
+          <div className="flex flex-col">
+            <h1 className="text-2xl text-primary font-geist font-semibold truncate">
+              Laporan
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Analisis performa bisnis dan keuangan
+            </p>
+          </div>
         </div>
       </header>
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
-        <div className="flex flex-wrap gap-2 mb-6 p-1 bg-muted/50 rounded-lg w-fit">
+        <div className="flex flex-wrap items-center gap-2 mb-6 p-1 bg-muted/50 rounded-lg w-fit">
           {FILTER_OPTIONS.map((option) => (
             <Button
               key={option.value}
@@ -160,6 +270,60 @@ export function ReportContent() {
               {option.label}
             </Button>
           ))}
+
+          {selectedFilter === "custom" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-2 border-primary/20 bg-primary/5 text-xs font-semibold"
+                >
+                  <CalendarIcon className="h-3.5 w-3.5 text-primary" />
+                  {appliedFilter.startDate} s/d {appliedFilter.endDate}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-auto p-4 flex flex-col gap-4"
+                align="start"
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Mulai
+                    </label>
+                    <Input
+                      type="date"
+                      value={appliedFilter.startDate}
+                      onChange={(e) =>
+                        handleCustomDateChange(
+                          e.target.value,
+                          appliedFilter.endDate,
+                        )
+                      }
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                      Sampai
+                    </label>
+                    <Input
+                      type="date"
+                      value={appliedFilter.endDate}
+                      onChange={(e) =>
+                        handleCustomDateChange(
+                          appliedFilter.startDate,
+                          e.target.value,
+                        )
+                      }
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
 
         {reportQuery.isError ? (
@@ -172,9 +336,9 @@ export function ReportContent() {
             </AlertDescription>
           </Alert>
         ) : null}
-
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Total Sales */}
+        {/* analytics */}
+        <StickyCardStack>
+          {/* Card 1 - Total Penjualan */}
           <Card className="relative overflow-hidden border-none shadow-md">
             <CardBg />
             <CardHeader className="pb-2 z-10">
@@ -205,14 +369,14 @@ export function ReportContent() {
                     />
                   </div>
                   <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground font-medium">
-                    <span>vs periode sebelumnya</span>
+                    vs periode sebelumnya
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Total Purchases */}
+          {/* Card 2 - Total Pembelian */}
           <Card className="relative overflow-hidden border-none shadow-md">
             <CardBg />
             <CardHeader className="pb-2 z-10">
@@ -243,14 +407,14 @@ export function ReportContent() {
                     />
                   </div>
                   <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground font-medium">
-                    <span>vs periode sebelumnya</span>
+                    vs periode sebelumnya
                   </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Total Transactions */}
+          {/* Card 3 - Total Transaksi */}
           <Card className="relative overflow-hidden border-none shadow-md">
             <CardBg />
             <CardHeader className="pb-2 z-10">
@@ -285,8 +449,8 @@ export function ReportContent() {
             </CardContent>
           </Card>
 
-          {/* Total Profit */}
-          <Card className="relative overflow-hidden border-none shadow-md bg-primary/5">
+          {/* Card 4 - Total Laba Bersih */}
+          <Card className="relative overflow-hidden border-none shadow-md bg-muted">
             <CardBg />
             <CardHeader className="pb-2 z-10">
               <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
@@ -322,7 +486,7 @@ export function ReportContent() {
               )}
             </CardContent>
           </Card>
-        </section>
+        </StickyCardStack>
 
         {/* Charts Section */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card";
 import { CustomerSelect } from "@/components/ui/customer-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Loader2, Search, QrCode, Ticket } from "lucide-react";
-import { useProductSearch } from "../../_hooks/use-product-search";
+import { useProductSearch } from "@/hooks/use-product-search";
 import { useSaleForm } from "../../_hooks/use-sale-form";
 import { TransactionCartItems } from "../transaction-cart-items";
 import { ProductResponse } from "@/services/productService";
@@ -149,6 +149,20 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                   placeholder="Nama / SKU / Scan..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (searchResults.length > 0) {
+                        const product = searchResults[0];
+                        const matchedVariant =
+                          product.variants.find((v) => v.sku === searchInput) ||
+                          product.variants[0];
+                        if (matchedVariant) {
+                          handleAddProduct(product, matchedVariant);
+                        }
+                      }
+                    }
+                  }}
                 />
                 <div className="absolute right-1 top-1/2 -translate-y-1/2">
                   <Button

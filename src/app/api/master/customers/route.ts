@@ -20,9 +20,15 @@ export async function GET(request: NextRequest) {
       customers.name,
     );
 
-    const [customersRaw, totalRes] = await Promise.all([
+    // Get Today boundaries for new customers count
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [customersRaw, totalRes, analyticsRes] = await Promise.all([
       db.query.customers.findMany({
-        where: and(eq(customers.isActive, true), searchFilter),
+        where: searchFilter
+          ? and(eq(customers.isActive, true), searchFilter)
+          : eq(customers.isActive, true),
         with: {
           debts: {
             where: and(not(eq(debts.status, "paid")), eq(debts.isActive, true)),
@@ -38,8 +44,32 @@ export async function GET(request: NextRequest) {
       db
         .select({ count: sql<number>`count(*)` })
         .from(customers)
-        .where(and(eq(customers.isActive, true), searchFilter)),
+        .where(
+          searchFilter
+            ? and(eq(customers.isActive, true), searchFilter)
+            : eq(customers.isActive, true),
+        ),
+      db
+        .select({
+          totalCustomers: sql<number>`count(${customers.id})`,
+          totalBalance: sql<number>`coalesce(sum(${customers.creditBalance}), 0)`,
+          newCustomersToday: sql<number>`count(case when ${customers.createdAt} >= ${today.toISOString()} then 1 end)`,
+          totalDebt: sql<number>`(
+            select coalesce(sum(${debts.remainingAmount}), 0)
+            from ${debts}
+            where ${debts.isActive} = true and ${debts.status} != 'paid'
+          )`,
+        })
+        .from(customers)
+        .where(eq(customers.isActive, true)),
     ]);
+
+    const analytics = {
+      totalCustomers: Number(analyticsRes[0]?.totalCustomers || 0),
+      totalBalance: Number(analyticsRes[0]?.totalBalance || 0),
+      newCustomersToday: Number(analyticsRes[0]?.newCustomersToday || 0),
+      totalDebt: Number(analyticsRes[0]?.totalDebt || 0),
+    };
 
     const customersData = customersRaw.map((customer) => {
       const totalDebt = customer.debts.reduce(
@@ -58,6 +88,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: customersData,
       meta: formatMeta(totalCount, params.page, params.limit),
+      analytics,
     });
   } catch (error) {
     console.error("fetch customers error:", error);
