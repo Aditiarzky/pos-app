@@ -21,6 +21,7 @@ export const useUpdateUser = ({
         queryKey: userKeys.detail(variables.id),
       });
       queryClient.invalidateQueries({ queryKey: userKeys.current });
+      queryClient.invalidateQueries({ queryKey: ["auth-me"] });
 
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },

@@ -16,6 +16,8 @@ export type CustomerReturnResponse = CustomerReturnType & {
     insertCustomerReturnItemType & {
       product?: { name: string };
       productVariant?: { name: string };
+      priceAtReturn?: number;
+      unitFactorAtReturn?: number;
     }
   >;
   exchangeItems: Array<

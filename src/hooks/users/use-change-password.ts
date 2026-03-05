@@ -1,22 +1,22 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createUser } from "../../services/userService";
+import { changePassword } from "@/services/userService";
 import { MutationConfig } from "@/lib/react-query";
 import { userKeys } from "./user-query-options";
 
-type UseCreateUserOptions = {
-  mutationConfig?: MutationConfig<typeof createUser>;
+type UseChangePasswordOptions = {
+  mutationConfig?: MutationConfig<typeof changePassword>;
 };
 
-export const useCreateUser = ({
+export const useChangePassword = ({
   mutationConfig,
-}: UseCreateUserOptions = {}) => {
+}: UseChangePasswordOptions = {}) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createUser,
+    mutationFn: changePassword,
     ...mutationConfig,
     onSuccess: (data, variables, onMutateResult, context) => {
-      queryClient.invalidateQueries({ queryKey: userKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: userKeys.current });
       queryClient.invalidateQueries({ queryKey: ["auth-me"] });
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },

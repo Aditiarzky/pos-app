@@ -82,12 +82,6 @@ export async function PUT(
       );
     }
 
-    if (!session.roles.includes("admin sistem")) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden" },
-        { status: 403 },
-      );
-    }
     const { id: rawId } = await params;
     const id = parseInt(rawId);
 
@@ -95,6 +89,16 @@ export async function PUT(
       return NextResponse.json(
         { success: false, error: "Invalid user ID" },
         { status: 400 },
+      );
+    }
+
+    const isSystemAdmin = session.roles.includes("admin sistem");
+    const isUpdatingOwnProfile = session.userId === id;
+
+    if (!isSystemAdmin && !isUpdatingOwnProfile) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
       );
     }
 
@@ -113,6 +117,13 @@ export async function PUT(
     }
 
     const { roles: rolesInput, ...validatedData } = validation.data;
+
+    if (!isSystemAdmin && rolesInput !== undefined) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden to update roles" },
+        { status: 403 },
+      );
+    }
 
     const existingUser = await db.query.users.findFirst({
       where: eq(users.id, id),
@@ -145,7 +156,7 @@ export async function PUT(
         .returning();
 
       // 2. Sync roles
-      if (rolesInput !== undefined) {
+      if (isSystemAdmin && rolesInput !== undefined) {
         await tx.delete(userRoles).where(eq(userRoles.userId, id));
         if (rolesInput.length > 0) {
           await tx.insert(userRoles).values(

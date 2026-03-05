@@ -83,8 +83,26 @@ export async function GET(request: NextRequest) {
           with: {
             customer: true,
             sales: true,
-            items: true,
-            exchangeItems: true,
+            items: {
+              with: {
+                product: {
+                  columns: { name: true },
+                },
+                productVariant: {
+                  columns: { name: true },
+                },
+              },
+            },
+            exchangeItems: {
+              with: {
+                product: {
+                  columns: { name: true },
+                },
+                productVariant: {
+                  columns: { name: true },
+                },
+              },
+            },
           },
         }),
         db

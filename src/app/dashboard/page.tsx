@@ -21,6 +21,7 @@ import {
   TriangleAlert,
   Wallet,
 } from "lucide-react";
+import Image from "next/image";
 import { ReactNode } from "react";
 
 const calculateGrowth = (current: number, previous: number) => {
@@ -198,8 +199,8 @@ export default function DashboardPage() {
               ))}
         </section>
 
-        <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div className="xl:col-span-2">
+        <section className="flex flex-col gap-4">
+          <div className="w-full">
             <ChartAreaInteractive
               data={salesTrend}
               config={{
@@ -213,87 +214,115 @@ export default function DashboardPage() {
               showTimeRange={false}
             />
           </div>
-
-          <Card className="xl:col-span-1 shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center justify-between">
-                Business Alerts
-                <Badge variant="destructive" className="gap-1">
-                  <TriangleAlert className="h-3.5 w-3.5" /> Prioritas
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              {dashboardQuery.isLoading ? (
-                <>
-                  <Skeleton className="h-24 w-full" />
-                  <Skeleton className="h-24 w-full" />
-                </>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold">
-                      Stok di bawah minimum
-                    </p>
-                    {alerts?.lowStockProducts?.length ? (
-                      <ul className="space-y-2">
-                        {alerts.lowStockProducts.map((product) => (
-                          <li
-                            key={product.productId}
-                            className="rounded-lg border p-2.5 text-xs flex items-center justify-between"
-                          >
-                            <span className="font-medium text-sm">
-                              {product.productName}
-                            </span>
-                            <Badge variant="outline">
-                              {formatNumber(product.stock)} /{" "}
-                              {formatNumber(product.minStock)}
-                            </Badge>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Tidak ada stok kritis saat ini.
+          <div>
+            <Card className="xl:col-span-1 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center justify-between">
+                  Business Alerts
+                  <Badge variant="destructive" className="gap-1">
+                    <TriangleAlert className="h-3.5 w-3.5" /> Prioritas
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {dashboardQuery.isLoading ? (
+                  <>
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                  </>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold">
+                        Stok di bawah minimum
                       </p>
-                    )}
-                  </div>
+                      {alerts?.lowStockProducts?.length ? (
+                        <ul className="space-y-2">
+                          {alerts.lowStockProducts.map((product) => (
+                            <li
+                              key={product.productId}
+                              className="group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-card p-2 pr-3 transition-all hover:bg-accent/50 hover:shadow-sm"
+                            >
+                              {/* Container Gambar - Dibuat aspek rasio kotak agar presisi */}
+                              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border bg-muted">
+                                <Image
+                                  src={product.image}
+                                  alt={product.productName}
+                                  fill // Menggunakan fill agar gambar pas di dalam box 12x12
+                                  className="object-cover transition-transform duration-300 group-hover:scale-110"
+                                  sizes="48px"
+                                />
+                              </div>
 
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold">
-                      Daftar Piutang Belum Lunas
-                    </p>
-                    {alerts?.unpaidDebts?.length ? (
-                      <ul className="space-y-2">
-                        {alerts.unpaidDebts.map((debt) => (
-                          <li
-                            key={debt.debtId}
-                            className="rounded-lg border p-2.5 text-xs space-y-1"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-sm">
-                                {debt.customerName}
-                              </span>
-                              <Badge variant="outline">
-                                {debt.ageDays} hari
-                              </Badge>
-                            </div>
-                            <p className="text-rose-600 font-semibold">
-                              {formatCurrency(debt.remainingAmount)}
-                            </p>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        Tidak ada piutang belum lunas.
+                              {/* Info Produk - Menggunakan flex-1 agar teks mengambil sisa ruang */}
+                              <div className="flex flex-1 flex-col min-w-0">
+                                <span className="truncate text-sm font-semibold tracking-tight text-foreground">
+                                  {product.productName}
+                                </span>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                                  ID: {product.productId}{" "}
+                                </p>
+                              </div>
+
+                              {/* Status Stok - Badge dengan styling yang lebih tegas */}
+                              <div className="flex flex-col items-end gap-1">
+                                <Badge
+                                  variant="outline"
+                                  className="font-mono text-[11px] font-bold border-destructive/30 bg-destructive/5"
+                                >
+                                  {formatNumber(product.stock)} /{" "}
+                                  {formatNumber(product.minStock)}
+                                </Badge>
+                                <span className="text-[10px] text-muted-foreground">
+                                  Stok Sisa
+                                </span>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Tidak ada stok kritis saat ini.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold">
+                        Daftar Piutang Belum Lunas
                       </p>
-                    )}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                      {alerts?.unpaidDebts?.length ? (
+                        <ul className="space-y-2">
+                          {alerts.unpaidDebts.map((debt) => (
+                            <li
+                              key={debt.debtId}
+                              className="rounded-lg border p-2.5 text-xs space-y-1"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-sm">
+                                  {debt.customerName}
+                                </span>
+                                <Badge variant="outline">
+                                  {debt.ageDays} hari
+                                </Badge>
+                              </div>
+                              <p className="text-rose-600 font-semibold">
+                                {formatCurrency(debt.remainingAmount)}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Tidak ada piutang belum lunas.
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </section>
       </main>
     </div>

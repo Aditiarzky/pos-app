@@ -46,6 +46,17 @@ export const userRole = p.pgEnum("user_role", ["admin toko", "admin sistem"]);
 
 // Table
 
+export const storeSettings = p.pgTable("store_settings", {
+  id: p.serial("id").primaryKey(),
+  storeName: p.varchar("store_name", { length: 255 }).notNull().default("Nama Toko"),
+  address: p.text("address").default("Alamat Lengkap Toko"),
+  phone: p.varchar("phone", { length: 50 }).default("0812-xxxx-xxxx"),
+  footerMessage: p.text("footer_message").default("Terima kasih telah berbelanja!"),
+  receiptNote: p.text("receipt_note").default("Barang yang sudah dibeli tidak dapat ditukar."),
+  logoUrl: p.text("logo_url"),
+  updatedAt: p.timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const users = p.pgTable(
   "users",
   {

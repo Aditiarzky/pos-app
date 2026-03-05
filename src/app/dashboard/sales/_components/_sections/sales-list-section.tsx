@@ -46,6 +46,11 @@ import { SaleReceipt } from "../_ui/sale-receipt";
 import { Separator } from "@/components/ui/separator";
 import { FilterWrap } from "@/components/filter-wrap";
 import { SalesFilterForm } from "../_ui/sales-filter-form";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface SalesListSectionProps {
   viewMode: "table" | "card";
@@ -137,10 +142,7 @@ export function SalesListSection({
           <Separator orientation="vertical" className="h-10 mx-1 block" />
 
           <div className="text-sm font-medium flex items-center bg-muted/30 px-3 rounded-lg border">
-            Total:{" "}
-            <span className="text-primary font-bold ml-1">
-              {meta?.total || 0}
-            </span>
+            Total: <span className="text-primary font-bold ml-1">{meta?.total || 0}</span>
           </div>
         </div>
       </div>
@@ -159,6 +161,7 @@ export function SalesListSection({
                   <TableHead>No. Invoice</TableHead>
                   <TableHead>Tanggal</TableHead>
                   <TableHead>Customer</TableHead>
+                  <TableHead>Items</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                   <TableHead className="text-right w-24">Aksi</TableHead>
@@ -166,136 +169,218 @@ export function SalesListSection({
               </TableHeader>
               <TableBody>
                 {sales &&
-                  sales.map((sale, idx) => (
-                    <TableRow key={sale.id}>
-                      <TableCell>{(page - 1) * limit + idx + 1}</TableCell>
-                      <TableCell className="font-medium">
-                        {sale.invoiceNumber}
-                      </TableCell>
-                      <TableCell>
-                        {formatDate(sale.createdAt || new Date())}
-                      </TableCell>
-                      <TableCell>{sale.customer?.name || "-"}</TableCell>
-                      <TableCell className="text-right font-bold tabular-nums">
-                        {formatCurrency(Number(sale.totalPrice))}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant={
-                            sale.status === "completed"
-                              ? "default"
-                              : "destructive"
-                          }
-                        >
-                          {getStatusName(sale.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => openReceipt(sale as SaleResponse)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
+                  sales.map((sale, idx) => {
+                    const itemCount = sale.items?.length || 0;
+
+                    return (
+                      <TableRow key={sale.id}>
+                        <TableCell>{(page - 1) * limit + idx + 1}</TableCell>
+                        <TableCell className="font-medium">{sale.invoiceNumber}</TableCell>
+                        <TableCell>{formatDate(sale.createdAt || new Date())}</TableCell>
+                        <TableCell>{sale.customer?.name || "-"}</TableCell>
+                        <TableCell>
+                          <Popover>
+                            <PopoverTrigger asChild>
                               <Button
-                                size="icon"
                                 variant="ghost"
-                                className="text-destructive hover:bg-destructive/10"
+                                className="text-sm font-medium text-primary hover:bg-transparent hover:underline h-auto py-1 px-2 -ml-2"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                {itemCount} item{itemCount !== 1 ? "s" : ""}
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Batalkan Transaksi?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tindakan ini akan mengembalikan stok dan
-                                  membatalkan pencatatan keuangan. Data tidak
-                                  dapat dipulihkan.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Batal</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(sale.id)}
-                                  className="bg-destructive hover:bg-destructive/90"
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80" align="start" sideOffset={4}>
+                              <div className="space-y-3">
+                                <div className="font-semibold text-sm">Daftar Item Penjualan</div>
+                                <div className="space-y-2 text-sm max-h-[240px] overflow-y-auto pr-1">
+                                  {sale.items?.slice(0, 3).map((item) => (
+                                    <div
+                                      key={item.id}
+                                      className="flex justify-between border-l-2 border-primary/20 pl-3 py-1"
+                                    >
+                                      <div className="flex-1">
+                                        <span className="font-medium">
+                                          {item.product?.name || "Unknown Product"}
+                                        </span>
+                                        <span className="text-muted-foreground ml-1">
+                                          ({item.productVariant?.name || "-"})
+                                        </span>
+                                      </div>
+                                      <div className="text-right whitespace-nowrap font-mono">
+                                        {item.qty ?? 0} x {formatCurrency(Number(item.priceAtSale ?? 0))}
+                                      </div>
+                                    </div>
+                                  ))}
+                                  {itemCount > 3 && (
+                                    <div className="text-xs text-muted-foreground pt-2 border-t italic">
+                                      + {itemCount - 3} item lainnya...
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </TableCell>
+                        <TableCell className="text-right font-bold tabular-nums">
+                          {formatCurrency(Number(sale.totalPrice))}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant={
+                              sale.status === "completed" ? "default" : "destructive"
+                            }
+                          >
+                            {getStatusName(sale.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => openReceipt(sale as SaleResponse)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="text-destructive hover:bg-destructive/10"
                                 >
-                                  Batalkan Transaksi
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Batalkan Transaksi?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Tindakan ini akan mengembalikan stok dan
+                                    membatalkan pencatatan keuangan. Data tidak
+                                    dapat dipulihkan.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(sale.id)}
+                                    className="bg-destructive hover:bg-destructive/90"
+                                  >
+                                    Batalkan Transaksi
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
               </TableBody>
             </Table>
           </div>
         ) : (
-          /* ==================== CARD VIEW (Mobile Friendly) ==================== */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {sales &&
               sales.map((sale) => (
                 <Card
                   key={sale.id}
-                  className="p-4 hover:shadow-md transition-shadow"
+                  className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50"
                 >
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <div className="font-bold text-base">
-                        {sale.invoiceNumber}
+                  <div className="relative h-24 overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-4 flex flex-col justify-between">
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col">
+                        <div className="font-mono font-bold text-primary text-lg">
+                          {sale.invoiceNumber}
+                        </div>
+                        <div className="text-xs text-muted-foreground font-medium">
+                          {formatDate(sale.createdAt || new Date())}
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatDate(sale.createdAt || new Date())}
+                      <Badge
+                        variant={sale.status === "completed" ? "default" : "destructive"}
+                      >
+                        {getStatusName(sale.status)}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="p-4 flex-1 flex flex-col gap-4">
+                    <div className="flex justify-between items-start border-b pb-4 border-dashed">
+                      <div>
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
+                          Total Transaksi
+                        </span>
+                        <div className="text-2xl font-black text-primary tracking-tight">
+                          {formatCurrency(Number(sale.totalPrice))}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
+                          Customer
+                        </span>
+                        <div className="font-semibold text-sm max-w-[120px] truncate">
+                          {sale.customer?.name || "Umum"}
+                        </div>
                       </div>
                     </div>
-                    <Badge
-                      variant={
-                        sale.status === "completed" ? "default" : "destructive"
-                      }
-                    >
-                      {getStatusName(sale.status)}
-                    </Badge>
+
+                    <div className="space-y-2 flex-1">
+                      <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+                        <span>Items ({sale.items?.length || 0})</span>
+                      </div>
+                      <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
+                        {sale.items?.slice(0, 3).map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex justify-between text-xs items-center bg-muted/30 p-1.5 rounded-sm"
+                          >
+                            <div className="truncate flex-1 mr-2">
+                              <span className="text-foreground font-medium">
+                                {item.product?.name}
+                              </span>
+                              <span className="text-muted-foreground ml-1 text-[10px]">
+                                ({item.productVariant?.name})
+                              </span>
+                            </div>
+                            <div className="whitespace-nowrap font-mono text-[10px]">
+                              {item.qty} x
+                            </div>
+                          </div>
+                        ))}
+                        {(sale.items?.length || 0) > 3 && (
+                          <div className="text-[10px] text-center text-muted-foreground italic pt-1">
+                            + {(sale.items?.length || 0) - 3} item lainnya...
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex justify-between items-center text-sm mb-4">
-                    <span className="text-muted-foreground">
-                      {sale.customer?.name || "Umum"}
-                    </span>
-                    <span className="font-bold tabular-nums">
-                      {formatCurrency(Number(sale.totalPrice))}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="px-4 py-3 border-t bg-muted/30 flex justify-between items-center gap-2 mt-auto">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => openReceipt(sale as SaleResponse)}
+                      className="h-8 px-3 text-xs"
                     >
-                      <Eye className="mr-2 h-4 w-4" />
+                      <Eye className="mr-1 h-3.5 w-3.5" />
                       Detail
                     </Button>
 
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm">
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Batal
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Batalkan Transaksi?
-                          </AlertDialogTitle>
+                          <AlertDialogTitle>Batalkan Transaksi?</AlertDialogTitle>
                           <AlertDialogDescription>
                             Tindakan ini akan mengembalikan stok dan membatalkan
                             pencatatan keuangan. Data tidak dapat dipulihkan.
@@ -329,7 +414,6 @@ export function SalesListSection({
         />
       )}
 
-      {/* ==================== MODAL NOTA ==================== */}
       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
         <DialogContent className="max-w-[340px] p-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-2">
@@ -337,9 +421,7 @@ export function SalesListSection({
           </DialogHeader>
 
           <div className="px-4 pb-4">
-            {selectedSale && (
-              <SaleReceipt ref={receiptRef} sale={selectedSale} />
-            )}
+            {selectedSale && <SaleReceipt ref={receiptRef} sale={selectedSale} />}
           </div>
 
           <DialogFooter className="px-4 pb-4 flex justify-end gap-2">
@@ -360,7 +442,6 @@ export function SalesListSection({
   );
 }
 
-/* Loading & Empty tetap sama */
 function SalesLoading() {
   return (
     <div className="space-y-3">

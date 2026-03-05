@@ -29,7 +29,6 @@ import {
   CircleDollarSign,
   PieChart as PieChartIcon,
 } from "lucide-react";
-import { IconReport } from "@tabler/icons-react";
 import {
   ChartAreaInteractive,
   ChartData,

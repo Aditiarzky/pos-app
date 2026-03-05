@@ -4,7 +4,7 @@ import React from "react";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, FileText, Settings } from "lucide-react";
+import { Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   IconLayout,

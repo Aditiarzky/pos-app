@@ -1,6 +1,7 @@
 "use client";
 
 import { Bell, Menu, Settings, LogOut } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -92,9 +93,11 @@ export function TopNavbar({
               </div>
             </div>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
-              <Settings className="w-4 h-4 mr-2" />
-              <span>Settings</span>
+            <DropdownMenuItem asChild className="cursor-pointer">
+              <Link href="/dashboard/setting">
+                <Settings className="w-4 h-4 mr-2" />
+                <span>Settings</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem

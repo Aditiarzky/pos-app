@@ -83,6 +83,16 @@ export async function GET(
                 priceAtReturn: true,
                 unitFactorAtReturn: true,
               },
+              with: {
+                product: { columns: { name: true } },
+                productVariant: { columns: { name: true } },
+              },
+            },
+            exchangeItems: {
+              with: {
+                product: { columns: { name: true } },
+                productVariant: { columns: { name: true } },
+              },
             },
           },
         },

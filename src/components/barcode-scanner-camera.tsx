@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Html5Qrcode, Html5QrcodeCameraScanConfig } from "html5-qrcode";
 import {
   Card,
@@ -98,16 +98,6 @@ export default function BarcodeScannerCamera({
     }
   };
 
-  useEffect(() => {
-    isMountedRef.current = true;
-    startScanner();
-
-    return () => {
-      isMountedRef.current = false;
-      stopScanner();
-    };
-  }, []);
-
   const stopScanner = async () => {
     if (isTransitioning.current) return;
 
@@ -118,7 +108,8 @@ export default function BarcodeScannerCamera({
         if (scannerRef.current.isScanning) {
           await scannerRef.current.stop();
         }
-        await scannerRef.current.clear();
+        // Fix Diagnostics: 'clear()' is synchronous, 'await' has no effect.
+        scannerRef.current.clear();
         scannerRef.current = null;
       }
 
@@ -141,7 +132,14 @@ export default function BarcodeScannerCamera({
     }
   };
 
-  const startScanner = async () => {
+  // Fix Diagnostics: useCallback must have a dependency array.
+  // Dependencies for startScanner:
+  // - isTransitioning.current, isMountedRef.current, elementId, scannerRef: stable (ref values or constant)
+  // - setScanResult, setError, setIsScanning, setIsCameraReady: stable (state setters)
+  // - playBeep: stable (function defined outside component)
+  // - stopScanner: stable (function defined in component scope, only uses refs)
+  // - onScanSuccess: prop, potentially unstable, should be in dependency array.
+  const startScanner = useCallback(async () => {
     if (isTransitioning.current || !isMountedRef.current) return;
 
     isTransitioning.current = true;
@@ -175,7 +173,7 @@ export default function BarcodeScannerCamera({
           await stopScanner();
           onScanSuccess(decodedText);
         },
-        () => {},
+        () => { },
       );
 
       setIsCameraReady(true);
@@ -186,15 +184,17 @@ export default function BarcodeScannerCamera({
     } finally {
       isTransitioning.current = false;
     }
-  };
+  }, [onScanSuccess]); // 'onScanSuccess' is the only dependency that can change
 
   useEffect(() => {
+    isMountedRef.current = true;
     startScanner();
 
     return () => {
+      isMountedRef.current = false;
       stopScanner();
     };
-  }, []);
+  }, [startScanner]);
 
   const handleReset = () => {
     startScanner();
@@ -264,7 +264,7 @@ export default function BarcodeScannerCamera({
                   className={cn(
                     "rounded-full h-10 w-10 bg-black/20 backdrop-blur text-white border border-white/20 hover:bg-black/40",
                     torchEnabled &&
-                      "bg-yellow-500/80 text-white border-yellow-500 hover:bg-yellow-600",
+                    "bg-yellow-500/80 text-white border-yellow-500 hover:bg-yellow-600",
                   )}
                   onClick={toggleTorch}
                 >

@@ -135,11 +135,10 @@ export function CustomerDetailSection({
               >
                 <div className="flex items-center gap-3">
                   <div
-                    className={`p-2 rounded-lg ${
-                      Number(mutation.amount) > 0
+                    className={`p-2 rounded-lg ${Number(mutation.amount) > 0
                         ? "bg-emerald-100 text-emerald-600"
                         : "bg-rose-100 text-rose-600"
-                    }`}
+                      }`}
                   >
                     {Number(mutation.amount) > 0 ? (
                       <ArrowDownLeft className="h-4 w-4" />
@@ -159,11 +158,10 @@ export function CustomerDetailSection({
                 </div>
                 <div className="text-right">
                   <div
-                    className={`text-sm font-black ${
-                      Number(mutation.amount) > 0
+                    className={`text-sm font-black ${Number(mutation.amount) > 0
                         ? "text-emerald-600"
                         : "text-rose-600"
-                    }`}
+                      }`}
                   >
                     {Number(mutation.amount) > 0 ? "+" : ""}
                     {formatCurrency(Number(mutation.amount))}

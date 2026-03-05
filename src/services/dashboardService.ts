@@ -22,6 +22,7 @@ export type DashboardLowStockAlert = {
   productName: string;
   stock: number;
   minStock: number;
+  image: string;
 };
 
 export type DashboardUnpaidDebtAlert = {

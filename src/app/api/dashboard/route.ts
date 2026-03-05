@@ -147,6 +147,7 @@ export async function GET() {
           productName: products.name,
           stock: products.stock,
           minStock: products.minStock,
+          image: products.image,
         })
         .from(products)
         .where(
@@ -204,6 +205,7 @@ export async function GET() {
             productName: item.productName,
             stock: Number(item.stock ?? 0),
             minStock: Number(item.minStock ?? 0),
+            image: item.image,
           })),
           unpaidDebts: unpaidDebts.map((item) => ({
             debtId: item.debtId,
