@@ -16,6 +16,7 @@ export const invalidateBusinessData = (queryClient: QueryClient) => {
     customerKeys.lists(),
     saleKeys.lists(),
     purchaseKeys.lists(),
+    ["notifications"],
   ];
 
   keys.forEach((queryKey) => {

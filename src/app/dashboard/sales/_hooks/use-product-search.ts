@@ -11,27 +11,27 @@ import { toast } from "sonner";
 // ============================================
 
 interface UseProductSearchReturn {
-  // Search state
-  searchInput: string;
-  setSearchInput: (value: string) => void;
-  debouncedSearch: string;
+    // Search state
+    searchInput: string;
+    setSearchInput: (value: string) => void;
+    debouncedSearch: string;
 
-  // Search results
-  searchResults: ProductResponse[];
-  isSearching: boolean;
+    // Search results
+    searchResults: ProductResponse[];
+    isSearching: boolean;
 
-  // Scanner state
-  isScannerOpen: boolean;
-  openScanner: () => void;
-  closeScanner: () => void;
-  handleScanSuccess: (barcode: string) => void;
-  lastScannedBarcode: string | null;
-  setLastScannedBarcode: (value: string | null) => void;
+    // Scanner state
+    isScannerOpen: boolean;
+    openScanner: () => void;
+    closeScanner: () => void;
+    handleScanSuccess: (barcode: string) => void;
+    lastScannedBarcode: string | null;
+    setLastScannedBarcode: (value: string | null) => void;
 
-  // Input ref
-  searchInputRef: React.RefObject<HTMLInputElement | null>;
-  focusSearchInput: () => void;
-  clearSearch: () => void;
+    // Input ref
+    searchInputRef: React.RefObject<HTMLInputElement | null>;
+    focusSearchInput: () => void;
+    clearSearch: () => void;
 }
 
 // ============================================
@@ -39,10 +39,10 @@ interface UseProductSearchReturn {
 // ============================================
 
 interface UseProductSearchProps {
-  minSearchLength?: number;
-  searchLimit?: number;
-  autoFocusOnMount?: boolean;
-  isOpen?: boolean;
+    minSearchLength?: number;
+    searchLimit?: number;
+    autoFocusOnMount?: boolean;
+    isOpen?: boolean;
 }
 
 // ============================================
@@ -50,96 +50,96 @@ interface UseProductSearchProps {
 // ============================================
 
 export function useProductSearch({
-  minSearchLength = 2,
-  searchLimit = 10,
-  autoFocusOnMount = true,
-  isOpen,
+    minSearchLength = 0,
+    searchLimit = 10,
+    autoFocusOnMount = true,
+    isOpen,
 }: UseProductSearchProps = {}): UseProductSearchReturn {
-  // Search state
-  const [searchInput, setSearchInput] = useState("");
-  const debouncedSearch = useDebounce(searchInput, 300);
-
-  // Scanner state
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-
-  // Input ref
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // Fetch products ketika ada search query
-  const { data: productsResult, isLoading: isSearching } = useProducts({
-    params: {
-      search: debouncedSearch,
-      limit: searchLimit,
-    },
-    queryConfig: {
-      enabled: debouncedSearch.length >= minSearchLength,
-    },
-  });
-
-  const searchResults = productsResult?.data ?? [];
-
-  // Clear search input when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSearchInput("");
-    }
-  }, [isOpen]);
-
-  // Auto focus on open
-  useEffect(() => {
-    if (isOpen && autoFocusOnMount) {
-      searchInputRef.current?.focus();
-    }
-  }, [isOpen, autoFocusOnMount]);
-
-  // Last scanned barcode state for auto-add
-  const [lastScannedBarcode, setLastScannedBarcode] = useState<string | null>(
-    null,
-  );
-
-  // Scanner handlers
-  const openScanner = () => setIsScannerOpen(true);
-  const closeScanner = () => setIsScannerOpen(false);
-
-  const handleScanSuccess = (barcode: string) => {
-    closeScanner();
-    setSearchInput(barcode);
-    setLastScannedBarcode(barcode); // Set barcode for auto-add consumption
-    toast.success("Barcode berhasil dipindai");
-  };
-
-  // Helper functions
-  const focusSearchInput = () => {
-    searchInputRef.current?.focus();
-  };
-
-  const clearSearch = () => {
-    setSearchInput("");
-    setLastScannedBarcode(null);
-    focusSearchInput();
-  };
-
-  return {
     // Search state
-    searchInput,
-    setSearchInput,
-    debouncedSearch,
-
-    // Search results
-    searchResults,
-    isSearching,
+    const [searchInput, setSearchInput] = useState("");
+    const debouncedSearch = useDebounce(searchInput, 3);
 
     // Scanner state
-    isScannerOpen,
-    openScanner,
-    closeScanner,
-    handleScanSuccess,
-    lastScannedBarcode,
-    setLastScannedBarcode,
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
 
     // Input ref
-    searchInputRef,
-    focusSearchInput,
-    clearSearch,
-  };
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Fetch products ketika ada search query
+    const { data: productsResult, isLoading: isSearching } = useProducts({
+        params: {
+            search: debouncedSearch,
+            limit: searchLimit,
+        },
+        queryConfig: {
+            enabled: debouncedSearch.length >= minSearchLength,
+        },
+    });
+
+    const searchResults = productsResult?.data ?? [];
+
+    // Clear search input when modal closes
+    useEffect(() => {
+        if (!isOpen) {
+            setSearchInput("");
+        }
+    }, [isOpen]);
+
+    // Auto focus on open
+    useEffect(() => {
+        if (isOpen && autoFocusOnMount) {
+            searchInputRef.current?.focus();
+        }
+    }, [isOpen, autoFocusOnMount]);
+
+    // Last scanned barcode state for auto-add
+    const [lastScannedBarcode, setLastScannedBarcode] = useState<string | null>(
+        null,
+    );
+
+    // Scanner handlers
+    const openScanner = () => setIsScannerOpen(true);
+    const closeScanner = () => setIsScannerOpen(false);
+
+    const handleScanSuccess = (barcode: string) => {
+        closeScanner();
+        setSearchInput(barcode);
+        setLastScannedBarcode(barcode); // Set barcode for auto-add consumption
+        toast.success("Barcode berhasil dipindai");
+    };
+
+    // Helper functions
+    const focusSearchInput = () => {
+        searchInputRef.current?.focus();
+    };
+
+    const clearSearch = () => {
+        setSearchInput("");
+        setLastScannedBarcode(null);
+        focusSearchInput();
+    };
+
+    return {
+        // Search state
+        searchInput,
+        setSearchInput,
+        debouncedSearch,
+
+        // Search results
+        searchResults,
+        isSearching,
+
+        // Scanner state
+        isScannerOpen,
+        openScanner,
+        closeScanner,
+        handleScanSuccess,
+        lastScannedBarcode,
+        setLastScannedBarcode,
+
+        // Input ref
+        searchInputRef,
+        focusSearchInput,
+        clearSearch,
+    };
 }

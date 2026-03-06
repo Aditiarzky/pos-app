@@ -44,7 +44,6 @@ export default function LoginPage() {
         router.push("/dashboard");
       }
     } catch (error: unknown) {
-      console.error("Network/Login error:", error);
       toast.error((error as ApiResponse)?.error || "Login gagal");
     } finally {
       setLoading(false);

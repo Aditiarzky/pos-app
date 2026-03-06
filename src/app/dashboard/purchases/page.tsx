@@ -32,7 +32,6 @@ import { useQueryState } from "@/hooks/use-query-state";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { CardBg } from "@/assets/card-background/card-bg";
 import { Badge } from "@/components/ui/badge";
-import { IconTrolley } from "@tabler/icons-react";
 import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
 
 // ============================================
@@ -260,11 +259,10 @@ function AnalyticsCards({
           <div className="mt-1 flex items-center gap-2">
             <Badge
               variant="outline"
-              className={`text-[8px] px-1 py-0 font-bold ${
-                isPositive
+              className={`text-[8px] px-1 py-0 font-bold ${isPositive
                   ? "bg-emerald-50 text-emerald-600 border-emerald-100"
                   : "bg-rose-50 text-rose-600 border-rose-100"
-              }`}
+                }`}
             >
               {isPositive ? "+" : "-"}
               {formattedPercentage}%

@@ -15,6 +15,8 @@ import {
   IconUsers,
   IconShieldLock,
   IconReport,
+  IconTrash,
+  IconBell,
 } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -61,6 +63,18 @@ const navItems: NavItem[] = [
     href: "/dashboard/report",
     icon: <IconReport className="w-5 h-5" />,
     roles: ["admin toko"],
+  },
+  {
+    label: "Notifikasi",
+    href: "/dashboard/notifications",
+    icon: <IconBell className="w-5 h-5" />,
+    roles: ["admin toko", "admin sistem"],
+  },
+  {
+    label: "Tempat Sampah",
+    href: "/dashboard/trash",
+    icon: <IconTrash className="w-5 h-5" />,
+    roles: ["admin toko", "admin sistem"],
   },
   {
     label: "User & Akses",

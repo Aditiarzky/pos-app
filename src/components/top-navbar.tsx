@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Menu, Settings, LogOut } from "lucide-react";
+import { Menu, Settings, LogOut } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,7 @@ import LogoNav from "@/assets/logo-nav/logo-nav";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "./theme-toggle";
 import { UserResponse } from "@/services/authService";
+import { NotificationPanel } from "./notification-panel";
 
 interface TopNavbarProps {
   onToggleSidebar: () => void;
@@ -46,10 +47,7 @@ export function TopNavbar({
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
-        </Button>
+        <NotificationPanel />
         <ThemeToggle />
 
         {/* Account Menu */}

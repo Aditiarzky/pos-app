@@ -373,7 +373,7 @@ export async function DELETE(
 
       const [archivedSale] = await tx
         .update(sales)
-        .set({ isArchived: true, status: "cancelled" })
+        .set({ isArchived: true, status: "cancelled", deletedAt: new Date() })
         .where(eq(sales.id, saleId))
         .returning();
 

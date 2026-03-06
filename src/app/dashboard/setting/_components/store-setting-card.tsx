@@ -6,7 +6,7 @@ import { AxiosError } from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Building2, Loader2, Pencil } from "lucide-react";
+import { Building2, Eye, Loader2, MoreVertical, Pencil } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -25,9 +25,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useGetStoreSetting, useUpdateStoreSetting } from "@/hooks/store-setting/use-setting";
 import { ApiResponse } from "@/services/productService";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const storeSettingSchema = z.object({
   id: z.number().optional(),
@@ -122,15 +123,57 @@ export function StoreSettingCard() {
             Kelola informasi toko yang tampil di aplikasi dan struk.
           </CardDescription>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setActiveView("form")}
-        >
-          <Pencil className="h-4 w-4 mr-1" />
-          Edit
-        </Button>
+        <div className="hidden md:flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={activeView === "preview"}
+            onClick={handleCancel}
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            Preview
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setActiveView("form")}
+            disabled={activeView === "form"}
+          >
+            <Pencil className="h-4 w-4 mr-1" />
+            Edit
+          </Button>
+        </div>
+        <div className="md:hidden">
+          <Popover>
+            <PopoverTrigger>
+              <MoreVertical className="w-4 h-4" />
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-fit flex p-2 flex-col items-start">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={activeView === "preview"}
+                onClick={handleCancel}
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                Preview
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveView("form")}
+                disabled={activeView === "form"}
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+            </PopoverContent>
+          </Popover>
+        </div>
       </CardHeader>
 
       <CardContent>

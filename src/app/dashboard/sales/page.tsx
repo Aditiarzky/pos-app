@@ -27,7 +27,6 @@ import { cn } from "@/lib/utils";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { useSaleList } from "@/hooks/sales/use-sale";
-import { IconCalculator } from "@tabler/icons-react";
 import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
 
 // ============================================
@@ -300,7 +299,7 @@ function SalesContent() {
 
             {/* Cashier Forms */}
             {cashierMode === "sales" ? (
-              <TransactionForm onSuccess={() => {}} />
+              <TransactionForm onSuccess={() => { }} />
             ) : (
               <ReturnForm />
             )}

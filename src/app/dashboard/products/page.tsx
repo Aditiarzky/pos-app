@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   LayoutPanelTopIcon,
   Loader2,
-  Package,
   PackageIcon,
   Plus,
   Table,

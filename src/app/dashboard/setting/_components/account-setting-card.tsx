@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { AxiosError } from "axios";
 import { toast } from "sonner";
-import { Loader2, Lock, Pencil, ShieldCheck, UserCog } from "lucide-react";
+import { Eye, Loader2, Lock, Mail, MoreVertical, Pencil, ShieldCheck, UserCog } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -25,15 +25,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useUpdateUser } from "@/hooks/users/use-update-user";
 import { useChangePassword } from "@/hooks/users/use-change-password";
 import { ChangePasswordInputType, changePasswordSchema } from "@/lib/validations/user";
 import { ApiResponse, UserResponse } from "@/services/userService";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const profileSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
-  email: z.string().email("Email tidak valid"),
+  email: z.email("Email tidak valid"),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -47,6 +48,16 @@ type FormMode = "profile" | "password";
 const getErrorMessage = (error: unknown, fallback: string) => {
   const err = error as AxiosError<ApiResponse>;
   return err.response?.data?.error || err.message || fallback;
+};
+
+// Helper untuk mengambil inisial nama
+const getInitials = (name?: string) => {
+  if (!name) return "??";
+  const parts = name.split(" ");
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return parts[0][0].toUpperCase();
 };
 
 export function AccountSettingCard({ user }: AccountSettingCardProps) {
@@ -142,8 +153,8 @@ export function AccountSettingCard({ user }: AccountSettingCardProps) {
   };
 
   return (
-    <Card className="border shadow-sm">
-      <CardHeader className="flex flex-row items-start justify-between gap-3">
+    <Card className="border shadow-sm gap-0 p-0 overflow-hidden">
+      <CardHeader className="flex flex-row pt-4 items-start justify-between gap-3 border-b bg-muted/30">
         <div className="space-y-1">
           <CardTitle className="text-base flex items-center gap-2">
             <UserCog className="h-4 w-4 text-primary" />
@@ -154,64 +165,129 @@ export function AccountSettingCard({ user }: AccountSettingCardProps) {
           </CardDescription>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="hidden md:flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleCancelForm}
+            disabled={activeView === "preview"}
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            Preview
+          </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleEditProfile}
+            disabled={activeView === "form" && formMode === "profile"}
           >
             <Pencil className="h-4 w-4 mr-1" />
-            Edit
+            Edit Profil
           </Button>
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleEditPassword}
+            disabled={activeView === "form" && formMode === "password"}
           >
             <Lock className="h-4 w-4 mr-1" />
             Ganti Password
           </Button>
         </div>
+        <div className="md:hidden">
+          <Popover>
+            <PopoverTrigger>
+              <MoreVertical className="h-4 w-4" />
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-fit flex p-2 flex-col items-start">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleCancelForm}
+                disabled={activeView === "preview"}
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                Preview
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleEditProfile}
+                disabled={activeView === "form" && formMode === "profile"}
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                Edit Profil
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleEditPassword}
+                disabled={activeView === "form" && formMode === "password"}
+              >
+                <Lock className="h-4 w-4 mr-1" />
+                Ganti Password
+              </Button>
+            </PopoverContent>
+          </Popover>
+        </div>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="p-0">
         <Tabs
           value={activeView}
           onValueChange={(value) => setActiveView(value as "preview" | "form")}
-          className="space-y-4"
         >
-          <TabsContent value="preview" className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Nama</p>
-                <p className="font-medium">{user?.name || "-"}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-muted-foreground">Email</p>
-                <p className="font-medium">{user?.email || "-"}</p>
-              </div>
-            </div>
+          <TabsContent value="preview" className="m-0">
+            {/* Social Media Style Header */}
+            <div className="relative">
+              {/* Background Header dengan kombinasi Primary & Secondary */}
+              <div className="h-32 w-full bg-gradient-to-r from-primary/20 via-secondary/20 to-primary/10 border-b" />
 
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">Role</p>
-              <div className="flex flex-wrap gap-2">
-                {joinedRoles.length > 0 ? (
-                  joinedRoles.map((role) => (
-                    <Badge key={role} variant="secondary" className="capitalize">
-                      <ShieldCheck className="h-3.5 w-3.5 mr-1" />
-                      {role}
-                    </Badge>
-                  ))
-                ) : (
-                  <p className="text-sm font-medium">-</p>
-                )}
+              <div className="px-6 pb-6">
+                {/* Profile Photo (Initial) */}
+                <div className="relative -mt-12 mb-4">
+                  <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-card bg-primary text-2xl font-bold text-primary-foreground shadow-md">
+                    {getInitials(user?.name)}
+                  </div>
+                </div>
+
+                {/* User Information */}
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <h3 className="text-2xl font-bold tracking-tight">{user?.name || "User Name"}</h3>
+                    <div className="flex items-center text-muted-foreground gap-2">
+                      <Mail className="h-4 w-4" />
+                      <span className="text-sm">{user?.email || "-"}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Roles & Permissions</p>
+                    <div className="flex flex-wrap gap-2">
+                      {joinedRoles.length > 0 ? (
+                        joinedRoles.map((role) => (
+                          <Badge key={role} variant="secondary" className="px-3 py-1 capitalize border-primary/10">
+                            <ShieldCheck className="h-3.5 w-3.5 mr-1.5 text-primary" />
+                            {role}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Tidak ada role tersemat</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </TabsContent>
 
-          <TabsContent value="form">
+          <TabsContent value="form" className="p-6 m-0">
             {formMode === "profile" ? (
               <Form {...profileForm}>
                 <form
@@ -246,10 +322,10 @@ export function AccountSettingCard({ user }: AccountSettingCardProps) {
                     )}
                   />
 
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-end gap-2 pt-2">
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="ghost"
                       onClick={handleCancelForm}
                       disabled={isPending}
                     >
@@ -310,10 +386,10 @@ export function AccountSettingCard({ user }: AccountSettingCardProps) {
                     )}
                   />
 
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-end gap-2 pt-2">
                     <Button
                       type="button"
-                      variant="outline"
+                      variant="ghost"
                       onClick={handleCancelForm}
                       disabled={isPending}
                     >
