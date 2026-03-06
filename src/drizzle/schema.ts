@@ -641,3 +641,30 @@ export const customerBalanceMutations = p.pgTable(
     userId: p.integer("user_id"),
   },
 );
+
+export const notificationStates = p.pgTable(
+  "notification_states",
+  {
+    id: p.serial("id").primaryKey(),
+    userId: p
+      .integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    notificationId: p.varchar("notification_id", { length: 255 }).notNull(),
+    readAt: p.timestamp("read_at"),
+    dismissedAt: p.timestamp("dismissed_at"),
+    createdAt: p.timestamp("created_at").defaultNow().notNull(),
+    updatedAt: p
+      .timestamp("updated_at")
+      .defaultNow()
+      .$onUpdateFn(() => new Date())
+      .notNull(),
+  },
+  (t) => [
+    p.uniqueIndex("notification_states_user_notification_uidx").on(
+      t.userId,
+      t.notificationId,
+    ),
+    p.index("notification_states_user_idx").on(t.userId),
+  ],
+);

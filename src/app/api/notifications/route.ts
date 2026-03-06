@@ -9,11 +9,11 @@ import {
 } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { handleApiError } from "@/lib/api-utils";
+import { verifySession } from "@/lib/auth";
 import {
   getTrashCleanupEvents,
-  isNotificationDismissed,
-  isNotificationRead,
 } from "./_lib/notification-store";
+import { getNotificationStateMap } from "./_lib/notification-state-db";
 
 type NotificationSeverity = "info" | "warning" | "critical";
 type NotificationCategory = "system" | "stock" | "trash";
@@ -203,19 +203,43 @@ async function getExpiredTrashCount(cutoffDate: Date) {
   );
 }
 
-const applyNotificationState = (item: Omit<NotificationItem, "read">): NotificationItem | null => {
-  if (isNotificationDismissed(item.id)) {
+const applyNotificationState = (
+  item: Omit<NotificationItem, "read">,
+  stateMap: Map<string, { readAt: Date | null; dismissedAt: Date | null }>,
+): NotificationItem | null => {
+  const state = stateMap.get(item.id);
+
+  if (state?.dismissedAt) {
     return null;
   }
 
+  const notificationTime = new Date(item.createdAt).getTime();
+  const readTime = state?.readAt ? new Date(state.readAt).getTime() : 0;
+
+  // For low-stock, treat newer occurrences as unread again.
+  // This lets a product become unread when it re-enters low-stock state
+  // after being previously read.
+  const isRead =
+    item.type === "low_stock"
+      ? Boolean(state?.readAt) && readTime >= notificationTime
+      : Boolean(state?.readAt);
+
   return {
     ...item,
-    read: isNotificationRead(item.id),
+    read: isRead,
   };
 };
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Not authenticated" },
+        { status: 401 },
+      );
+    }
+
     const limit = normalizeLimit(request.nextUrl.searchParams.get("limit"), 50);
     const cutoffDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
@@ -257,14 +281,21 @@ export async function GET(request: NextRequest) {
         ]
         : [];
 
-    const allNotifications = [
+    const allRawNotifications = [
       ...lowStock,
       ...weeklyRestock,
       ...monthlyRestock,
       ...expiredTrashNotification,
       ...cleanupEventNotifications,
-    ]
-      .map((item) => applyNotificationState(item))
+    ];
+
+    const stateMap = await getNotificationStateMap(
+      session.userId,
+      allRawNotifications.map((item) => item.id),
+    );
+
+    const allNotifications = allRawNotifications
+      .map((item) => applyNotificationState(item, stateMap))
       .filter((item): item is NotificationItem => item !== null)
       .sort((a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),

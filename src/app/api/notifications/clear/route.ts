@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleApiError } from "@/lib/api-utils";
-import { clearReadNotifications } from "../_lib/notification-store";
+import { verifySession } from "@/lib/auth";
+import { clearReadNotifications } from "../_lib/notification-state-db";
 
 type ClearPayload = {
   ids?: string[];
@@ -8,6 +9,14 @@ type ClearPayload = {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Not authenticated" },
+        { status: 401 },
+      );
+    }
+
     let payload: ClearPayload = {};
 
     try {
@@ -20,7 +29,10 @@ export async function DELETE(request: NextRequest) {
       (id): id is string => Boolean(id && id.trim()),
     );
 
-    const count = clearReadNotifications(ids.length ? ids : undefined);
+    const count = await clearReadNotifications(
+      session.userId,
+      ids.length ? ids : undefined,
+    );
 
     return NextResponse.json({
       success: true,

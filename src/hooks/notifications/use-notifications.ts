@@ -20,6 +20,7 @@ export const getNotificationsQueryOptions = (params?: { limit?: number }) =>
     queryFn: () => getNotifications(params),
     refetchInterval: 60000,
     refetchOnWindowFocus: true,
+    refetchOnMount: "always",
   });
 
 type UseNotificationsOptions = {

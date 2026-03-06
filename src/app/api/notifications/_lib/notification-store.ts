@@ -6,8 +6,6 @@ type TrashCleanupEvent = {
 };
 
 type NotificationStateStore = {
-  readIds: Set<string>;
-  dismissedIds: Set<string>;
   trashCleanupEvents: TrashCleanupEvent[];
 };
 
@@ -19,55 +17,11 @@ declare global {
 const getStore = (): NotificationStateStore => {
   if (!globalThis.__notificationStateStore) {
     globalThis.__notificationStateStore = {
-      readIds: new Set<string>(),
-      dismissedIds: new Set<string>(),
       trashCleanupEvents: [],
     };
   }
 
   return globalThis.__notificationStateStore;
-};
-
-export const isNotificationRead = (id: string) => getStore().readIds.has(id);
-
-export const isNotificationDismissed = (id: string) =>
-  getStore().dismissedIds.has(id);
-
-export const markNotificationsAsRead = (ids: string[]) => {
-  const store = getStore();
-
-  ids.forEach((id) => {
-    if (id) {
-      store.readIds.add(id);
-    }
-  });
-
-  return ids.length;
-};
-
-export const clearReadNotifications = (ids?: string[]) => {
-  const store = getStore();
-
-  if (!ids || ids.length === 0) {
-    const readIds = [...store.readIds];
-    readIds.forEach((id) => {
-      store.dismissedIds.add(id);
-      store.readIds.delete(id);
-    });
-
-    return readIds.length;
-  }
-
-  let cleared = 0;
-  ids.forEach((id) => {
-    if (store.readIds.has(id)) {
-      store.dismissedIds.add(id);
-      store.readIds.delete(id);
-      cleared += 1;
-    }
-  });
-
-  return cleared;
 };
 
 export const appendTrashCleanupEvent = ({

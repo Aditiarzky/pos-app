@@ -12,6 +12,7 @@ import {
 import { productKeys } from "../products/product-query-options";
 import { dashboardKeys } from "../dashboard/dashboard-query-options";
 import { reportKeys } from "../report/report-query-options";
+import { notificationKeys } from "../notifications/use-notifications";
 
 type UseUpdatePurchaseOptions = {
   mutationConfig?: MutationConfig<typeof updatePurchase>;
@@ -54,6 +55,7 @@ export const useCreatePurchase = ({
       queryClient.invalidateQueries({ queryKey: dashboardKeys.summary() });
       queryClient.invalidateQueries({ queryKey: reportKeys.purchases() });
       queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });
@@ -73,6 +75,7 @@ export const useUpdatePurchase = ({
         queryKey: purchaseKeys.detail(variables.id),
       });
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });
@@ -89,6 +92,7 @@ export const useDeletePurchase = ({
     onSuccess: (data, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({ queryKey: purchaseKeys.lists() });
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateProduct } from "@/services/productService";
 import { MutationConfig } from "@/lib/react-query";
 import { productKeys } from "./product-query-options";
+import { notificationKeys } from "@/hooks/notifications/use-notifications";
 
 type UseUpdateProductOptions = {
   mutationConfig?: MutationConfig<typeof updateProduct>;
@@ -20,6 +21,7 @@ export const useUpdateProduct = ({
       queryClient.invalidateQueries({
         queryKey: productKeys.detail(variables.id),
       });
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });

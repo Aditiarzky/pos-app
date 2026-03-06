@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { deleteProduct } from "@/services/productService";
 import { MutationConfig } from "@/lib/react-query";
 import { productKeys } from "./product-query-options";
+import { notificationKeys } from "@/hooks/notifications/use-notifications";
 
 type UseDeleteProductOptions = {
   mutationConfig?: MutationConfig<typeof deleteProduct>;
@@ -17,6 +18,7 @@ export const useDeleteProduct = ({
     ...mutationConfig,
     onSuccess: (data, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: notificationKeys.all });
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });

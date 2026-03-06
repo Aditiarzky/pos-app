@@ -185,6 +185,7 @@ export const usersRelations = relations(schema.users, ({ many }) => ({
   sales: many(schema.sales),
   customerReturns: many(schema.customerReturns),
   stockMutations: many(schema.stockMutations),
+  notificationStates: many(schema.notificationStates),
 }));
 
 export const userRolesRelations = relations(schema.userRoles, ({ one }) => ({
@@ -230,6 +231,16 @@ export const debtPaymentsRelations = relations(
     debt: one(schema.debts, {
       fields: [schema.debtPayments.debtId],
       references: [schema.debts.id],
+    }),
+  }),
+);
+
+export const notificationStatesRelations = relations(
+  schema.notificationStates,
+  ({ one }) => ({
+    user: one(schema.users, {
+      fields: [schema.notificationStates.userId],
+      references: [schema.users.id],
     }),
   }),
 );

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleApiError } from "@/lib/api-utils";
-import { markNotificationsAsRead } from "../_lib/notification-store";
+import { verifySession } from "@/lib/auth";
+import { markNotificationsAsRead } from "../_lib/notification-state-db";
 
 type MarkReadPayload = {
   id?: string;
@@ -9,6 +10,14 @@ type MarkReadPayload = {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Not authenticated" },
+        { status: 401 },
+      );
+    }
+
     const payload = (await request.json()) as MarkReadPayload;
     const ids = [payload.id, ...(payload.ids || [])]
       .filter((id): id is string => Boolean(id && id.trim()))
@@ -21,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const count = markNotificationsAsRead(ids);
+    const count = await markNotificationsAsRead(session.userId, ids);
 
     return NextResponse.json({
       success: true,
