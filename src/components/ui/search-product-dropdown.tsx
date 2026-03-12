@@ -1,6 +1,6 @@
-import { Loader2 } from "lucide-react";
 import { ProductResponse } from "@/services/productService";
 import { formatCurrency } from "@/lib/format";
+import { Loader } from "@/components/ui/loading";
 
 interface SearchResultsDropdownProps {
   isSearching: boolean;
@@ -20,7 +20,7 @@ export function SearchResultsDropdown({
     <div className="absolute top-full left-0 right-0 z-50 mt-1.5 max-h-60 overflow-y-auto rounded-md border bg-popover shadow-md text-sm">
       {isSearching ? (
         <div className="flex items-center justify-center p-4 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+          <Loader className="mr-2" size="sm" />
           <span className="text-xs">Mencari...</span>
         </div>
       ) : searchResults.length === 0 ? (
@@ -71,7 +71,7 @@ export function SearchResultsDropdown({
                         HPP:{" "}
                         {formatCurrency(
                           Number(product.averageCost) *
-                            Number(variant.conversionToBase),
+                          Number(variant.conversionToBase),
                         )}
                       </div>
                     )}

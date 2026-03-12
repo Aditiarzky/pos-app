@@ -4,6 +4,8 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { forwardRef } from "react";
 import { ReturnResult } from "../../_hooks/use-return-form";
 import Barcode from "react-barcode";
+import { useGetStoreSetting } from "@/hooks/store-setting/use-setting";
+import Image from "next/image";
 
 interface ReturnReceiptProps {
   result: ReturnResult;
@@ -15,6 +17,15 @@ interface ReturnReceiptProps {
  */
 export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
   function ReturnReceipt({ result }, ref) {
+    const { data: settingResult } = useGetStoreSetting();
+    const setting = settingResult?.data;
+    const storeName = setting?.storeName || "TOKO ADITIARZKY";
+    const storeAddress = setting?.address || "Jl. Raya No. 123, Kota ABC";
+    const storePhone = setting?.phone || "0812-3456-7890";
+    const footerMessage = setting?.footerMessage || "*** TERIMA KASIH ***";
+    const receiptNote =
+      setting?.receiptNote || "Retur telah diproses sesuai kebijakan toko.";
+
     const fontMono =
       "'Courier New', Courier, 'Lucida Console', Monaco, monospace";
     const dashedBorder: React.CSSProperties = {
@@ -52,6 +63,18 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
       >
         {/* Header */}
         <div style={{ textAlign: "center", paddingTop: "4px" }}>
+          {setting?.logoUrl ? (
+            <Image
+              src={setting.logoUrl}
+              alt="Logo toko"
+              width={56}
+              height={56}
+              style={{
+                objectFit: "contain",
+                margin: "0 auto 4px",
+              }}
+            />
+          ) : null}
           <h2
             style={{
               fontSize: "14px",
@@ -61,13 +84,13 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
               margin: "0 0 2px 0",
             }}
           >
-            TOKO ADITIARZKY
+            {storeName}
           </h2>
           <p style={{ fontSize: "9px", margin: "1px 0" }}>
-            Jl. Raya No. 123, Kota ABC
+            {storeAddress}
           </p>
           <p style={{ fontSize: "9px", margin: "1px 0" }}>
-            Telp: 0812-3456-7890
+            Telp: {storePhone}
           </p>
         </div>
 
@@ -296,10 +319,10 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           }}
         >
           <p style={{ fontWeight: 700, fontSize: "10px", margin: "0 0 4px 0" }}>
-            *** TERIMA KASIH ***
+            {footerMessage}
           </p>
           <p style={{ fontSize: "8px", lineHeight: "1.1", margin: 0 }}>
-            Retur telah diproses sesuai kebijakan toko.
+            {receiptNote}
           </p>
         </div>
       </div>

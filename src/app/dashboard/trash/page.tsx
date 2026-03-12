@@ -4,9 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ArchiveRestore,
+  Filter,
+  LayoutGrid,
   Loader2,
   MoreHorizontal,
   SearchX,
+  Table2,
   Trash2,
 } from "lucide-react";
 
@@ -92,6 +95,8 @@ export default function TrashPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [searchInput, setSearchInput] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"all" | TrashItemPayload["type"]>("all");
+  const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const [selectedMap, setSelectedMap] = useState<Record<string, TrashItemPayload>>({});
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
@@ -102,6 +107,7 @@ export default function TrashPage() {
       page,
       limit,
       search: debouncedSearch || undefined,
+      type: typeFilter === "all" ? undefined : typeFilter,
     },
   });
 
@@ -217,8 +223,6 @@ export default function TrashPage() {
 
     setConfirmAction(null);
 
-    // After a successful mutation, clear the selected items that were part of the action.
-    // This logic was already present and correct for both restore and force-delete.
     setSelectedMap((prev) => {
       const next = { ...prev };
       for (const item of confirmAction.items) {
@@ -245,71 +249,119 @@ export default function TrashPage() {
       </header>
 
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
-        <Card className="p-4 space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <SearchInput
-              placeholder="Cari nama data / nomor dokumen..."
-              value={searchInput}
-              onChange={(value) => {
-                setSearchInput(value);
-                setPage(1);
-              }}
-            />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <SearchInput
+            placeholder="Cari nama data / nomor dokumen..."
+            value={searchInput}
+            onChange={(value) => {
+              setSearchInput(value);
+              setPage(1);
+            }}
+          />
 
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Filter className="h-4 w-4 mr-0 sm:mr-2" />
+                  <p className="hidden sm:block">Filter</p>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setTypeFilter("all")}>
+                  Semua Tipe
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTypeFilter("product")}>
+                  Product
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTypeFilter("sale")}>
+                  Sale
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTypeFilter("purchase")}>
+                  Purchase
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTypeFilter("customer")}>
+                  Customer
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <div className="h-10 w-[1px] bg-border mx-1 hidden sm:block" />
             <div className="flex gap-2">
               <Button
-                variant="outline"
-                onClick={() => openBulkAction("restore")}
-                disabled={selectedItems.length === 0 || isMutating}
+                variant={viewMode === "table" ? "default" : "outline"}
+                size="icon"
+                onClick={() => setViewMode("table")}
+                className="sm:flex"
+                title="Tampilan Tabel"
               >
-                <ArchiveRestore className="h-4 w-4 mr-2" />
-                Restore Selected
+                <Table2 className="h-4 w-4" />
               </Button>
               <Button
-                variant="destructive"
-                onClick={() => openBulkAction("force-delete")}
-                disabled={selectedItems.length === 0 || isMutating}
+                variant={viewMode === "card" ? "default" : "outline"}
+                size="icon"
+                onClick={() => setViewMode("card")}
+                className="sm:flex"
+                title="Tampilan Kartu"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Permanently
+                <LayoutGrid className="h-4 w-4" />
               </Button>
             </div>
-          </div>
 
-          <div className="text-sm text-muted-foreground">
-            {selectedItems.length > 0
-              ? `${selectedItems.length} data dipilih`
-              : `Total ${meta?.total || 0} data di trash`}
+            <Button
+              variant="outline"
+              onClick={() => openBulkAction("restore")}
+              disabled={selectedItems.length === 0 || isMutating}
+            >
+              <ArchiveRestore className="h-4 w-4 mr-0 sm:mr-2" />
+              <p className="hidden sm:block">Restore Selected</p>
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => openBulkAction("force-delete")}
+              disabled={selectedItems.length === 0 || isMutating}
+            >
+              <Trash2 className="h-4 w-4 mr-0 sm:mr-2" />
+              <p className="hidden sm:block">Delete Permanently</p>
+            </Button>
           </div>
+        </div>
 
-          {trashQuery.isLoading ? (
-            <div className="rounded-md border overflow-hidden">
+        <div className="text-sm text-muted-foreground">
+          {selectedItems.length > 0
+            ? `${selectedItems.length} data dipilih`
+            : `Total ${meta?.total || 0} data di trash${typeFilter !== "all" ? ` (${getTypeLabel(typeFilter)})` : ""}`}
+        </div>
+
+        {trashQuery.isLoading ? (
+          viewMode === "table" ? (
+            <div className="overflow-hidden">
               <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead className="w-12" />
-                    <TableHead>Nama / ID</TableHead>
-                    <TableHead>Tipe</TableHead>
-                    <TableHead>Tanggal Dihapus</TableHead>
-                    <TableHead className="w-20 text-right">Aksi</TableHead>
+                <TableHeader className="bg-muted/20 border-t border-b border-border/50">
+                  <TableRow className="border-none">
+                    <TableHead className="w-12 text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide" />
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Nama / ID</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tipe</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tanggal Dihapus</TableHead>
+                    <TableHead className="w-20 text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <TableRow key={i}>
-                      <TableCell>
+                    <TableRow key={i} className="border-b border-border/30 last:border-none">
+                      <TableCell className="px-2 sm:px-4 py-2">
                         <Skeleton className="h-4 w-4" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2">
                         <Skeleton className="h-4 w-48" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2">
                         <Skeleton className="h-6 w-20" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2">
                         <Skeleton className="h-4 w-36" />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2">
                         <Skeleton className="h-8 w-8 ml-auto" />
                       </TableCell>
                     </TableRow>
@@ -317,120 +369,182 @@ export default function TrashPage() {
                 </TableBody>
               </Table>
             </div>
-          ) : trashQuery.isError ? (
-            <Card className="p-8 text-center text-destructive border-dashed">
-              <p className="font-semibold">Gagal memuat data trash</p>
-              <p className="text-sm mt-1 text-muted-foreground">
-                {getErrorMessage(trashQuery.error)}
-              </p>
-              <Button
-                variant="outline"
-                className="mt-4"
-                onClick={() => trashQuery.refetch()}
-              >
-                Coba Lagi
-              </Button>
-            </Card>
-          ) : rows.length === 0 ? (
-            <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed text-muted-foreground min-h-[280px]">
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 text-2xl">
-                <SearchX />
-              </div>
-              <h3 className="text-lg font-medium text-foreground">
-                Tempat sampah kosong
-              </h3>
-              <p className="text-sm max-w-xs mx-auto">
-                Belum ada data terhapus, atau tidak ada yang cocok dengan pencarian.
-              </p>
-            </Card>
           ) : (
-            <div className="rounded-md border overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table className="min-w-[760px]">
-                  <TableHeader className="bg-muted/30">
-                    <TableRow>
-                      <TableHead className="w-12">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-[170px] sm:h-[200px] rounded-xl" />
+              ))}
+            </div>
+          )
+        ) : trashQuery.isError ? (
+          <Card className="p-8 text-center text-destructive border-dashed">
+            <p className="font-semibold">Gagal memuat data trash</p>
+            <p className="text-sm mt-1 text-muted-foreground">
+              {getErrorMessage(trashQuery.error)}
+            </p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => trashQuery.refetch()}
+            >
+              Coba Lagi
+            </Button>
+          </Card>
+        ) : rows.length === 0 ? (
+          <Card className="flex flex-col items-center justify-center p-12 text-center border-dashed text-muted-foreground min-h-[280px]">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 text-2xl">
+              <SearchX />
+            </div>
+            <h3 className="text-lg font-medium text-foreground">
+              Tempat sampah kosong
+            </h3>
+            <p className="text-sm max-w-xs mx-auto">
+              Belum ada data terhapus, atau tidak ada yang cocok dengan pencarian.
+            </p>
+          </Card>
+        ) : viewMode === "table" ? (
+          <div className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table className="min-w-[760px]">
+                <TableHeader className="bg-muted/20 border-t border-b border-border/50">
+                  <TableRow className="border-none">
+                    <TableHead className="w-12 text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      <Checkbox
+                        checked={isCurrentPageAllChecked}
+                        onCheckedChange={(checked) =>
+                          toggleSelectAllPage(Boolean(checked))
+                        }
+                      />
+                    </TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Nama / ID</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tipe</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tanggal Dihapus</TableHead>
+                    <TableHead className="w-20 text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rows.map((row) => (
+                    <TableRow key={`${row.type}:${row.id}`} className="hover:bg-muted/50 transition-colors border-b border-border/30 last:border-none">
+                      <TableCell className="px-2 sm:px-4 py-2">
                         <Checkbox
-                          checked={isCurrentPageAllChecked}
+                          checked={selectedMap[`${row.type}:${row.id}`] !== undefined}
                           onCheckedChange={(checked) =>
-                            toggleSelectAllPage(Boolean(checked))
+                            toggleOne(row, Boolean(checked))
                           }
                         />
-                      </TableHead>
-                      <TableHead>Nama / ID</TableHead>
-                      <TableHead>Tipe</TableHead>
-                      <TableHead>Tanggal Dihapus</TableHead>
-                      <TableHead className="w-20 text-right">Aksi</TableHead>
+                      </TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2">
+                        <div className="font-medium">{row.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {row.type.toUpperCase()} #{row.id}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2">
+                        <Badge variant="secondary">{getTypeLabel(row.type)}</Badge>
+                      </TableCell>
+                      <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 text-muted-foreground">
+                        {row.deleted_at ? formatDate(row.deleted_at) : "-"}
+                      </TableCell>
+                      <TableCell className="text-right px-2 sm:px-4 py-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => openSingleAction("restore", row)}
+                            >
+                              <ArchiveRestore className="h-4 w-4 mr-2" />
+                              Restore
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => openSingleAction("force-delete", row)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Permanently
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rows.map((row) => (
-                      <TableRow key={`${row.type}:${row.id}`}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedMap[`${row.type}:${row.id}`] !== undefined}
-                            onCheckedChange={(checked) =>
-                              toggleOne(row, Boolean(checked))
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">{row.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {row.type.toUpperCase()} #{row.id}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">{getTypeLabel(row.type)}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          {row.deleted_at ? formatDate(row.deleted_at) : "-"}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => openSingleAction("restore", row)}
-                              >
-                                <ArchiveRestore className="h-4 w-4 mr-2" />
-                                Restore
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => openSingleAction("force-delete", row)}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete Permanently
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
+            {rows.map((row) => (
+              <Card
+                key={`${row.type}:${row.id}`}
+                className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50"
+              >
+                <div className="relative h-20 sm:h-24 overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-2.5 sm:p-4 flex items-start justify-between">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-xs sm:text-sm truncate">{row.name}</div>
+                    <div className="text-[10px] sm:text-xs text-muted-foreground">
+                      {row.type.toUpperCase()} #{row.id}
+                    </div>
+                  </div>
+                  <Checkbox
+                    checked={selectedMap[`${row.type}:${row.id}`] !== undefined}
+                    onCheckedChange={(checked) => toggleOne(row, Boolean(checked))}
+                  />
+                </div>
 
-          {meta && meta.totalPages > 0 && (
-            <AppPagination
-              currentPage={page}
-              totalPages={meta.totalPages}
-              onPageChange={setPage}
-              limit={limit}
-              onLimitChange={(newLimit) => {
-                setLimit(newLimit);
-                setPage(1);
-              }}
-            />
-          )}
-        </Card>
+                <div className="p-2.5 sm:p-4 flex-1 space-y-2">
+                  <Badge variant="secondary" className="text-[10px] w-fit">
+                    {getTypeLabel(row.type)}
+                  </Badge>
+                  <div className="text-[10px] sm:text-xs text-muted-foreground">
+                    {row.deleted_at ? formatDate(row.deleted_at) : "-"}
+                  </div>
+                </div>
+
+                <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 flex justify-end mt-auto">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => openSingleAction("restore", row)}
+                      >
+                        <ArchiveRestore className="h-4 w-4 mr-2" />
+                        Restore
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive"
+                        onClick={() => openSingleAction("force-delete", row)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Permanently
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {meta && meta.totalPages > 0 && (
+          <AppPagination
+            currentPage={page}
+            totalPages={meta.totalPages}
+            onPageChange={setPage}
+            limit={limit}
+            onLimitChange={(newLimit) => {
+              setLimit(newLimit);
+              setPage(1);
+            }}
+          />
+        )}
       </main>
 
       <AlertDialog

@@ -17,6 +17,8 @@ import { Debt } from "@/services/debtService";
 import { DebtPaymentDialog } from "../debt-payment-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
+import { FilterWrap } from "@/components/filter-wrap";
+import { DebtFilterForm } from "../_ui/debt-filter-form";
 
 interface DebtListSectionProps {
   viewMode?: "table" | "card";
@@ -27,8 +29,14 @@ export function DebtListSection({
   viewMode = "table",
   search = "",
 }: DebtListSectionProps) {
+  const [statusFilter, setStatusFilter] = useState<"active" | "unpaid" | "partial">(
+    "active",
+  );
+  const [customerId, setCustomerId] = useState<number | undefined>();
+
   const { debts, isLoading } = useDebts({
-    status: "active",
+    status: statusFilter,
+    customerId,
     search: search || undefined,
   });
 
@@ -59,16 +67,12 @@ export function DebtListSection({
 
   const activeDebts = debts || [];
 
-  if (activeDebts.length === 0) {
-    if (search) {
-      return (
-        <div className="p-8 text-center text-muted-foreground border border-dashed rounded-xl">
-          Tidak ada piutang ditemukan untuk pencarian ini.
-        </div>
-      );
-    }
-    return null;
-  }
+  const hasActiveFilters = statusFilter !== "active" || !!customerId;
+
+  const resetFilters = () => {
+    setStatusFilter("active");
+    setCustomerId(undefined);
+  };
 
   const totalDebt = activeDebts.reduce(
     (acc, curr) => acc + Number(curr.remainingAmount),
@@ -77,56 +81,68 @@ export function DebtListSection({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold flex items-center gap-2 text-destructive">
+      <div className="flex flex-col md:flex-row md:items-center gap-2 justify-between">
+        <h3 className="text-lg font-bold flex items-center gap-2 w-full text-destructive">
           <AlertCircle className="h-5 w-5" />
           Piutang Belum Lunas
         </h3>
-        <div className="text-sm font-medium">
-          Total Piutang:{" "}
-          <span className="text-destructive font-bold">
-            {formatCurrency(totalDebt)}
-          </span>
+        <div className="flex items-center gap-2 md:justify-end justify-between w-full">
+          <FilterWrap hasActiveFilters={hasActiveFilters}>
+            <DebtFilterForm
+              status={statusFilter}
+              setStatus={setStatusFilter}
+              customerId={customerId}
+              setCustomerId={setCustomerId}
+              resetFilters={resetFilters}
+              isDropdown
+            />
+          </FilterWrap>
+          <div className="text-sm font-medium">
+            Total Piutang:{" "}
+            <span className="text-destructive font-bold">
+              {formatCurrency(totalDebt)}
+            </span>
+          </div>
         </div>
       </div>
-
-      {viewMode === "table" ? (
-        <div className="rounded-md border overflow-hidden bg-background shadow-sm">
+      {activeDebts.length === 0 && <DebtEmpty searchInput={search} />}
+      {activeDebts.length > 0 && viewMode === "table" ? (
+        <div className="overflow-hidden bg-background">
           <Table>
-            <TableHeader className="bg-destructive/5 text-destructive-foreground">
-              <TableRow>
-                <TableHead className="text-destructive">Tanggal</TableHead>
-                <TableHead className="text-destructive">Invoice</TableHead>
-                <TableHead className="text-destructive">Customer</TableHead>
-                <TableHead className="text-right text-destructive">
+            <TableHeader className="bg-muted/20 border-t border-b border-border/50">
+              <TableRow className="border-none">
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tanggal</TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Invoice</TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Customer</TableHead>
+                <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
                   Total Hutang
                 </TableHead>
-                <TableHead className="text-right text-destructive">
+                <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
                   Sisa
                 </TableHead>
-                <TableHead className="text-center text-destructive">
+                <TableHead className="text-center text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
                   Status
                 </TableHead>
-                <TableHead className="text-right text-destructive w-24">
+                <TableHead className="text-right w-24 text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
                   Aksi
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {activeDebts.map((debt) => (
-                <TableRow key={debt.id}>
-                  <TableCell>{formatDate(debt.createdAt)}</TableCell>
-                  <TableCell className="font-medium font-mono text-xs">
+                <TableRow key={debt.id} className="hover:bg-muted/50 transition-colors border-b border-border/30 last:border-none">
+                  <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">{formatDate(debt.createdAt)}</TableCell>
+                  <TableCell className="font-medium font-mono text-[12px] sm:text-xs px-2 sm:px-4 py-2">
                     {debt.sale?.invoiceNumber}
                   </TableCell>
-                  <TableCell>{debt.customer?.name}</TableCell>
-                  <TableCell className="text-right text-muted-foreground tabular-nums">
+                  <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-semibold">{debt.customer?.name}</TableCell>
+                  <TableCell className="text-right text-muted-foreground tabular-nums text-[12px] sm:text-sm px-2 sm:px-4 py-2">
                     {formatCurrency(Number(debt.originalAmount))}
                   </TableCell>
-                  <TableCell className="text-right font-bold text-destructive tabular-nums">
+                  <TableCell className="text-right font-bold text-destructive tabular-nums text-[12px] sm:text-sm px-2 sm:px-4 py-2">
                     {formatCurrency(Number(debt.remainingAmount))}
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="text-center px-2 sm:px-4 py-2">
                     <Badge
                       variant={
                         debt.status === "partial" ? "secondary" : "destructive"
@@ -136,7 +152,7 @@ export function DebtListSection({
                       {getStatusName(debt.status)}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right px-2 sm:px-4 py-2">
                     <Button
                       size="sm"
                       variant="default"
@@ -153,15 +169,15 @@ export function DebtListSection({
         </div>
       ) : (
         /* CARD VIEW FOR DEBT */
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
           {activeDebts.map((debt) => (
             <div
               key={debt.id}
-              className="p-4 bg-background rounded-xl border border-destructive/10 hover:shadow-md transition-all space-y-3 relative group"
+              className="p-2.5 sm:p-4 bg-background rounded-xl border border-destructive/10 shadow-sm hover:shadow-md transition-all space-y-2 sm:space-y-3 relative group"
             >
               <div className="flex justify-between items-start">
                 <div>
-                  <div className="font-mono text-xs font-bold text-destructive bg-destructive/5 px-2 py-0.5 rounded-full inline-block mb-1">
+                  <div className="font-mono text-[10px] sm:text-xs font-bold text-destructive bg-destructive/5 px-2 py-0.5 rounded-full inline-block mb-1">
                     {debt.sale?.invoiceNumber}
                   </div>
                   <div className="text-[10px] text-muted-foreground flex items-center gap-1">
@@ -179,7 +195,7 @@ export function DebtListSection({
               </div>
 
               <div>
-                <div className="text-sm font-bold truncate">
+                <div className="text-xs sm:text-sm font-bold truncate">
                   {debt.customer?.name || "-"}
                 </div>
                 <div className="flex justify-between items-end mt-2">
@@ -187,13 +203,13 @@ export function DebtListSection({
                     <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
                       Sisa Tagihan
                     </span>
-                    <span className="text-lg font-black text-destructive tabular-nums">
+                    <span className="text-sm sm:text-lg font-black text-destructive tabular-nums">
                       {formatCurrency(Number(debt.remainingAmount))}
                     </span>
                   </div>
                   <Button
                     size="sm"
-                    className="h-8 bg-destructive hover:bg-destructive/90 text-xs font-bold px-4"
+                    className="h-7 sm:h-8 bg-destructive hover:bg-destructive/90 text-[10px] sm:text-xs font-bold px-2.5 sm:px-4"
                     onClick={() => handlePay(debt)}
                   >
                     BAYAR
@@ -224,4 +240,14 @@ export function DebtListSection({
 
 function DebtLoading() {
   return <Skeleton className="h-32 w-full" />;
+}
+
+function DebtEmpty({ searchInput }: { searchInput?: string }) {
+  return (
+    <div className="p-12 text-center text-muted-foreground border border-dashed rounded-xl">
+      {searchInput
+        ? `Tidak ada data piutang ditemukan untuk "${searchInput}"`
+        : "Tidak ada data piutang."}
+    </div>
+  );
 }

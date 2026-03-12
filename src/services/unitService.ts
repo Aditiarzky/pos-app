@@ -4,21 +4,61 @@ import { ApiResponse } from "./productService";
 export type UnitResponse = {
   id: number;
   name: string;
-  symbol: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
+  usageCount?: number;
 };
 
-export const getUnits = async (): Promise<ApiResponse<UnitResponse[]>> => {
-  const response = await axiosInstance.get("/master/units");
+export type GetUnitsParams = {
+  includeDeleted?: boolean;
+  search?: string;
+};
+
+export const getUnits = async (
+  params?: GetUnitsParams,
+): Promise<ApiResponse<UnitResponse[]>> => {
+  const response = await axiosInstance.get("/units", { params });
   return response.data;
 };
 
 export const createUnit = async (data: {
   name: string;
-  symbol: string;
+  symbol?: string;
 }): Promise<ApiResponse<UnitResponse>> => {
-  const response = await axiosInstance.post("/master/units", data);
+  const response = await axiosInstance.post("/units", data);
+  return response.data;
+};
+
+export const updateUnit = async ({
+  id,
+  ...data
+}: {
+  id: number;
+  name: string;
+}): Promise<ApiResponse<UnitResponse>> => {
+  const response = await axiosInstance.patch(`/units/${id}`, data);
+  return response.data;
+};
+
+export const deleteUnit = async (
+  id: number,
+): Promise<ApiResponse<UnitResponse>> => {
+  const response = await axiosInstance.delete(`/units/${id}`);
+  return response.data;
+};
+
+export const restoreUnit = async (
+  id: number,
+): Promise<ApiResponse<UnitResponse>> => {
+  const response = await axiosInstance.post(`/units/${id}/restore`);
+  return response.data;
+};
+
+export const forceDeleteUnit = async (
+  id: number,
+): Promise<ApiResponse<UnitResponse>> => {
+  const response = await axiosInstance.delete(`/units/${id}/force`);
   return response.data;
 };

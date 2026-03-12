@@ -106,7 +106,7 @@ export interface PurchaseFormProps {
 }
 
 export interface PurchaseListSectionProps {
-  onEdit: (purchase: PurchaseResponse) => void;
+  onEdit?: (purchase: PurchaseResponse) => void;
 }
 
 // ============================================

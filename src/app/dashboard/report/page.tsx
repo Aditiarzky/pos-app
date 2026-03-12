@@ -338,7 +338,7 @@ export function ReportContent() {
         {/* analytics */}
         <StickyCardStack>
           {/* Card 1 - Total Penjualan */}
-          <Card className="relative overflow-hidden border-none shadow-md">
+          <Card className="relative overflow-hidden border-none shadow-md text-primary">
             <CardBg />
             <CardHeader className="pb-2 z-10">
               <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
@@ -376,7 +376,7 @@ export function ReportContent() {
           </Card>
 
           {/* Card 2 - Total Pembelian */}
-          <Card className="relative overflow-hidden border-none shadow-md">
+          <Card className="relative overflow-hidden border-none shadow-md text-primary">
             <CardBg />
             <CardHeader className="pb-2 z-10">
               <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
@@ -414,7 +414,7 @@ export function ReportContent() {
           </Card>
 
           {/* Card 3 - Total Transaksi */}
-          <Card className="relative overflow-hidden border-none shadow-md">
+          <Card className="relative overflow-hidden border-none shadow-md text-primary">
             <CardBg />
             <CardHeader className="pb-2 z-10">
               <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">

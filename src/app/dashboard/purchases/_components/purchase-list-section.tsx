@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppPagination } from "@/components/app-pagination";
 import { Button } from "@/components/ui/button";
-import { LayoutList, SearchX, LayoutGrid, Table2 } from "lucide-react";
+import { LayoutList, SearchX, LayoutGrid, Table2, PrinterIcon } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { Badge } from "@/components/ui/badge";
 
@@ -26,9 +26,17 @@ import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { FilterWrap } from "@/components/filter-wrap";
 import { PurchaseFilterForm } from "./_ui/purchase-filter-form";
+import { usePrintReceipt } from "../../sales/_hooks/use-print-receipt";
+import { PurchaseReceipt } from "./_ui/purchase-receipt";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function PurchaseListSection({
-  onEdit,
   // Optional props for direct injection
   purchases: injectedPurchases,
   isLoading: injectedIsLoading,
@@ -72,6 +80,16 @@ export function PurchaseListSection({
   const handleDelete = injectedOnDelete ?? internalData.handleDelete;
 
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
+  const [selectedPurchase, setSelectedPurchase] = useState<PurchaseResponse | null>(
+    null,
+  );
+  const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const { receiptRef, handlePrint } = usePrintReceipt();
+
+  const openReceipt = (purchase: PurchaseResponse) => {
+    setSelectedPurchase(purchase);
+    setIsReceiptOpen(true);
+  };
 
   // ============================================
   // RENDER
@@ -132,22 +150,22 @@ export function PurchaseListSection({
       <div className="min-h-[300px]">
         {isLoading ? (
           viewMode === "table" ? (
-            <div className="rounded-md border hidden md:block">
+            <div className="overflow-hidden hidden md:block">
               <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead className="font-bold">No.</TableHead>
-                    <TableHead className="font-bold">No. Invoice</TableHead>
-                    <TableHead className="font-bold text-center">
+                <TableHeader className="bg-muted/20 border-t border-b border-border/50">
+                  <TableRow className="border-none">
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Invoice</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-center font-semibold text-muted-foreground uppercase tracking-wide">
                       Tanggal
                     </TableHead>
-                    <TableHead className="font-bold">Supplier</TableHead>
-                    <TableHead className="font-bold">Items</TableHead>
-                    <TableHead className="text-right font-bold">
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Supplier</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Items</TableHead>
+                    <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
                       Total Amount
                     </TableHead>
-                    <TableHead className="font-bold">Dicatat Oleh</TableHead>
-                    <TableHead className="text-right font-bold w-20">
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Dicatat Oleh</TableHead>
+                    <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide w-20">
                       Aksi
                     </TableHead>
                   </TableRow>
@@ -158,7 +176,7 @@ export function PurchaseListSection({
               </Table>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i} className="h-48 sm:h-64 animate-pulse" />
               ))}
@@ -166,22 +184,22 @@ export function PurchaseListSection({
           )
         ) : purchases.length === 0 ? (
           viewMode === "table" ? (
-            <div className="rounded-md border">
+            <div className="overflow-hidden">
               <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead className="font-bold">No.</TableHead>
-                    <TableHead className="font-bold">No. Invoice</TableHead>
-                    <TableHead className="font-bold text-center">
+                <TableHeader className="bg-muted/20 border-t border-b border-border/50">
+                  <TableRow className="border-none">
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Invoice</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-center font-semibold text-muted-foreground uppercase tracking-wide">
                       Tanggal
                     </TableHead>
-                    <TableHead className="font-bold">Supplier</TableHead>
-                    <TableHead className="font-bold">Items</TableHead>
-                    <TableHead className="text-right font-bold">
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Supplier</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Items</TableHead>
+                    <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
                       Total Amount
                     </TableHead>
-                    <TableHead className="font-bold">Dicatat Oleh</TableHead>
-                    <TableHead className="text-right font-bold w-20">
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Dicatat Oleh</TableHead>
+                    <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide w-20">
                       Aksi
                     </TableHead>
                   </TableRow>
@@ -206,23 +224,23 @@ export function PurchaseListSection({
           )
         ) : viewMode === "table" ? (
           <>
-            <div className="rounded-md border overflow-hidden">
+            <div className="overflow-hidden">
               <div className="overflow-x-auto">
                 <Table className="min-w-[800px]">
-                  <TableHeader className="bg-muted/30">
-                    <TableRow>
-                      <TableHead className="font-bold">No.</TableHead>
-                      <TableHead className="font-bold">No. Invoice</TableHead>
-                      <TableHead className="font-bold text-center">
+                  <TableHeader className="bg-muted/20 border-t border-b border-border/50">
+                    <TableRow className="border-none">
+                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
+                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Invoice</TableHead>
+                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-center font-semibold text-muted-foreground uppercase tracking-wide">
                         Tanggal
                       </TableHead>
-                      <TableHead className="font-bold">Supplier</TableHead>
-                      <TableHead className="font-bold">Items</TableHead>
-                      <TableHead className="text-right font-bold">
+                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Supplier</TableHead>
+                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Items</TableHead>
+                      <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
                         Total Amount
                       </TableHead>
-                      <TableHead className="font-bold">Dicatat Oleh</TableHead>
-                      <TableHead className="text-right font-bold w-20">
+                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Dicatat Oleh</TableHead>
+                      <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide w-20">
                         Aksi
                       </TableHead>
                     </TableRow>
@@ -232,7 +250,7 @@ export function PurchaseListSection({
                       <PurchaseRow
                         key={purchase.id}
                         purchase={purchase}
-                        onEdit={onEdit}
+                        onView={openReceipt}
                         onDelete={handleDelete}
                         idx={idx + 1}
                       />
@@ -243,12 +261,12 @@ export function PurchaseListSection({
             </div>
           </>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
             {purchases.map((purchase) => (
               <PurchaseCard
                 key={purchase.id}
                 purchase={purchase}
-                onEdit={onEdit}
+                onView={openReceipt}
                 onDelete={handleDelete}
               />
             ))}
@@ -268,6 +286,33 @@ export function PurchaseListSection({
           />
         </div>
       )}
+
+      <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
+        <DialogContent className="max-w-[340px] p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-2">
+            <DialogTitle>Nota Pembelian</DialogTitle>
+          </DialogHeader>
+
+          <div className="px-4 pb-4">
+            {selectedPurchase && (
+              <PurchaseReceipt ref={receiptRef} purchase={selectedPurchase} />
+            )}
+          </div>
+
+          <DialogFooter className="px-4 pb-4 flex justify-end gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsReceiptOpen(false)}
+            >
+              Tutup
+            </Button>
+            <Button size="sm" onClick={handlePrint}>
+              <PrinterIcon className="w-4 h-auto" /> Cetak Nota
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -305,7 +350,7 @@ function LoadingRows({ count }: { count: number }) {
 function EmptyState() {
   return (
     <TableRow>
-      <TableCell colSpan={6} className="h-64">
+      <TableCell colSpan={8} className="h-64">
         <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground">
           <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 text-2xl">
             <SearchX />

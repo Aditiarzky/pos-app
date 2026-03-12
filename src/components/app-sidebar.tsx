@@ -17,6 +17,7 @@ import {
   IconReport,
   IconTrash,
   IconBell,
+  IconDatabase,
 } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -80,6 +81,12 @@ const navItems: NavItem[] = [
     label: "User & Akses",
     href: "/dashboard/users",
     icon: <IconShieldLock className="w-5 h-5" />,
+    roles: ["admin sistem"],
+  },
+  {
+    label: "Master Data",
+    href: "/dashboard/master-data",
+    icon: <IconDatabase className="w-5 h-5" />,
     roles: ["admin sistem"],
   },
   {

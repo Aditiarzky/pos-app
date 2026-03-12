@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Edit, Printer, Trash2, MoreHorizontal } from "lucide-react";
+import { Eye, Trash2, MoreHorizontal } from "lucide-react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { PurchaseResponse } from "../../_types/purchase-type";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -19,24 +19,23 @@ import {
 
 interface PurchaseProps {
   purchase: PurchaseResponse;
-  onEdit: (purchase: PurchaseResponse) => void;
+  onView: (purchase: PurchaseResponse) => void;
   onDelete: (purchase: PurchaseResponse) => void;
   idx?: number;
 }
 
 export const PurchaseRow = ({
   purchase,
-  onEdit,
+  onView,
   onDelete,
   idx,
 }: PurchaseProps) => {
-  const handlePrint = () => window.print();
   const itemCount = purchase?.items?.length || 0;
 
   return (
-    <TableRow className="hover:bg-muted/30 transition-colors group">
-      <TableCell>{idx}</TableCell>
-      <TableCell className="font-mono font-bold text-primary">
+    <TableRow className="hover:bg-muted/30 transition-colors border-b border-border/30 last:border-none group">
+      <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">{idx}</TableCell>
+      <TableCell className="font-mono text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-bold text-primary">
         {purchase.orderNumber}
         {purchase.isArchived && (
           <Badge variant="destructive" className="text-[10px] ml-2">
@@ -44,15 +43,15 @@ export const PurchaseRow = ({
           </Badge>
         )}
       </TableCell>
-      <TableCell className="text-center font-medium">
+      <TableCell className="text-center text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
         {purchase.createdAt ? formatDate(purchase.createdAt) : "-"}
       </TableCell>
-      <TableCell>
+      <TableCell className="px-2 sm:px-4 py-2">
         <div className="font-semibold">{purchase.supplier?.name || "-"}</div>
       </TableCell>
 
       {/* Popover Items (Popup) */}
-      <TableCell>
+      <TableCell className="px-2 sm:px-4 py-2">
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -96,13 +95,13 @@ export const PurchaseRow = ({
         </Popover>
       </TableCell>
 
-      <TableCell className="text-right font-black text-primary text-base">
+      <TableCell className="text-right font-black text-primary text-[12px] sm:text-base px-2 sm:px-4 py-2">
         {formatCurrency(Number(purchase.total))}
       </TableCell>
-      <TableCell className="font-medium text-muted-foreground">
+      <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
         {purchase.user?.name || "-"}
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className="text-right px-2 sm:px-4 py-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -111,11 +110,8 @@ export const PurchaseRow = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onEdit(purchase)}>
-              <Edit className="mr-2 h-4 w-4" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handlePrint}>
-              <Printer className="mr-2 h-4 w-4" /> Cetak
+            <DropdownMenuItem onClick={() => onView(purchase)}>
+              <Eye className="mr-2 h-4 w-4" /> Lihat
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onDelete(purchase)}>
               <Trash2 className="mr-2 h-4 w-4" /> Hapus
@@ -127,19 +123,17 @@ export const PurchaseRow = ({
   );
 };
 
-export const PurchaseCard = ({ purchase, onEdit, onDelete }: PurchaseProps) => {
-  const handlePrint = () => window.print();
-
+export const PurchaseCard = ({ purchase, onView, onDelete }: PurchaseProps) => {
   return (
     <Card className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50">
       {/* Header with Gradient */}
-      <div className="relative h-24 overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-4 flex flex-col justify-between">
+      <div className="relative h-20 sm:h-24 overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-2.5 sm:p-4 flex flex-col justify-between">
         <div className="flex justify-between items-start">
           <div className="flex flex-col">
-            <div className="font-mono font-bold text-primary text-lg flex items-center gap-2">
+            <div className="font-mono font-bold text-primary text-xs sm:text-lg flex items-center gap-2">
               {purchase.orderNumber}
             </div>
-            <div className="text-xs text-muted-foreground font-medium">
+            <div className="text-[10px] sm:text-xs text-muted-foreground font-medium">
               {purchase.createdAt ? formatDate(purchase.createdAt) : "-"}
             </div>
           </div>
@@ -159,14 +153,14 @@ export const PurchaseCard = ({ purchase, onEdit, onDelete }: PurchaseProps) => {
         </div>
       </div>
 
-      <CardContent className="p-4 flex-1 flex flex-col gap-4">
+      <CardContent className="p-2.5 sm:p-4 flex-1 flex flex-col gap-2.5 sm:gap-4">
         {/* Total Amount & Supplier */}
         <div className="flex justify-between items-start border-b pb-4 border-dashed">
           <div>
             <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
               Total Transaksi
             </span>
-            <div className="text-2xl font-black text-primary tracking-tight">
+            <div className="text-sm sm:text-2xl font-black text-primary tracking-tight">
               {formatCurrency(Number(purchase.total))}
             </div>
           </div>
@@ -174,7 +168,7 @@ export const PurchaseCard = ({ purchase, onEdit, onDelete }: PurchaseProps) => {
             <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
               Supplier
             </span>
-            <div className="font-semibold text-sm max-w-[120px] truncate">
+            <div className="font-semibold text-[10px] sm:text-sm max-w-[120px] truncate">
               {purchase.supplier?.name || "-"}
             </div>
           </div>
@@ -182,7 +176,7 @@ export const PurchaseCard = ({ purchase, onEdit, onDelete }: PurchaseProps) => {
 
         {/* Items Summary */}
         <div className="space-y-2 flex-1">
-          <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+          <div className="flex items-center justify-between text-[10px] sm:text-xs font-medium text-muted-foreground">
             <span>Items ({purchase?.items?.length})</span>
           </div>
           <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
@@ -214,35 +208,23 @@ export const PurchaseCard = ({ purchase, onEdit, onDelete }: PurchaseProps) => {
       </CardContent>
 
       {/* Footer Actions */}
-      <div className="px-4 py-3 border-t bg-muted/30 flex justify-between items-center gap-2 mt-auto">
+      <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 flex justify-between items-center gap-1.5 sm:gap-2 mt-auto">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onView(purchase)}
+          className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs"
+        >
+          <Eye className="h-3.5 w-3.5 mr-1" /> Lihat
+        </Button>
         <Button
           variant="ghost"
           size="sm"
-          onClick={handlePrint}
-          className="h-8 px-2 text-muted-foreground hover:text-foreground"
+          onClick={() => onDelete(purchase)}
+          className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
         >
-          <Printer className="h-4 w-4 mr-1" />
-          <span className="text-xs hidden sm:inline">Cetak</span>
+          <Trash2 className="h-4 w-4" />
         </Button>
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEdit(purchase)}
-            className="h-8 px-3 text-xs"
-          >
-            <Edit className="h-3.5 w-3.5 mr-1" /> Edit
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(purchase)}
-            className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
       </div>
     </Card>
   );

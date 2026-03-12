@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown, Search, Plus, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Search, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCustomers, useCreateCustomer } from "@/hooks/master/use-customers";
 import { toast } from "sonner";
+import { Loader } from "@/components/ui/loading";
 
 interface CustomerSelectProps {
   value?: number;
@@ -89,7 +90,7 @@ export function CustomerSelect({
             {selectedCustomer ? selectedCustomer.name : placeholder}
           </span>
           {isLoading ? (
-            <Loader2 className="ml-2 h-4 w-4 shrink-0 animate-spin" />
+            <Loader className="ml-2 shrink-0" size="sm" />
           ) : (
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           )}
@@ -147,7 +148,7 @@ export function CustomerSelect({
               >
                 <div className="flex items-center font-medium">
                   {createMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader className="mr-2" size="sm" />
                   ) : (
                     <Plus className="mr-2 h-4 w-4" />
                   )}

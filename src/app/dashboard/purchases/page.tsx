@@ -77,12 +77,6 @@ function PurchasesContent() {
   // HANDLERS
   // ============================================
 
-  const handleEditPurchase = (purchase: PurchaseResponse) => {
-    setEditingPurchase(purchase);
-    setIsPurchaseFormOpen(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   const handleClosePurchaseForm = () => {
     setIsPurchaseFormOpen(false);
     setEditingPurchase(null);
@@ -174,7 +168,6 @@ function PurchasesContent() {
             className="animate-in fade-in duration-300"
           >
             <PurchaseListSection
-              onEdit={handleEditPurchase}
               // Injection data dari usePurchaseList
               purchases={purchases}
               isLoading={isLoading}
@@ -260,8 +253,8 @@ function AnalyticsCards({
             <Badge
               variant="outline"
               className={`text-[8px] px-1 py-0 font-bold ${isPositive
-                  ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                  : "bg-rose-50 text-rose-600 border-rose-100"
+                ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                : "bg-rose-50 text-rose-600 border-rose-100"
                 }`}
             >
               {isPositive ? "+" : "-"}

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronsUpDown, Plus, Loader2, Search } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +14,7 @@ import { UnitType } from "@/drizzle/type";
 import { useCreateUnit } from "@/hooks/master/use-units";
 import { toast } from "sonner";
 import { ApiResponse } from "@/services/productService";
+import { Loader } from "@/components/ui/loading";
 
 interface UnitSelectProps {
   units: UnitType[];
@@ -133,7 +134,7 @@ export function UnitSelect({
               >
                 <div className="flex items-center font-medium">
                   {createUnitMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader className="mr-2" size="sm" />
                   ) : (
                     <Plus className="mr-2 h-4 w-4" />
                   )}

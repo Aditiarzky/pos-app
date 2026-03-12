@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { UserListSection } from "./_components/user-list-section";
 import { UserFormModal } from "./_components/user-form-modal";
 import { UserResponse } from "@/services/userService";
-import { IconShieldLock } from "@tabler/icons-react";
 
 function UsersContent() {
   const [isFormOpen, setIsFormOpen] = useState(false);

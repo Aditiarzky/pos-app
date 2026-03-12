@@ -26,7 +26,7 @@ import { MutationFilterForm } from "../ui/mutation-filter-form";
 
 type ViewMode = "table" | "card";
 
-export function StockMutationsSection() {
+export const StockMutationsSection = () => {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 500);
@@ -163,36 +163,22 @@ export function StockMutationsSection() {
       </div>
 
       {viewMode === "table" ? (
-        <div className="rounded-md border bg-card overflow-x-auto">
+        <div className=" overflow-hidden">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4">
-                  No.
-                </TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4">
-                  Waktu
-                </TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4">
-                  Referensi
-                </TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4">
-                  Produk
-                </TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4">
-                  Tipe
-                </TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-right">
-                  Jumlah
-                </TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4">
-                  Oleh
-                </TableHead>
+            <TableHeader className="bg-muted/20 border-t border-b border-border/50">
+              <TableRow className="border-none">
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Waktu</TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Referensi</TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Produk</TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tipe</TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-right font-semibold text-muted-foreground uppercase tracking-wide">Jumlah</TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Oleh</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow>
+                <TableRow className="border-b border-border/30 last:border-none">
                   <TableCell colSpan={6} className="text-center py-8">
                     <span className="flex items-center justify-center w-full">
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -201,7 +187,7 @@ export function StockMutationsSection() {
                   </TableCell>
                 </TableRow>
               ) : mutations.length === 0 ? (
-                <TableRow>
+                <TableRow className="border-none">
                   <TableCell colSpan={6} className="text-center py-12">
                     <div className="flex flex-col items-center justify-center text-muted-foreground">
                       <SearchX className="h-8 w-8 mb-2 opacity-20" />
@@ -213,12 +199,12 @@ export function StockMutationsSection() {
                 mutations.map((mutation, index) => (
                   <TableRow
                     key={mutation.id}
-                    className="hover:bg-muted/50 transition-colors"
+                    className="hover:bg-muted/50 transition-colors border-b border-border/30 last:border-none"
                   >
-                    <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2">
+                    <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
                       {index + 1}
                     </TableCell>
-                    <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2">
+                    <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
                       <div className="flex flex-col">
                         <span className="sm:hidden text-[9px] text-muted-foreground">
                           {format(mutation.createdAt!, "dd/MM/yy", {
@@ -233,16 +219,16 @@ export function StockMutationsSection() {
                         <span className="hidden sm:block">
                           {mutation.createdAt
                             ? format(mutation.createdAt, "dd/MM/yy", {
-                                locale: id,
-                              })
+                              locale: id,
+                            })
                             : "-"}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-[9px] sm:text-xs px-2 sm:px-4 py-2">
+                    <TableCell className="font-mono text-[9px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
                       {mutation.reference || "-"}
                     </TableCell>
-                    <TableCell className="px-2 sm:px-4 py-2">
+                    <TableCell className="px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
                       <div className="flex flex-col">
                         <span className="font-bold text-[12px] sm:text-sm leading-tight">
                           {mutation.product.name}
@@ -252,10 +238,10 @@ export function StockMutationsSection() {
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="px-2 sm:px-4 py-2">
+                    <TableCell className="px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
                       <Badge
                         variant={getTypeColor(mutation.type)}
-                        className="text-[8px] sm:text-[12px] px-1 py-0 h-4 sm:h-5 sm:px-2"
+                        className="text-[8px] sm:text-[12px] px-1 py-0 h-4 sm:h-5 sm:px-2 font-semibold"
                       >
                         {getTypeName(mutation.type)}
                       </Badge>
@@ -266,7 +252,7 @@ export function StockMutationsSection() {
                         {mutation.productVariant.unit.name}
                       </p>
                     </TableCell>
-                    <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2">
+                    <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
                       {mutation.user?.name
                         ? mutation.user.name.split(" ")[0]
                         : "System"}
@@ -356,8 +342,8 @@ export function StockMutationsSection() {
                         <span className="truncate text-right ml-1">
                           {mutation.createdAt
                             ? format(mutation.createdAt, "dd/MM/yy HH:mm", {
-                                locale: id,
-                              })
+                              locale: id,
+                            })
                             : "-"}
                         </span>
                       </div>
@@ -386,4 +372,4 @@ export function StockMutationsSection() {
       )}
     </div>
   );
-}
+};

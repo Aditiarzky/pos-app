@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { z } from "zod";
 import { AxiosError } from "axios";
 import { useForm } from "react-hook-form";
@@ -27,8 +27,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useGetStoreSetting, useUpdateStoreSetting } from "@/hooks/store-setting/use-setting";
+import { useUploadImage } from "@/hooks/use-upload-image";
 import { ApiResponse } from "@/services/productService";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { compressImage } from "@/components/compress-image";
+import Image from "next/image";
 
 const storeSettingSchema = z.object({
   id: z.number().optional(),
@@ -52,6 +55,7 @@ export function StoreSettingCard() {
 
   const { data: settingResult, isLoading } = useGetStoreSetting();
   const updateStoreMutation = useUpdateStoreSetting();
+  const uploadMutation = useUploadImage();
 
   const form = useForm<StoreSettingFormValues>({
     resolver: zodResolver(storeSettingSchema),
@@ -67,6 +71,8 @@ export function StoreSettingCard() {
   });
 
   const setting = settingResult?.data;
+  const logoUrl = form.watch("logoUrl");
+  const isUploadingLogo = uploadMutation.isPending;
 
   useEffect(() => {
     if (!setting) return;
@@ -109,6 +115,33 @@ export function StoreSettingCard() {
       receiptNote: setting.receiptNote ?? "",
       logoUrl: setting.logoUrl ?? "",
     });
+  };
+
+  const handleLogoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const compressed = await compressImage(file, {
+        preserveTransparency: true,
+      });
+
+      if (compressed.size > 5 * 1024 * 1024) {
+        toast.error("Ukuran file maksimal 5MB");
+        return;
+      }
+
+      const result = await uploadMutation.mutateAsync(compressed);
+      form.setValue("logoUrl", result.secureUrl, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      toast.success("Logo berhasil diupload");
+    } catch {
+      toast.error("Gagal mengupload logo");
+    } finally {
+      event.target.value = "";
+    }
   };
 
   return (
@@ -191,6 +224,20 @@ export function StoreSettingCard() {
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1 sm:col-span-2">
+                  <p className="text-xs text-muted-foreground">Logo Store</p>
+                  {setting?.logoUrl ? (
+                    <Image
+                      src={setting.logoUrl}
+                      alt="Logo store"
+                      width={80}
+                      height={80}
+                      className="rounded-md border object-cover"
+                    />
+                  ) : (
+                    <p className="font-medium">-</p>
+                  )}
+                </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">Nama Store</p>
                   <p className="font-medium">{setting?.storeName || "-"}</p>
@@ -303,16 +350,45 @@ export function StoreSettingCard() {
                 <FormField
                   control={form.control}
                   name="logoUrl"
-                  render={({ field }) => (
+                  render={() => (
                     <FormItem>
-                      <FormLabel>Logo URL</FormLabel>
+                      <FormLabel>Logo Store</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="https://example.com/logo.png"
-                          {...field}
-                          value={field.value ?? ""}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          disabled={isUploadingLogo || updateStoreMutation.isPending}
                         />
                       </FormControl>
+                      {logoUrl ? (
+                        <div className="space-y-2">
+                          <Image
+                            src={logoUrl}
+                            alt="Preview logo store"
+                            width={80}
+                            height={80}
+                            className="rounded-md border object-cover"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              form.setValue("logoUrl", "", {
+                                shouldDirty: true,
+                                shouldValidate: true,
+                              })
+                            }
+                            disabled={isUploadingLogo || updateStoreMutation.isPending}
+                          >
+                            Hapus Logo
+                          </Button>
+                        </div>
+                      ) : null}
+                      {isUploadingLogo ? (
+                        <p className="text-xs text-muted-foreground">Sedang upload logo...</p>
+                      ) : null}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -323,11 +399,14 @@ export function StoreSettingCard() {
                     type="button"
                     variant="outline"
                     onClick={handleCancel}
-                    disabled={updateStoreMutation.isPending}
+                    disabled={updateStoreMutation.isPending || isUploadingLogo}
                   >
                     Batal
                   </Button>
-                  <Button type="submit" disabled={updateStoreMutation.isPending}>
+                  <Button
+                    type="submit"
+                    disabled={updateStoreMutation.isPending || isUploadingLogo}
+                  >
                     {updateStoreMutation.isPending && (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     )}

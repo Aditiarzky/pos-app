@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, ChevronsUpDown, Search, Plus, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Search, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,7 @@ import {
 import { SupplierResponse } from "@/services/supplierService";
 import { useCreateSupplier } from "@/hooks/master/use-suppliers";
 import { toast } from "sonner";
+import { Loader } from "@/components/ui/loading";
 
 interface SupplierSelectProps {
   suppliers: SupplierResponse[];
@@ -134,7 +135,7 @@ export function SupplierSelect({
               >
                 <div className="flex items-center font-medium">
                   {createSupplierMutation.isPending ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader className="mr-2" size="sm" />
                   ) : (
                     <Plus className="mr-2 h-4 w-4" />
                   )}

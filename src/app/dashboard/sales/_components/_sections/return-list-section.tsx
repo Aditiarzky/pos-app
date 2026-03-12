@@ -117,34 +117,34 @@ export function ReturnListSection() {
 
   const returnDataResult = selectedReturn
     ? ({
-        ...selectedReturn,
-        customerName: selectedReturn.customer?.name || "",
-        returnNumber: selectedReturn.returnNumber || "",
-        netRefundAmount: Number(selectedReturn.totalRefund),
-        message: "Nota Retur",
-        saleData: selectedReturn.sales?.[0] || {},
-        returnItems: (selectedReturn.items || []).map((item) => ({
-          productId: item.productId,
-          variantId: item.variantId,
-          productName: item.product?.name || "Unknown",
-          variantName: item.productVariant?.name || "Default",
-          qty: Number(item.qty),
-          priceAtReturn: Number(item.priceAtReturn),
-          unitFactorAtReturn: Number(item.unitFactorAtReturn),
-          returnedToStock: item.returnedToStock,
-          reason: item.reason,
-        })),
-        exchangeItems: (selectedReturn.exchangeItems || []).map((item) => ({
-          productId: item.productId,
-          variantId: item.variantId,
-          productName: item.product?.name || "Unknown",
-          variantName: item.productVariant?.name || "Default",
-          qty: Number(item.qty),
-          sellPrice: Number(item.priceAtExchange),
-        })),
-        totalValueReturned: Number(selectedReturn.totalValueReturned),
-        totalValueExchange: totalExchangeValue,
-      } as unknown as ReturnResult)
+      ...selectedReturn,
+      customerName: selectedReturn.customer?.name || "",
+      returnNumber: selectedReturn.returnNumber || "",
+      netRefundAmount: Number(selectedReturn.totalRefund),
+      message: "Nota Retur",
+      saleData: selectedReturn.sales?.[0] || {},
+      returnItems: (selectedReturn.items || []).map((item) => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        productName: item.product?.name || "Unknown",
+        variantName: item.productVariant?.name || "Default",
+        qty: Number(item.qty),
+        priceAtReturn: Number(item.priceAtReturn),
+        unitFactorAtReturn: Number(item.unitFactorAtReturn),
+        returnedToStock: item.returnedToStock,
+        reason: item.reason,
+      })),
+      exchangeItems: (selectedReturn.exchangeItems || []).map((item) => ({
+        productId: item.productId,
+        variantId: item.variantId,
+        productName: item.product?.name || "Unknown",
+        variantName: item.productVariant?.name || "Default",
+        qty: Number(item.qty),
+        sellPrice: Number(item.priceAtExchange),
+      })),
+      totalValueReturned: Number(selectedReturn.totalValueReturned),
+      totalValueExchange: totalExchangeValue,
+    } as unknown as ReturnResult)
     : null;
 
   return (
@@ -210,18 +210,18 @@ export function ReturnListSection() {
         ) : customerReturns?.length === 0 ? (
           <EmptyState searchInput={searchInput} />
         ) : viewMode === "table" ? (
-          <div className="rounded-md border overflow-hidden">
+          <div className="overflow-hidden">
             <Table>
-              <TableHeader className="bg-muted/30">
-                <TableRow>
-                  <TableHead>No.</TableHead>
-                  <TableHead>No. Retur</TableHead>
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead className="text-center">Tipe</TableHead>
-                  <TableHead className="text-right">Total Refund</TableHead>
-                  <TableHead className="text-right w-24">Aksi</TableHead>
+              <TableHeader className="bg-muted/20 border-t border-b border-border/50">
+                <TableRow className="border-none">
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Retur</TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tanggal</TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Customer</TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Items</TableHead>
+                  <TableHead className="text-center text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tipe</TableHead>
+                  <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Total Refund</TableHead>
+                  <TableHead className="text-right w-24 text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -229,12 +229,12 @@ export function ReturnListSection() {
                   const itemCount = ret.items?.length || 0;
 
                   return (
-                    <TableRow key={ret.id}>
-                      <TableCell>{(page - 1) * limit + idx + 1}</TableCell>
-                      <TableCell className="font-medium">{ret.returnNumber}</TableCell>
-                      <TableCell>{formatDate(ret.createdAt || new Date())}</TableCell>
-                      <TableCell>{ret.customer?.name || "-"}</TableCell>
-                      <TableCell>
+                    <TableRow key={ret.id} className="hover:bg-muted/50 transition-colors border-b border-border/30 last:border-none">
+                      <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">{(page - 1) * limit + idx + 1}</TableCell>
+                      <TableCell className="font-mono text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-bold text-primary">{ret.returnNumber}</TableCell>
+                      <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">{formatDate(ret.createdAt || new Date())}</TableCell>
+                      <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-semibold">{ret.customer?.name || "-"}</TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2">
                         <Popover>
                           <PopoverTrigger asChild>
                             <Button
@@ -276,15 +276,15 @@ export function ReturnListSection() {
                           </PopoverContent>
                         </Popover>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center px-2 sm:px-4 py-2">
                         <Badge variant="outline">
                           {getCompensationName(ret.compensationType)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right font-bold tabular-nums">
+                      <TableCell className="text-right font-bold tabular-nums text-[12px] sm:text-sm px-2 sm:px-4 py-2">
                         {formatCurrency(Number(ret.totalRefund))}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="px-2 sm:px-4 py-2">
                         <div className="flex justify-end gap-1">
                           <Button
                             size="icon"
@@ -332,19 +332,19 @@ export function ReturnListSection() {
             </Table>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
             {customerReturns?.map((ret) => (
               <Card
                 key={ret.id}
                 className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50"
               >
-                <div className="relative h-24 overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-4 flex flex-col justify-between">
+                <div className="relative h-20 sm:h-24 overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-2.5 sm:p-4 flex flex-col justify-between">
                   <div className="flex justify-between items-start">
                     <div className="flex flex-col">
-                      <div className="font-mono font-bold text-primary text-lg">
+                      <div className="font-mono font-bold text-primary text-xs sm:text-lg">
                         {ret.returnNumber}
                       </div>
-                      <div className="text-xs text-muted-foreground font-medium">
+                      <div className="text-[10px] sm:text-xs text-muted-foreground font-medium">
                         {formatDate(ret.createdAt || new Date())}
                       </div>
                     </div>
@@ -352,13 +352,13 @@ export function ReturnListSection() {
                   </div>
                 </div>
 
-                <div className="p-4 flex-1 flex flex-col gap-4">
+                <div className="p-2.5 sm:p-4 flex-1 flex flex-col gap-2.5 sm:gap-4">
                   <div className="flex justify-between items-start border-b pb-4 border-dashed">
                     <div>
                       <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
                         Total Refund
                       </span>
-                      <div className="text-2xl font-black text-primary tracking-tight">
+                      <div className="text-sm sm:text-2xl font-black text-primary tracking-tight">
                         {formatCurrency(Number(ret.totalRefund))}
                       </div>
                     </div>
@@ -366,14 +366,14 @@ export function ReturnListSection() {
                       <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
                         Customer
                       </span>
-                      <div className="font-semibold text-sm max-w-[120px] truncate">
+                      <div className="font-semibold text-[10px] sm:text-sm max-w-[120px] truncate">
                         {ret.customer?.name || "Umum"}
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2 flex-1">
-                    <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+                    <div className="flex items-center justify-between text-[10px] sm:text-xs font-medium text-muted-foreground">
                       <span>Items Retur ({ret.items?.length || 0})</span>
                     </div>
                     <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
@@ -404,8 +404,8 @@ export function ReturnListSection() {
                   </div>
                 </div>
 
-                <div className="px-4 py-3 border-t bg-muted/30 flex justify-between items-center gap-2 mt-auto">
-                  <Button variant="outline" size="sm" onClick={() => openReceipt(ret)} className="h-8 px-3 text-xs">
+                <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 flex justify-between items-center gap-1.5 sm:gap-2 mt-auto">
+                  <Button variant="outline" size="sm" onClick={() => openReceipt(ret)} className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs">
                     <Eye className="mr-1 h-3.5 w-3.5" />
                     Detail
                   </Button>
