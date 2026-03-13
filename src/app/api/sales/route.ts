@@ -18,6 +18,11 @@ import {
   formatMeta,
 } from "@/lib/query-helper";
 import { handleApiError } from "@/lib/api-utils";
+import {
+  MS_DAY,
+  getLocalMidnightUtc,
+  normalizeTimezone,
+} from "@/lib/timezone";
 import { processDebtPayment } from "../debts/_lib/debt-service";
 import { SaleStatusEnumType } from "@/drizzle/type";
 
@@ -59,15 +64,12 @@ export async function GET(request: NextRequest) {
       filter = and(filter, eq(sales.customerId, Number(customerId)));
     }
 
-    const now = new Date();
-    const startOfToday = new Date(now);
-    startOfToday.setHours(0, 0, 0, 0);
-
-    const startOfYesterday = new Date(startOfToday);
-    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-
-    const endOfYesterday = new Date(startOfYesterday);
-    endOfYesterday.setHours(23, 59, 59, 999);
+    const timezoneParam = searchParams.get("timezone");
+    const timezone = normalizeTimezone(timezoneParam ?? undefined); // Fix: Convert null to undefined for normalizeTimezone
+    const todayStart = getLocalMidnightUtc(timezone);
+    const todayEnd = new Date(todayStart.getTime() + MS_DAY - 1);
+    const yesterdayStart = new Date(todayStart.getTime() - MS_DAY);
+    const yesterdayEnd = new Date(todayStart.getTime() - 1);
 
     const [
       salesData,
@@ -152,7 +154,8 @@ export async function GET(request: NextRequest) {
             and(
               not(sales.isArchived),
               not(eq(sales.status, "cancelled")),
-              sql`${sales.createdAt} >= ${startOfToday}`,
+              sql`${sales.createdAt} >= ${todayStart}`,
+              sql`${sales.createdAt} <= ${todayEnd}`,
             ),
           ),
         // Net Revenue Today
@@ -166,7 +169,8 @@ export async function GET(request: NextRequest) {
             and(
               not(sales.isArchived),
               not(eq(sales.status, "cancelled")),
-              sql`${sales.createdAt} >= ${startOfToday}`,
+              sql`${sales.createdAt} >= ${todayStart}`,
+              sql`${sales.createdAt} <= ${todayEnd}`,
             ),
           ),
         // Piutang Today (Remaining from debts created today)
@@ -178,7 +182,8 @@ export async function GET(request: NextRequest) {
           .where(
             and(
               eq(debts.isActive, true),
-              sql`${debts.createdAt} >= ${startOfToday}`,
+              sql`${debts.createdAt} >= ${todayStart}`,
+              sql`${debts.createdAt} <= ${todayEnd}`,
             ),
           ),
         // Returns Count Today (for Activity)
@@ -188,7 +193,8 @@ export async function GET(request: NextRequest) {
           .where(
             and(
               not(customerReturns.isArchived),
-              sql`${customerReturns.createdAt} >= ${startOfToday}`,
+              sql`${customerReturns.createdAt} >= ${todayStart}`,
+              sql`${customerReturns.createdAt} <= ${todayEnd}`,
             ),
           ),
       ]),
@@ -206,8 +212,8 @@ export async function GET(request: NextRequest) {
             and(
               not(sales.isArchived),
               not(eq(sales.status, "cancelled")),
-              sql`${sales.createdAt} >= ${startOfYesterday}`,
-              sql`${sales.createdAt} <= ${endOfYesterday}`,
+              sql`${sales.createdAt} >= ${yesterdayStart}`,
+              sql`${sales.createdAt} <= ${yesterdayEnd}`,
             ),
           ),
         // Net Revenue Yesterday
@@ -221,8 +227,8 @@ export async function GET(request: NextRequest) {
             and(
               not(sales.isArchived),
               not(eq(sales.status, "cancelled")),
-              sql`${sales.createdAt} >= ${startOfYesterday}`,
-              sql`${sales.createdAt} <= ${endOfYesterday}`,
+              sql`${sales.createdAt} >= ${yesterdayStart}`,
+              sql`${sales.createdAt} <= ${yesterdayEnd}`,
             ),
           ),
         // Piutang Yesterday (Remaining from debts created yesterday)
@@ -234,8 +240,8 @@ export async function GET(request: NextRequest) {
           .where(
             and(
               eq(debts.isActive, true),
-              sql`${debts.createdAt} >= ${startOfYesterday}`,
-              sql`${debts.createdAt} <= ${endOfYesterday}`,
+              sql`${debts.createdAt} >= ${yesterdayStart}`,
+              sql`${debts.createdAt} <= ${yesterdayEnd}`,
             ),
           ),
         // Returns Count Yesterday (for Activity)
@@ -245,8 +251,8 @@ export async function GET(request: NextRequest) {
           .where(
             and(
               not(customerReturns.isArchived),
-              sql`${customerReturns.createdAt} >= ${startOfYesterday}`,
-              sql`${customerReturns.createdAt} <= ${endOfYesterday}`,
+              sql`${customerReturns.createdAt} >= ${yesterdayStart}`,
+              sql`${customerReturns.createdAt} <= ${yesterdayEnd}`,
             ),
           ),
       ]),

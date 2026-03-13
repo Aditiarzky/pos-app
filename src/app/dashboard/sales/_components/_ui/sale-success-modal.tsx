@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Dialog,
   DialogContent,
@@ -7,10 +6,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Printer, Share2, PlusCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Printer,
+  Share2,
+  PlusCircle,
+  Loader2,
+} from "lucide-react";
 import { SaleReceipt } from "./sale-receipt";
 import { SaleResponse } from "../../_types/sale-type";
-import { formatCurrency } from "@/lib/format";
 import { usePrintReceipt } from "../../_hooks/use-print-receipt";
 
 interface SaleSuccessModalProps {
@@ -24,30 +28,10 @@ export function SaleSuccessModal({
   onClose,
   sale,
 }: SaleSuccessModalProps) {
-  const { receiptRef, handlePrint } = usePrintReceipt();
+  const { receiptRef, handlePrint, isPrinting, handleShareAsImage, isSharing } =
+    usePrintReceipt();
 
   if (!sale) return null;
-
-  const handleShareWhatsApp = () => {
-    const totalAmount = formatCurrency(
-      Number(sale.totalPrice) - Number(sale.totalBalanceUsed),
-    );
-    const itemsList =
-      sale.items
-        ?.map(
-          (item) => `- ${item.product?.name} (${Number(item.qty).toFixed(0)}x)`,
-        )
-        .join("%0A") || "";
-
-    const message =
-      `*NOTA PENJUALAN - TOKO ADITIARZKY*%0A%0A` +
-      `No: ${sale.invoiceNumber}%0A` +
-      `Total: *${totalAmount}*%0A%0A` +
-      `Items:%0A${itemsList}%0A%0A` +
-      `Terima kasih telah berbelanja!`;
-
-    window.open(`https://wa.me/?text=${message}`, "_blank");
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -78,16 +62,30 @@ export function SaleSuccessModal({
               variant="outline"
               className="h-12 border-2 gap-2 font-bold"
               onClick={handlePrint}
+              disabled={isPrinting}
             >
-              <Printer className="h-4 w-4" /> Cetak Nota
+              {isPrinting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Printer className="h-4 w-4" />
+              )}
+              {isPrinting ? "Mencetak..." : "Cetak Nota"}
             </Button>
+
             <Button
               variant="outline"
               className="h-12 border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 gap-2 font-bold"
-              onClick={handleShareWhatsApp}
+              onClick={handleShareAsImage}
+              disabled={isSharing}
             >
-              <Share2 className="h-4 w-4" /> Share WA
+              {isSharing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Share2 className="h-4 w-4" />
+              )}
+              {isSharing ? "Menyiapkan..." : "Share WA"}
             </Button>
+
             <Button
               className="h-12 md:col-span-2 gap-2 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
               onClick={onClose}

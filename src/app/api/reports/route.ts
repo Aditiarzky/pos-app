@@ -3,36 +3,53 @@ import { and, desc, eq, gte, lte, not, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { products, purchaseOrders, saleItems, sales } from "@/drizzle/schema";
 import { handleApiError } from "@/lib/api-utils";
+import {
+  normalizeTimezone,
+  getLocalMidnightUtc,
+  getUtcFromLocalDate,
+} from "@/lib/timezone";
 
 type ReportType = "overview" | "sales" | "purchase";
 
 const parseDateRange = (request: NextRequest) => {
-  const startDate = request.nextUrl.searchParams.get("startDate");
-  const endDate = request.nextUrl.searchParams.get("endDate");
+  const searchParams = request.nextUrl.searchParams;
+  const startDate = searchParams.get("startDate");
+  const endDate = searchParams.get("endDate");
+  const timezone = normalizeTimezone(searchParams.get("timezone") ?? undefined);
 
-  const now = new Date();
-  const defaultStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const defaultEnd = new Date(
-    now.getFullYear(),
-    now.getMonth() + 1,
-    0,
-    23,
-    59,
-    59,
-    999,
+  if (startDate && endDate) {
+    const start = getUtcFromLocalDate(startDate, "00:00:00.000", timezone);
+    const end = getUtcFromLocalDate(endDate, "23:59:59.999", timezone);
+    return { start, end, startDate, endDate };
+  }
+
+  // Default: bulan ini di timezone lokal
+  const todayMidnight = getLocalMidnightUtc(timezone);
+
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+  const parts = Object.fromEntries(
+    formatter
+      .formatToParts(todayMidnight)
+      .filter((p) => p.type !== "literal")
+      .map((p) => [p.type, p.value]),
   );
 
-  const start = startDate
-    ? new Date(`${startDate}T00:00:00.000Z`)
-    : defaultStart;
-  const end = endDate ? new Date(`${endDate}T23:59:59.999Z`) : defaultEnd;
+  const year = Number(parts.year);
+  const month = String(parts.month).padStart(2, "0");
+  const day = String(parts.day).padStart(2, "0");
 
-  return {
-    start,
-    end,
-    startDate: start.toISOString(),
-    endDate: end.toISOString(),
-  };
+  const firstDayStr = `${year}-${month}-01`;
+  const todayStr = `${year}-${month}-${day}`;
+
+  const start = getUtcFromLocalDate(firstDayStr, "00:00:00.000", timezone);
+  const end = getUtcFromLocalDate(todayStr, "23:59:59.999", timezone);
+
+  return { start, end, startDate: firstDayStr, endDate: todayStr };
 };
 
 const parseType = (request: NextRequest): ReportType => {

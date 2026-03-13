@@ -1,15 +1,19 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { Plus, Users, Loader2 } from "lucide-react";
+import { Plus, Users, Loader2, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserListSection } from "./_components/user-list-section";
 import { UserFormModal } from "./_components/user-form-modal";
 import { UserResponse } from "@/services/userService";
+import { PasswordResetRequestsSection } from "./_components/password-reset-requests-section";
+import { useAuth } from "@/hooks/use-auth";
 
 function UsersContent() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserResponse | null>(null);
+  const { roles } = useAuth();
+  const isAdminSystem = roles.includes("admin sistem");
 
   const handleCreateNew = () => {
     setEditingUser(null);
@@ -55,6 +59,24 @@ function UsersContent() {
 
           <UserListSection onEdit={handleEdit} />
         </div>
+
+        {/*{isAdminSystem && (
+          <div className="space-y-4">
+            <div className="flex items-start gap-2 mb-4">
+              <KeyRound className="h-5 w-5 mt-1 text-primary" />
+              <div>
+                <h2 className="text-lg font-semibold">
+                  Permintaan Reset Password
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Reset akan mengubah password menjadi default "Password123".
+                </p>
+              </div>
+            </div>
+
+            <PasswordResetRequestsSection />
+          </div>
+        )}*/}
 
         <UserFormModal
           open={isFormOpen}

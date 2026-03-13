@@ -52,3 +52,11 @@ export const authLogout = async (): Promise<ApiResponse> => {
   const response = await axiosInstance.post("/auth/logout");
   return response.data;
 };
+
+// Forgot password (request reset)
+export const authForgotPassword = async (
+  email: string,
+): Promise<ApiResponse> => {
+  const response = await axiosInstance.post("/auth/forgot-password", { email });
+  return response.data;
+};

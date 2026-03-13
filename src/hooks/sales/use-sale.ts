@@ -5,6 +5,7 @@ import { getSalesQueryOptions, saleKeys } from "./sale-query-options";
 import { useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { invalidateBusinessData } from "@/lib/query-utils";
+import { getUserTimezone } from "@/lib/timezone";
 
 type UseCreateSaleOptions = {
   mutationConfig?: MutationConfig<typeof createSale>;
@@ -36,6 +37,8 @@ export const useSaleList = ({
   const [status, setStatus] = useState<string | undefined>();
   const [customerId, setCustomerId] = useState<number | undefined>();
 
+  const timezone = getUserTimezone();
+
   const validParams = {
     page,
     limit,
@@ -43,6 +46,7 @@ export const useSaleList = ({
     ...dateRange,
     status,
     customerId,
+    timezone,
   };
 
   const query = useQuery(getSalesQueryOptions(validParams));

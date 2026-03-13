@@ -82,7 +82,7 @@ export default function NotificationsPage() {
 
   return (
     <>
-      <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
+      <header className="sticky top-6 mx-auto container z-10 flex sm:flex-row flex-col px-4 justify-between w-full items-center gap-4 pb-16">
         <div className="overflow-hidden flex gap-2">
           <span className="w-2 bg-primary" />
           <div className="flex flex-col">
@@ -123,76 +123,74 @@ export default function NotificationsPage() {
       </header>
 
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
-        <Card className="p-4 space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {FILTERS.map((item) => (
-              <Button
-                key={item.value}
-                type="button"
-                variant={item.value === filter ? "default" : "outline"}
-                size="sm"
-                onClick={() => {
-                  setFilter(item.value);
-                  setVisibleCount(PAGE_SIZE);
-                }}
-              >
-                {item.label}
-              </Button>
-            ))}
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((item) => (
+            <Button
+              key={item.value}
+              type="button"
+              variant={item.value === filter ? "default" : "outline"}
+              size="sm"
+              onClick={() => {
+                setFilter(item.value);
+                setVisibleCount(PAGE_SIZE);
+              }}
+            >
+              {item.label}
+            </Button>
+          ))}
+        </div>
+
+        {notificationsQuery.isLoading ? (
+          <div className="p-8 text-sm text-muted-foreground">Memuat notifikasi...</div>
+        ) : notificationsQuery.isError ? (
+          <div className="p-8 text-sm text-destructive">Gagal memuat notifikasi</div>
+        ) : visibleNotifications.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-12 text-center border-dashed text-muted-foreground min-h-[280px] rounded-md border">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 text-2xl">
+              <Bell className="h-6 w-6" />
+            </div>
+            <h3 className="text-lg font-medium text-foreground">
+              Tidak ada notifikasi
+            </h3>
+            <p className="text-sm max-w-xs mx-auto">
+              Belum ada notifikasi yang cocok dengan filter saat ini.
+            </p>
           </div>
-
-          {notificationsQuery.isLoading ? (
-            <div className="p-8 text-sm text-muted-foreground">Memuat notifikasi...</div>
-          ) : notificationsQuery.isError ? (
-            <div className="p-8 text-sm text-destructive">Gagal memuat notifikasi</div>
-          ) : visibleNotifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-12 text-center border-dashed text-muted-foreground min-h-[280px] rounded-md border">
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 text-2xl">
-                <Bell className="h-6 w-6" />
-              </div>
-              <h3 className="text-lg font-medium text-foreground">
-                Tidak ada notifikasi
-              </h3>
-              <p className="text-sm max-w-xs mx-auto">
-                Belum ada notifikasi yang cocok dengan filter saat ini.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {visibleNotifications.map((notification) => (
-                <Card key={notification.id} className="p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={notification.read ? "secondary" : "default"}>
-                          {notification.read ? "Read" : "Unread"}
-                        </Badge>
-                        <Badge variant="outline">{notification.category}</Badge>
-                        <Badge variant="outline">{notification.severity}</Badge>
-                      </div>
-
-                      <p className="text-sm leading-snug">{notification.message}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDateTime(notification.createdAt)}
-                      </p>
+        ) : (
+          <div className="space-y-3">
+            {visibleNotifications.map((notification) => (
+              <Card key={notification.id} className="p-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={notification.read ? "secondary" : "default"}>
+                        {notification.read ? "Read" : "Unread"}
+                      </Badge>
+                      <Badge variant="outline">{notification.category}</Badge>
+                      <Badge variant="outline">{notification.severity}</Badge>
                     </div>
-                  </div>
-                </Card>
-              ))}
 
-              {visibleCount < filteredNotifications.length && (
-                <div className="pt-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-                  >
-                    Tampilkan lebih banyak
-                  </Button>
+                    <p className="text-sm leading-snug">{notification.message}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDateTime(notification.createdAt)}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </div>
-          )}
-        </Card>
+              </Card>
+            ))}
+
+            {visibleCount < filteredNotifications.length && (
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                >
+                  Tampilkan lebih banyak
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </>
   );

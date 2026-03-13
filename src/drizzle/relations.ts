@@ -195,6 +195,20 @@ export const userRolesRelations = relations(schema.userRoles, ({ one }) => ({
   }),
 }));
 
+export const passwordResetRequestsRelations = relations(
+  schema.passwordResetRequests,
+  ({ one }) => ({
+    user: one(schema.users, {
+      fields: [schema.passwordResetRequests.userId],
+      references: [schema.users.id],
+    }),
+    resolvedByUser: one(schema.users, {
+      fields: [schema.passwordResetRequests.resolvedBy],
+      references: [schema.users.id],
+    }),
+  }),
+);
+
 export const stockMutationsRelations = relations(
   schema.stockMutations,
   ({ one }) => ({

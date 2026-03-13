@@ -1,4 +1,5 @@
 import QueryProvider from "@/components/providers/QueryProvider";
+import ThemeInitializer from "@/components/providers/ThemeInitializer";
 import { Metadata } from "next";
 import { Instrument_Serif, Inter, Geist } from "next/font/google";
 import "./globals.css";
@@ -42,11 +43,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geist.variable} ${instrumentSerif.variable} ${inter.variable} font-geist`}
       >
         <QueryProvider>
+          <ThemeInitializer />
           <ConfirmProvider>{children}</ConfirmProvider>
         </QueryProvider>
       </body>

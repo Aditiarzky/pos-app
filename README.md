@@ -4,7 +4,7 @@
 
 Sistem ini menggunakan metode **Weighted Average Cost (WAC)** atau Rata-Rata Tertimbang yang dihitung secara _real-time_ setiap kali terjadi barang masuk (Purchase).
 
-- **Base Unit Consistency**: Semua perhitungan dilakukan pada tingkat "Satuan Dasar" (misal: Gram, ml, atau Pcs) untuk menjamin akurasi meskipun pembelian dilakukan dengan varian satuan yang berbeda (misal: Dus, Pack, atau Kg).
+- **Base Unit Consistency**: Semua perhitungan dilakukan pada tingkat "Satuan Terkecil" (misal: Gram, ml, atau Pcs) untuk menjamin akurasi meskipun pembelian dilakukan dengan varian satuan yang berbeda (misal: Dus, Pack, atau Kg).
 - **Formula WAC**:
 
 ---

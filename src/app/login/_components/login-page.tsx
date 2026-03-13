@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,16 @@ import { toast } from "sonner";
 import {
   ApiResponse,
   authLogin,
+  authForgotPassword,
   authRegister,
   UserRegisterInputType,
 } from "@/services/authService";
 import LogoNav from "@/assets/logo-nav/logo-nav";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { checkPasswordResetStatus } from "@/services/passwordResetService";
+
+const PASSWORD_RESET_NOTIFICATION_EMAIL_KEY =
+  "password_reset_notification_email";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -27,13 +33,106 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberEmail, setRememberEmail] = useState(false);
+  const [resetNotificationEmail, setResetNotificationEmail] = useState<string | null>(
+    null,
+  );
 
   const router = useRouter();
   const queryClient = useQueryClient();
 
+  useEffect(() => {
+    const savedEmail = localStorage.getItem("remembered_email");
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberEmail(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!rememberEmail) return;
+    if (email.trim()) {
+      localStorage.setItem("remembered_email", email.trim());
+    }
+  }, [email, rememberEmail]);
+
+  useEffect(() => {
+    const storedResetEmail = localStorage.getItem(
+      PASSWORD_RESET_NOTIFICATION_EMAIL_KEY,
+    );
+    if (storedResetEmail) {
+      setResetNotificationEmail(storedResetEmail);
+    }
+  }, []);
+
+  const syncRememberedEmail = () => {
+    if (rememberEmail && email.trim()) {
+      localStorage.setItem("remembered_email", email.trim());
+    } else {
+      localStorage.removeItem("remembered_email");
+    }
+  };
+
+  const persistResetNotificationEmail = (value: string) => {
+    const trimmed = value.trim();
+    if (trimmed) {
+      localStorage.setItem(
+        PASSWORD_RESET_NOTIFICATION_EMAIL_KEY,
+        trimmed,
+      );
+      setResetNotificationEmail(trimmed);
+    } else {
+      localStorage.removeItem(PASSWORD_RESET_NOTIFICATION_EMAIL_KEY);
+      setResetNotificationEmail(null);
+    }
+  };
+
+  useEffect(() => {
+    if (!resetNotificationEmail) return;
+
+    let isMounted = true;
+
+    (async () => {
+      try {
+        const response = await checkPasswordResetStatus(
+          resetNotificationEmail,
+        );
+
+        if (!response.success || !response.data) {
+          return;
+        }
+
+        if (response.data.status === "completed") {
+          toast.success(
+            `Password ${response.data.email} sudah direset. Notifikasi ini hanya muncul di browser ini.`,
+          );
+          if (!isMounted) return;
+          localStorage.removeItem(PASSWORD_RESET_NOTIFICATION_EMAIL_KEY);
+          setResetNotificationEmail(null);
+        }
+      } catch (error) {
+        console.error("check password reset status error:", error);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [resetNotificationEmail]);
+
+  const handleRememberChange = (checked: boolean) => {
+    setRememberEmail(checked);
+    if (!checked) {
+      localStorage.removeItem("remembered_email");
+    } else if (email.trim()) {
+      localStorage.setItem("remembered_email", email.trim());
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    syncRememberedEmail();
 
     try {
       const response = await authLogin({ email, password });
@@ -86,14 +185,24 @@ export default function LoginPage() {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    persistResetNotificationEmail(email);
     setLoading(true);
+    syncRememberedEmail();
 
     try {
-      toast.success("Link reset password telah dikirim ke email Anda.");
+      const response = await authForgotPassword(email);
+      if (response.success) {
+        toast.success(
+          "Permintaan reset password telah dikirim ke admin sistem.",
+        );
+      } else {
+        toast.error(response.error || "Gagal mengirim permintaan reset");
+        return;
+      }
       setCurrentView("login");
     } catch (error: unknown) {
       console.error("Forgot password error:", error);
-      toast.error("Gagal mengirim link reset password");
+      toast.error("Gagal mengirim permintaan reset password");
     } finally {
       setLoading(false);
     }
@@ -149,6 +258,9 @@ export default function LoginPage() {
         </section>
         <section className="flex items-center justify-center px-2 py-6 lg:px-10">
           <div className="w-full max-w-md rounded-2xl border bg-card shadow-sm p-6 sm:p-8">
+            <div className="flex justify-end mb-4">
+              <ThemeToggle />
+            </div>
             <div className="lg:hidden mb-6 flex justify-center">
               <LogoNav height={34} type="sidebar" />
             </div>
@@ -274,6 +386,8 @@ export default function LoginPage() {
                         type="checkbox"
                         id="remember"
                         className="rounded border-input"
+                        checked={rememberEmail}
+                        onChange={(e) => handleRememberChange(e.target.checked)}
                       />
                       Ingat saya
                     </label>

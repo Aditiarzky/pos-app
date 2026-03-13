@@ -41,9 +41,11 @@ export type DashboardResponse = {
   };
 };
 
-export const getDashboardSummary = async (): Promise<
-  ApiResponse<DashboardResponse>
-> => {
-  const response = await axiosInstance.get("/dashboard");
+export const getDashboardSummary = async (
+  timezone?: string,
+): Promise<ApiResponse<DashboardResponse>> => {
+  const response = await axiosInstance.get("/dashboard", {
+    params: timezone ? { timezone } : undefined,
+  });
   return response.data;
 };

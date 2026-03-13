@@ -163,7 +163,7 @@ export function StockAdjustmentModal({
           <DialogTitle>Stock Opname: {product.name}</DialogTitle>
           <DialogDescription>
             Masukkan jumlah stok fisik untuk setiap variant. Sistem akan
-            menghitung total stok dalam satuan dasar.
+            menghitung total stok dalam satuan terkecil.
           </DialogDescription>
         </DialogHeader>
 

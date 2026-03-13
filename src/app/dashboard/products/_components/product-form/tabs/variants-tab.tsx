@@ -62,7 +62,7 @@ export function VariantsTab({
 
   const baseUnitId = watch("baseUnitId");
   const baseUnitName =
-    units.find((u: UnitType) => u.id === baseUnitId)?.name || "Satuan Dasar";
+    units.find((u: UnitType) => u.id === baseUnitId)?.name || "Satuan Terkecil";
   return (
     <div className="space-y-4">
       <TabsContent value="variants" className="mt-4 space-y-4">

@@ -147,7 +147,7 @@ export default function DashboardPage() {
   const kpiData = summary
     ? [
       {
-        title: "Total Sales Bulan Ini",
+        title: "Omset Bulan Ini",
         value: summary.totalSalesMonth,
         growth: calculateGrowth(
           summary.totalSalesMonth,
@@ -240,12 +240,12 @@ export default function DashboardPage() {
               data={filledSalesTrend}
               config={{
                 totalSales: {
-                  label: "Penjualan",
+                  label: "Omset",
                   color: "var(--chart-1)", // ini yang bikin warna keluar + responsive
                 },
               }}
-              title="Tren Penjualan 30 Hari Terakhir"
-              description="Daily Sales"
+              title="Tren Omset 30 Hari Terakhir"
+              description="Omset Harian"
               showTimeRange={false}
             />
           </div>

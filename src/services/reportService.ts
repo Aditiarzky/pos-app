@@ -4,6 +4,7 @@ import { ApiResponse } from "./productService";
 export type ReportParams = {
   startDate?: string;
   endDate?: string;
+  timezone?: string;
 };
 
 export type ReportSummary = {
@@ -74,10 +75,24 @@ export type PurchaseReportResponse = {
   }>;
 };
 
+const getUserTimezone = (): string => {
+  if (typeof Intl === "undefined") return "UTC";
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  } catch {
+    return "UTC";
+  }
+};
+
 export const getReports = async (
   params?: ReportParams,
 ): Promise<ApiResponse<ReportResponse>> => {
-  const response = await axiosInstance.get("/reports", { params });
+  const response = await axiosInstance.get("/reports", {
+    params: {
+      ...params,
+      timezone: params?.timezone ?? getUserTimezone(),
+    },
+  });
   return response.data;
 };
 
@@ -85,7 +100,11 @@ export const getSalesReport = async (
   params?: ReportParams,
 ): Promise<ApiResponse<SalesReportResponse>> => {
   const response = await axiosInstance.get("/reports", {
-    params: { ...params, type: "sales" },
+    params: {
+      ...params,
+      type: "sales",
+      timezone: params?.timezone ?? getUserTimezone(),
+    },
   });
   return response.data;
 };
@@ -94,7 +113,11 @@ export const getPurchaseReport = async (
   params?: ReportParams,
 ): Promise<ApiResponse<PurchaseReportResponse>> => {
   const response = await axiosInstance.get("/reports", {
-    params: { ...params, type: "purchase" },
+    params: {
+      ...params,
+      type: "purchase",
+      timezone: params?.timezone ?? getUserTimezone(),
+    },
   });
   return response.data;
 };

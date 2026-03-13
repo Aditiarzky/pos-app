@@ -1,12 +1,70 @@
 "use client";
-
 import { useRef, useCallback, useState } from "react";
+import { toPng } from "html-to-image";
 
 export function usePrintReceipt() {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+
   const receiptWidthMm = 80;
   const receiptPaddingMm = 2;
+
+  const captureReceiptAsBlob = useCallback(async (): Promise<Blob | null> => {
+    const content = receiptRef.current;
+    if (!content) return null;
+
+    const dataUrl = await toPng(content, {
+      backgroundColor: "#ffffff",
+      pixelRatio: 2,
+    });
+
+    // Convert dataURL ke Blob
+    const res = await fetch(dataUrl);
+    return res.blob();
+  }, []);
+
+  const handleShareAsImage = useCallback(async () => {
+    setIsSharing(true);
+    try {
+      const blob = await captureReceiptAsBlob();
+      if (!blob) return;
+
+      const file = new File([blob], "nota-penjualan.png", {
+        type: "image/png",
+      });
+
+      // Web Share API — works on mobile (Android/iOS) with HTTPS
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.canShare &&
+        navigator.canShare({ files: [file] })
+      ) {
+        await navigator.share({
+          files: [file],
+          title: "Nota Penjualan",
+          text: "Nota penjualan dari Toko Aditiarzky",
+        });
+      } else {
+        // Fallback: auto-download PNG for manual sharing
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "nota-penjualan.png";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      // User cancelled share — bukan error nyata, abaikan
+      if ((error as Error)?.name !== "AbortError") {
+        console.error("Share failed:", error);
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  }, [captureReceiptAsBlob]);
 
   const handlePrint = useCallback(() => {
     const content = receiptRef.current;
@@ -14,7 +72,6 @@ export function usePrintReceipt() {
 
     setIsPrinting(true);
 
-    // Buat iframe jika belum ada
     let frame = document.getElementById("print-iframe") as HTMLIFrameElement;
     if (!frame) {
       frame = document.createElement("iframe");
@@ -31,7 +88,6 @@ export function usePrintReceipt() {
     const doc = frame.contentWindow?.document;
     if (!doc) return;
 
-    // Ambil konten HTML
     const htmlContent = content.innerHTML;
 
     doc.open();
@@ -39,9 +95,8 @@ export function usePrintReceipt() {
       <html>
         <head>
           <style>
-            /* Reset dasar agar tidak blank */
             * { margin: 0; padding: 0; box-sizing: border-box; }
-             html, body {
+            html, body {
               background: #fff;
               color: #000;
               -webkit-print-color-adjust: exact;
@@ -52,34 +107,27 @@ export function usePrintReceipt() {
               width: ${receiptWidthMm}mm;
               margin: 0 auto;
             }
-            /* Copy inline styles agar tetap bekerja */
             .print-content {
               width: ${receiptWidthMm}mm !important;
               max-width: ${receiptWidthMm}mm !important;
               padding: ${receiptPaddingMm}mm !important;
             }
-
-            /* Sembunyikan elemen yang tidak perlu saat print */
             @media print {
-               @page {
+              @page {
                 size: ${receiptWidthMm}mm auto;
                 margin: 0;
               }
-
               html, body {
                 width: ${receiptWidthMm}mm;
                 margin: 0 !important;
                 padding: 0 !important;
               }
-
               .print-content {
                 width: ${receiptWidthMm}mm !important;
                 max-width: ${receiptWidthMm}mm !important;
                 padding: ${receiptPaddingMm}mm !important;
               }
             }
-
-            /* Paksa Barcode Muncul */
             svg, img, canvas { max-width: 100%; height: auto; }
           </style>
         </head>
@@ -88,14 +136,12 @@ export function usePrintReceipt() {
             ${htmlContent}
           </div>
           <script>
-            // Pastikan semua aset (seperti barcode SVG) sudah render
             window.onload = () => {
               setTimeout(() => {
                 window.focus();
                 window.print();
               }, 250);
             };
-
             window.onafterprint = () => {
               window.parent.postMessage({ type: 'RECEIPT_PRINT_DONE' }, '*');
             };
@@ -107,7 +153,6 @@ export function usePrintReceipt() {
 
     const handlePrintDone = (event: MessageEvent) => {
       if (event.data?.type !== "RECEIPT_PRINT_DONE") return;
-
       setIsPrinting(false);
       window.removeEventListener("message", handlePrintDone);
     };
@@ -120,5 +165,11 @@ export function usePrintReceipt() {
     }, 2000);
   }, [receiptPaddingMm, receiptWidthMm]);
 
-  return { receiptRef, handlePrint, isPrinting };
+  return {
+    receiptRef,
+    handlePrint,
+    isPrinting,
+    handleShareAsImage,
+    isSharing,
+  };
 }

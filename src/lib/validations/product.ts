@@ -17,11 +17,11 @@ export const productVariantSchema = baseVariantInsert
       .string()
       .refine(
         (v) => Number(v) >= 1,
-        "Konversi ke satuan dasar harus lebih dari 1",
+        "Konversi ke satuan terkecil harus lebih dari 1",
       ),
     unitId: z.number({
       error: () => ({
-        message: "Satuan dasar harus diisi",
+        message: "Satuan terkecil harus diisi",
       }),
     }),
   })
@@ -37,7 +37,7 @@ export const insertProductSchema = baseInsertSchema
     stock: z.coerce.string().optional(),
     baseUnitId: z.number({
       error: () => ({
-        message: "Satuan dasar harus diisi",
+        message: "Satuan terkecil harus diisi",
       }),
     }),
     barcodes: z.array(z.object({ barcode: z.string() })).optional(),

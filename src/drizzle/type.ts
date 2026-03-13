@@ -6,6 +6,11 @@ export type UserRolesType = InferSelectModel<typeof schema.userRoles>;
 export type InsertUserType = InferInsertModel<typeof schema.users>;
 export type InsertUserRolesType = InferInsertModel<typeof schema.userRoles>;
 export type UserRoleEnumType = (typeof schema.userRole.enumValues)[number];
+export type PasswordResetRequestType = InferSelectModel<
+  typeof schema.passwordResetRequests
+>;
+export type PasswordResetStatusEnumType =
+  (typeof schema.passwordResetStatus.enumValues)[number];
 export type CategoryType = InferSelectModel<typeof schema.categories>;
 export type InsertCategoryType = InferInsertModel<typeof schema.categories>;
 export type UnitType = InferSelectModel<typeof schema.units>;

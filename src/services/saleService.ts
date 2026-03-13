@@ -31,6 +31,7 @@ export const getSales = async (params?: {
   endDate?: string;
   status?: string;
   customerId?: number;
+  timezone?: string;
 }): Promise<ApiResponse<SaleResponse[]>> => {
   const response = await axiosInstance.get("/sales", { params });
   return response.data;

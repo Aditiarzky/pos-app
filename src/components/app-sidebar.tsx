@@ -120,10 +120,13 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
             : "-translate-x-full -left-10 w-64",
         )}
       >
-        <div className="pt-6 px-4">
-          <LogoNav height={32} type="sidebar" />
-          <Separator className="mt-3" />
-        </div>
+        <Link
+          href="/dashboard">
+          <div className="pt-6 px-4">
+            <LogoNav height={32} type="sidebar" />
+            <Separator className="mt-3" />
+          </div>
+        </Link>
         {/* Close button for mobile */}
         <div className="absolute right-[-16px] top-4">
           <Button
@@ -161,14 +164,16 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
             );
           })}
         </nav>
-      </div>
+      </div >
       {/* Overlay for mobile */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-background/50 backdrop-blur-sm z-30 md:hidden"
-          onClick={onToggle}
-        />
-      )}
+      {
+        isOpen && (
+          <div
+            className="fixed inset-0 bg-background/50 backdrop-blur-sm z-30 md:hidden"
+            onClick={onToggle}
+          />
+        )
+      }
     </>
   );
 }

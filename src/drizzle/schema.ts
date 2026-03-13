@@ -43,6 +43,11 @@ export const surplusStrategyType = p.pgEnum("surplus_strategy_type", [
 ]);
 
 export const userRole = p.pgEnum("user_role", ["admin toko", "admin sistem"]);
+export const passwordResetStatus = p.pgEnum("password_reset_status", [
+  "pending",
+  "completed",
+  "rejected",
+]);
 
 // Table
 
@@ -87,6 +92,19 @@ export const users = p.pgTable(
     p.index("users_search_idx").using("gin", t.searchVector),
   ],
 );
+
+export const passwordResetRequests = p.pgTable("password_reset_requests", {
+  id: p.serial("id").primaryKey(),
+  userId: p
+    .integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  email: p.text("email").notNull(),
+  status: passwordResetStatus("status").default("pending").notNull(),
+  requestedAt: p.timestamp("requested_at").defaultNow().notNull(),
+  resolvedAt: p.timestamp("resolved_at"),
+  resolvedBy: p.integer("resolved_by").references(() => users.id),
+});
 
 export const refreshTokens = p.pgTable("refresh_tokens", {
   id: p.serial("id").primaryKey(),

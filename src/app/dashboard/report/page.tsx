@@ -337,12 +337,12 @@ export function ReportContent() {
         ) : null}
         {/* analytics */}
         <StickyCardStack>
-          {/* Card 1 - Total Penjualan */}
+          {/* Card 1 - Omset */}
           <Card className="relative overflow-hidden border-none shadow-md text-primary">
             <CardBg />
             <CardHeader className="pb-2 z-10">
               <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
-                Total Penjualan
+                Omset
                 <div className="p-2 bg-primary/10 rounded-lg">
                   <ShoppingCart className="h-4 w-4 text-primary" />
                 </div>
@@ -492,11 +492,11 @@ export function ReportContent() {
           <div className="lg:col-span-2">
             <ChartAreaInteractive
               title="Tren Transaksi"
-              description="Perbandingan Penjualan vs Pembelian harian"
+              description="Perbandingan Omset vs Pembelian harian"
               data={dailySummary}
               config={{
                 totalSales: {
-                  label: "Penjualan",
+                  label: "Omset",
                   color: "var(--chart-1)",
                 },
                 totalPurchases: {
@@ -590,7 +590,7 @@ export function ReportContent() {
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center justify-between group">
                 <span className="text-muted-foreground group-hover:text-foreground transition-colors">
-                  Penjualan
+                  Omset
                 </span>
                 <span className="font-bold text-emerald-600">
                   {formatCurrency(summary?.totalSales ?? 0)}

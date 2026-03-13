@@ -36,14 +36,15 @@ export function TopNavbar({
         <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
           <Menu className="w-5 h-5" />
         </Button>
-        <div
+        <Link
+          href="/dashboard"
           className={cn(
             "transition-all duration-300",
             sidebarOpen && "w-0 overflow-hidden",
           )}
         >
           <LogoNav height={32} type="nav" />
-        </div>
+        </Link>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">

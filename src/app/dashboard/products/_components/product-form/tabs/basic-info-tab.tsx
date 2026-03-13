@@ -100,7 +100,7 @@ export function BasicInfoTab({
 
           <div className="space-y-2">
             <Label>
-              Satuan Dasar <p className="text-red-500">*</p>
+              Satuan Terkecil <p className="text-red-500">*</p>
             </Label>
             <UnitSelect
               units={units}

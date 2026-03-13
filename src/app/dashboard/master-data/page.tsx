@@ -305,7 +305,7 @@ function EntitySection({
             setDraftName("");
             setDialogOpen(true);
           }}
-          className="rounded-xl"
+          className="bg-gradient-to-br from-primary to-green-600 dark:to-green-400 hover:brightness-90 rounded-xl"
         >
           <Plus className="mr-2 h-4 w-4" />
           Tambah {entityLabel}
@@ -582,7 +582,6 @@ function EntitySection({
                 key={row.id}
                 className="relative overflow-hidden border-none shadow-md text-primary"
               >
-                <CardBg />
                 <CardHeader className="pb-2 z-10">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
