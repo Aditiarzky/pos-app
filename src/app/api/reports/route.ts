@@ -8,8 +8,20 @@ import {
   getLocalMidnightUtc,
   getUtcFromLocalDate,
 } from "@/lib/timezone";
+import { calculateNetProfit } from "@/lib/net-profit-helper";
 
 type ReportType = "overview" | "sales" | "purchase";
+
+// ── Timezone-aware date grouping ──────────────────────────────────────────────
+// Bug lama: to_char(col, 'YYYY-MM-DD') pakai timezone server (UTC).
+// Fix: konversi ke timezone lokal user sebelum format.
+//
+// PENTING: PostgreSQL AT TIME ZONE tidak bisa menerima parameter binding ($1).
+// Harus di-interpolate sebagai string literal langsung ke query.
+// Pakai sql.raw() — aman karena timezone sudah divalidasi oleh normalizeTimezone()
+// yang hanya menerima string dari Intl.DateTimeFormat (tidak dari user input bebas).
+const localDateExpr = (col: import("drizzle-orm").SQL, timezone: string) =>
+  sql<string>`to_char(${col} AT TIME ZONE 'UTC' AT TIME ZONE ${sql.raw(`'${timezone}'`)}, 'YYYY-MM-DD')`;
 
 const parseDateRange = (request: NextRequest) => {
   const searchParams = request.nextUrl.searchParams;
@@ -20,12 +32,10 @@ const parseDateRange = (request: NextRequest) => {
   if (startDate && endDate) {
     const start = getUtcFromLocalDate(startDate, "00:00:00.000", timezone);
     const end = getUtcFromLocalDate(endDate, "23:59:59.999", timezone);
-    return { start, end, startDate, endDate };
+    return { start, end, startDate, endDate, timezone };
   }
 
-  // Default: bulan ini di timezone lokal
   const todayMidnight = getLocalMidnightUtc(timezone);
-
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     year: "numeric",
@@ -42,14 +52,13 @@ const parseDateRange = (request: NextRequest) => {
   const year = Number(parts.year);
   const month = String(parts.month).padStart(2, "0");
   const day = String(parts.day).padStart(2, "0");
-
   const firstDayStr = `${year}-${month}-01`;
   const todayStr = `${year}-${month}-${day}`;
 
   const start = getUtcFromLocalDate(firstDayStr, "00:00:00.000", timezone);
   const end = getUtcFromLocalDate(todayStr, "23:59:59.999", timezone);
 
-  return { start, end, startDate: firstDayStr, endDate: todayStr };
+  return { start, end, startDate: firstDayStr, endDate: todayStr, timezone };
 };
 
 const parseType = (request: NextRequest): ReportType => {
@@ -60,10 +69,9 @@ const parseType = (request: NextRequest): ReportType => {
 
 export async function GET(request: NextRequest) {
   try {
-    const { start, end, startDate, endDate } = parseDateRange(request);
+    const { start, end, startDate, endDate, timezone } = parseDateRange(request);
     const type = parseType(request);
 
-    // Calculate previous period for comparison
     const durationMs = end.getTime() - start.getTime();
     const prevEnd = new Date(start.getTime() - 1);
     const prevStart = new Date(prevEnd.getTime() - durationMs);
@@ -96,7 +104,6 @@ export async function GET(request: NextRequest) {
       lte(purchaseOrders.createdAt, prevEnd),
     );
 
-    // Helper to build aggregate queries
     const getSalesTotals = (filter: ReturnType<typeof and>) =>
       db
         .select({
@@ -106,10 +113,12 @@ export async function GET(request: NextRequest) {
         .from(sales)
         .where(filter);
 
-    const getSalesProfit = (filter: ReturnType<typeof and>) =>
+    const getSalesGrossProfit = (filter: ReturnType<typeof and>) =>
       db
         .select({
-          totalProfit: sql<string>`coalesce(sum(${saleItems.subtotal} - (${saleItems.costAtSale} * ${saleItems.qty} * ${saleItems.unitFactorAtSale})), 0)`,
+          grossProfit: sql<string>`coalesce(sum(
+            ${saleItems.subtotal} - (${saleItems.costAtSale} * ${saleItems.qty} * ${saleItems.unitFactorAtSale})
+          ), 0)`,
         })
         .from(saleItems)
         .innerJoin(sales, eq(sales.id, saleItems.saleId))
@@ -124,25 +133,29 @@ export async function GET(request: NextRequest) {
         .from(purchaseOrders)
         .where(filter);
 
+    // ── Sales type ────────────────────────────────────────────────────────────
     if (type === "sales") {
       const [
         salesBaseTotals,
-        salesProfit,
+        salesGrossProfit,
         prevSalesBaseTotals,
-        prevSalesProfit,
+        prevSalesGrossProfit,
         topProducts,
         dailySales,
       ] = await Promise.all([
         getSalesTotals(salesFilter),
-        getSalesProfit(salesFilter),
+        getSalesGrossProfit(salesFilter),
         getSalesTotals(prevSalesFilter),
-        getSalesProfit(prevSalesFilter),
+        getSalesGrossProfit(prevSalesFilter),
         db
           .select({
             productId: products.id,
             productName: products.name,
             qtySold: sql<string>`coalesce(sum(${saleItems.qty}), 0)`,
             revenue: sql<string>`coalesce(sum(${saleItems.subtotal}), 0)`,
+            grossProfit: sql<string>`coalesce(sum(
+              ${saleItems.subtotal} - (${saleItems.costAtSale} * ${saleItems.qty} * ${saleItems.unitFactorAtSale})
+            ), 0)`,
           })
           .from(saleItems)
           .innerJoin(sales, eq(sales.id, saleItems.saleId))
@@ -153,38 +166,48 @@ export async function GET(request: NextRequest) {
           .limit(10),
         db
           .select({
-            date: sql<string>`to_char(${sales.createdAt}, 'YYYY-MM-DD')`,
+            date: localDateExpr(sql`${sales.createdAt}`, timezone),
             totalSales: sql<string>`coalesce(sum(${sales.totalPrice}), 0)`,
             totalTransactions: sql<number>`count(*)`,
           })
           .from(sales)
           .where(salesFilter)
-          .groupBy(sql`to_char(${sales.createdAt}, 'YYYY-MM-DD')`)
-          .orderBy(sql`to_char(${sales.createdAt}, 'YYYY-MM-DD') asc`),
+          .groupBy(localDateExpr(sql`${sales.createdAt}`, timezone))
+          .orderBy(localDateExpr(sql`${sales.createdAt}`, timezone)),
       ]);
+
+      const revenue = Number(salesBaseTotals[0]?.totalSales || 0);
+      const grossProfit = Number(salesGrossProfit[0]?.grossProfit || 0);
+      const netProfitData = await calculateNetProfit(grossProfit, revenue, start, end);
 
       return NextResponse.json({
         success: true,
         data: {
           summary: {
-            totalSales: Number(salesBaseTotals[0]?.totalSales || 0),
-            totalTransactions: Number(
-              salesBaseTotals[0]?.totalTransactions || 0,
-            ),
-            totalProfit: Number(salesProfit[0]?.totalProfit || 0),
+            totalSales: revenue,
+            totalTransactions: Number(salesBaseTotals[0]?.totalTransactions || 0),
+            grossProfit,
+            netProfit: netProfitData.netProfit,
+            totalOperationalCost: netProfitData.totalOperationalCost,
+            totalTax: netProfitData.totalTax,
             prevTotalSales: Number(prevSalesBaseTotals[0]?.totalSales || 0),
-            prevTotalTransactions: Number(
-              prevSalesBaseTotals[0]?.totalTransactions || 0,
-            ),
-            prevTotalProfit: Number(prevSalesProfit[0]?.totalProfit || 0),
+            prevTotalTransactions: Number(prevSalesBaseTotals[0]?.totalTransactions || 0),
+            prevGrossProfit: Number(prevSalesGrossProfit[0]?.grossProfit || 0),
           },
-          topProducts,
+          netProfitBreakdown: netProfitData.breakdown,
+          topProducts: topProducts.map((item) => ({
+            ...item,
+            qtySold: Number(item.qtySold || 0),
+            revenue: Number(item.revenue || 0),
+            grossProfit: Number(item.grossProfit || 0),
+          })),
           daily: dailySales,
         },
         filter: { startDate, endDate },
       });
     }
 
+    // ── Purchase type ─────────────────────────────────────────────────────────
     if (type === "purchase") {
       const [purchaseTotals, prevPurchaseTotals, dailyPurchases] =
         await Promise.all([
@@ -192,29 +215,24 @@ export async function GET(request: NextRequest) {
           getPurchaseTotals(prevPurchaseFilter),
           db
             .select({
-              date: sql<string>`to_char(${purchaseOrders.createdAt}, 'YYYY-MM-DD')`,
+              date: localDateExpr(sql`${purchaseOrders.createdAt}`, timezone),
               totalPurchases: sql<string>`coalesce(sum(${purchaseOrders.total}), 0)`,
               totalTransactions: sql<number>`count(*)`,
             })
             .from(purchaseOrders)
             .where(purchaseFilter)
-            .groupBy(sql`to_char(${purchaseOrders.createdAt}, 'YYYY-MM-DD')`)
-            .orderBy(
-              sql`to_char(${purchaseOrders.createdAt}, 'YYYY-MM-DD') asc`,
-            ),
+            .groupBy(localDateExpr(sql`${purchaseOrders.createdAt}`, timezone))
+            .orderBy(localDateExpr(sql`${purchaseOrders.createdAt}`, timezone)),
         ]);
 
       return NextResponse.json({
         success: true,
         data: {
           summary: {
-            ...purchaseTotals[0],
-            prevTotalPurchases: Number(
-              prevPurchaseTotals[0]?.totalPurchases || 0,
-            ),
-            prevTotalTransactions: Number(
-              prevPurchaseTotals[0]?.totalTransactions || 0,
-            ),
+            totalPurchases: Number(purchaseTotals[0]?.totalPurchases || 0),
+            totalTransactions: Number(purchaseTotals[0]?.totalTransactions || 0),
+            prevTotalPurchases: Number(prevPurchaseTotals[0]?.totalPurchases || 0),
+            prevTotalTransactions: Number(prevPurchaseTotals[0]?.totalTransactions || 0),
           },
           daily: dailyPurchases,
         },
@@ -222,22 +240,23 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // ── Overview type ─────────────────────────────────────────────────────────
     const [
       salesBaseTotals,
-      salesProfit,
+      salesGrossProfit,
       purchaseTotals,
       prevSalesBaseTotals,
-      prevSalesProfit,
+      prevSalesGrossProfit,
       prevPurchaseTotals,
       topProducts,
       dailySales,
       dailyPurchases,
     ] = await Promise.all([
       getSalesTotals(salesFilter),
-      getSalesProfit(salesFilter),
+      getSalesGrossProfit(salesFilter),
       getPurchaseTotals(purchaseFilter),
       getSalesTotals(prevSalesFilter),
-      getSalesProfit(prevSalesFilter),
+      getSalesGrossProfit(prevSalesFilter),
       getPurchaseTotals(prevPurchaseFilter),
       db
         .select({
@@ -245,6 +264,9 @@ export async function GET(request: NextRequest) {
           productName: products.name,
           qtySold: sql<string>`coalesce(sum(${saleItems.qty}), 0)`,
           revenue: sql<string>`coalesce(sum(${saleItems.subtotal}), 0)`,
+          grossProfit: sql<string>`coalesce(sum(
+            ${saleItems.subtotal} - (${saleItems.costAtSale} * ${saleItems.qty} * ${saleItems.unitFactorAtSale})
+          ), 0)`,
         })
         .from(saleItems)
         .innerJoin(sales, eq(sales.id, saleItems.saleId))
@@ -255,42 +277,46 @@ export async function GET(request: NextRequest) {
         .limit(5),
       db
         .select({
-          date: sql<string>`to_char(${sales.createdAt}, 'YYYY-MM-DD')`,
+          date: localDateExpr(sql`${sales.createdAt}`, timezone),
           totalSales: sql<string>`coalesce(sum(${sales.totalPrice}), 0)`,
         })
         .from(sales)
         .where(salesFilter)
-        .groupBy(sql`to_char(${sales.createdAt}, 'YYYY-MM-DD')`)
-        .orderBy(sql`to_char(${sales.createdAt}, 'YYYY-MM-DD') asc`),
+        .groupBy(localDateExpr(sql`${sales.createdAt}`, timezone))
+        .orderBy(localDateExpr(sql`${sales.createdAt}`, timezone)),
       db
         .select({
-          date: sql<string>`to_char(${purchaseOrders.createdAt}, 'YYYY-MM-DD')`,
+          date: localDateExpr(sql`${purchaseOrders.createdAt}`, timezone),
           totalPurchases: sql<string>`coalesce(sum(${purchaseOrders.total}), 0)`,
         })
         .from(purchaseOrders)
         .where(purchaseFilter)
-        .groupBy(sql`to_char(${purchaseOrders.createdAt}, 'YYYY-MM-DD')`)
-        .orderBy(sql`to_char(${purchaseOrders.createdAt}, 'YYYY-MM-DD') asc`),
+        .groupBy(localDateExpr(sql`${purchaseOrders.createdAt}`, timezone))
+        .orderBy(localDateExpr(sql`${purchaseOrders.createdAt}`, timezone)),
     ]);
 
+    const revenue = Number(salesBaseTotals[0]?.totalSales || 0);
+    const grossProfit = Number(salesGrossProfit[0]?.grossProfit || 0);
+    const totalPurchases = Number(purchaseTotals[0]?.totalPurchases || 0);
+
+    const netProfitData = await calculateNetProfit(grossProfit, revenue, start, end);
+
     const summary = {
-      totalSales: Number(salesBaseTotals[0]?.totalSales || 0),
-      totalPurchases: Number(purchaseTotals[0]?.totalPurchases || 0),
-      totalProfit: Number(salesProfit[0]?.totalProfit || 0),
-      totalSalesTransactions: Number(
-        salesBaseTotals[0]?.totalTransactions || 0,
-      ),
-      totalPurchaseTransactions: Number(
-        purchaseTotals[0]?.totalTransactions || 0,
-      ),
+      totalSales: revenue,
+      totalPurchases,
+      totalSalesTransactions: Number(salesBaseTotals[0]?.totalTransactions || 0),
+      totalPurchaseTransactions: Number(purchaseTotals[0]?.totalTransactions || 0),
       totalTransactions:
         Number(salesBaseTotals[0]?.totalTransactions || 0) +
         Number(purchaseTotals[0]?.totalTransactions || 0),
-
-      // Comparison data
+      netCashFlow: revenue - totalPurchases,
+      grossProfit,
+      netProfit: netProfitData.netProfit,
+      totalOperationalCost: netProfitData.totalOperationalCost,
+      totalTax: netProfitData.totalTax,
       prevTotalSales: Number(prevSalesBaseTotals[0]?.totalSales || 0),
       prevTotalPurchases: Number(prevPurchaseTotals[0]?.totalPurchases || 0),
-      prevTotalProfit: Number(prevSalesProfit[0]?.totalProfit || 0),
+      prevGrossProfit: Number(prevSalesGrossProfit[0]?.grossProfit || 0),
       prevTotalTransactions:
         Number(prevSalesBaseTotals[0]?.totalTransactions || 0) +
         Number(prevPurchaseTotals[0]?.totalTransactions || 0),
@@ -308,7 +334,6 @@ export async function GET(request: NextRequest) {
         totalPurchases: 0,
       });
     }
-
     for (const row of dailyPurchases) {
       const existing = dailyMap.get(row.date);
       if (existing) {
@@ -326,10 +351,12 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         summary,
+        netProfitBreakdown: netProfitData.breakdown,
         topProducts: topProducts.map((item) => ({
           ...item,
           qtySold: Number(item.qtySold || 0),
           revenue: Number(item.revenue || 0),
+          grossProfit: Number(item.grossProfit || 0),
         })),
         daily: [...dailyMap.values()].sort((a, b) =>
           a.date.localeCompare(b.date),

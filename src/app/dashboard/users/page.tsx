@@ -1,19 +1,17 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { Plus, Users, Loader2, KeyRound } from "lucide-react";
+import { Plus, Users, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserListSection } from "./_components/user-list-section";
 import { UserFormModal } from "./_components/user-form-modal";
 import { UserResponse } from "@/services/userService";
-import { PasswordResetRequestsSection } from "./_components/password-reset-requests-section";
 import { useAuth } from "@/hooks/use-auth";
 
 function UsersContent() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserResponse | null>(null);
   const { roles } = useAuth();
-  const isAdminSystem = roles.includes("admin sistem");
 
   const handleCreateNew = () => {
     setEditingUser(null);

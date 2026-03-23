@@ -1,3 +1,8 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// report-query-options.ts
+// Tidak ada perubahan struktural — hanya pastikan params diteruskan
+// dengan benar ke service yang sudah auto-inject timezone.
+// ─────────────────────────────────────────────────────────────────────────────
 import { queryOptions } from "@tanstack/react-query";
 import {
   getPurchaseReport,

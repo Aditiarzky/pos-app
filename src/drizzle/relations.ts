@@ -258,3 +258,20 @@ export const notificationStatesRelations = relations(
     }),
   }),
 );
+
+export const operationalCostsRelations = relations(
+  schema.operationalCosts,
+  ({ one }) => ({
+    creator: one(schema.users, {
+      fields: [schema.operationalCosts.createdBy],
+      references: [schema.users.id],
+    }),
+  }),
+);
+
+export const taxConfigsRelations = relations(schema.taxConfigs, ({ one }) => ({
+  creator: one(schema.users, {
+    fields: [schema.taxConfigs.createdBy],
+    references: [schema.users.id],
+  }),
+}));

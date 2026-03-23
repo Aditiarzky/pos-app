@@ -51,6 +51,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface SalesListSectionProps {
   viewMode: "table" | "card";
@@ -415,16 +416,17 @@ export function SalesListSection({
       )}
 
       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
-        <DialogContent className="max-w-[340px] p-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-6 pb-2">
+        <DialogContent className="max-w-[340px] p-0 overflow-hidden flex flex-col max-h-[90vh]">
+          <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0">
             <DialogTitle>Nota Penjualan</DialogTitle>
           </DialogHeader>
 
-          <div className="px-4 pb-4">
+          {/* Kontainer Scrollable */}
+          <div className="px-4 pb-4 overflow-y-auto flex-grow custom-scrollbar">
             {selectedSale && <SaleReceipt ref={receiptRef} sale={selectedSale} />}
           </div>
 
-          <DialogFooter className="px-4 pb-4 flex justify-end gap-2">
+          <DialogFooter className="px-4 pb-4 pt-2 flex justify-end gap-2 flex-shrink-0 border-t bg-white">
             <Button
               variant="outline"
               size="sm"
@@ -438,6 +440,7 @@ export function SalesListSection({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }

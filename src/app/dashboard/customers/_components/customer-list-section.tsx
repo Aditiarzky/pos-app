@@ -83,6 +83,7 @@ export function CustomerListSection({
     setIsDetailOpen(true);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const customers = data?.data ?? [];
   const filteredCustomers = useMemo(() => {
     switch (balanceFilter) {

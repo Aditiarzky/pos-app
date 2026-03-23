@@ -90,3 +90,24 @@ export function formatMeta(totalCount: number, page: number, limit: number) {
     totalPages: Math.ceil(totalCount / limit),
   };
 }
+
+export const normalizeCostToRange = (
+  amount: number,
+  period: string,
+  rangeDays: number,
+): number => {
+  switch (period) {
+    case "daily":
+      return amount * rangeDays;
+    case "weekly":
+      return amount * (rangeDays / 7);
+    case "monthly":
+      return amount * (rangeDays / 30);
+    case "yearly":
+      return amount * (rangeDays / 365);
+    case "one_time":
+      return amount;
+    default:
+      return amount;
+  }
+};

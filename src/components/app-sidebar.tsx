@@ -18,6 +18,7 @@ import {
   IconTrash,
   IconBell,
   IconDatabase,
+  IconTax,
 } from "@tabler/icons-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -57,6 +58,12 @@ const navItems: NavItem[] = [
     label: "Pelanggan & Saldo",
     href: "/dashboard/customers",
     icon: <IconUsers className="w-5 h-5" />,
+    roles: ["admin toko"],
+  },
+  {
+    label: "Operasional & Pajak",
+    href: "/dashboard/cost",
+    icon: <IconTax className="w-5 h-5" />,
     roles: ["admin toko"],
   },
   {

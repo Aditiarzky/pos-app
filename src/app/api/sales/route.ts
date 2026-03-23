@@ -9,6 +9,7 @@ import {
   customers,
   debts,
   customerReturns,
+  customerBalanceMutations,
 } from "@/drizzle/schema";
 import { and, eq, not, sql } from "drizzle-orm";
 import { validateInsertSaleData } from "@/lib/validations/sale";
@@ -484,12 +485,29 @@ export async function POST(request: NextRequest) {
       }
 
       if (customerId && totalBalanceUsed > 0) {
+        // Ambil balance sebelum dikurangi
+        const customerBefore = await tx.query.customers.findFirst({
+          where: eq(customers.id, customerId),
+        });
+
+        const balanceBefore = Number(customerBefore!.creditBalance);
+        const balanceAfter = balanceBefore - totalBalanceUsed;
+
         await tx
           .update(customers)
           .set({
             creditBalance: sql`${customers.creditBalance} - ${totalBalanceUsed.toFixed(2)}`,
           })
           .where(eq(customers.id, customerId));
+
+        await tx.insert(customerBalanceMutations).values({
+          customerId: customerId,
+          amount: (-totalBalanceUsed).toFixed(2), // negatif karena pengurangan
+          balanceBefore: balanceBefore.toFixed(2),
+          balanceAfter: balanceAfter.toFixed(2),
+          type: "sale_balance_used",
+          referenceId: newSale.id,
+        });
       }
 
       const finalInvoice = `INV-${newSale.id.toString().padStart(7, "0")}`;

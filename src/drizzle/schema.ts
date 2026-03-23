@@ -49,6 +49,55 @@ export const passwordResetStatus = p.pgEnum("password_reset_status", [
   "rejected",
 ]);
 
+// ── Enums untuk biaya operasional & pajak ─────────────────────────────────────
+
+export const costPeriod = p.pgEnum("cost_period", [
+  "daily", // harian  → dinormalisasi × jumlah hari
+  "weekly", // mingguan → dinormalisasi × (jumlah hari / 7)
+  "monthly", // bulanan  → dinormalisasi × (jumlah hari / 30)
+  "yearly", // tahunan  → dinormalisasi × (jumlah hari / 365)
+  "one_time", // sekali bayar → langsung masuk penuh ke periode yang dipilih
+]);
+
+export const costCategory = p.pgEnum("cost_category", [
+  "utilities", // Listrik, Air, Internet
+  "salary", // Gaji karyawan
+  "rent", // Sewa tempat
+  "logistics", // Ongkos kirim, bensin
+  "marketing", // Iklan, promosi
+  "maintenance", // Perbaikan, peralatan
+  "other", // Lain-lain
+]);
+
+export const taxAppliesTo = p.pgEnum("tax_applies_to", [
+  "revenue", // Dihitung dari omset (contoh: PPh Final 0.5% dari omset)
+  "gross_profit", // Dihitung dari laba kotor (contoh: PPh Badan)
+]);
+
+export const taxType = p.pgEnum("tax_type", [
+  "percentage", // % dari basis (revenue atau gross_profit)
+  "fixed", // Nominal tetap per periode (bukan persentase)
+]);
+
+// ── Tables: biaya operasional & konfigurasi pajak ─────────────────────────────
+
+/**
+ * Tabel biaya operasional.
+ *
+ * Saat menghitung laba bersih untuk suatu rentang periode (misal: 1–31 Maret),
+ * setiap biaya dinormalisasi ke jumlah hari pada periode tersebut.
+ *
+ * Rumus normalisasi per periode:
+ *   daily    → amount × jumlahHari
+ *   weekly   → amount × (jumlahHari / 7)
+ *   monthly  → amount × (jumlahHari / 30)
+ *   yearly   → amount × (jumlahHari / 365)
+ *   one_time → amount (penuh, tanpa normalisasi)
+ *
+ * Contoh:
+ *   Listrik Rp500.000/bulan → untuk periode 15 hari = 500.000 × (15/30) = Rp250.000
+ */
+
 // Table
 
 export const storeSettings = p.pgTable("store_settings", {
@@ -60,6 +109,102 @@ export const storeSettings = p.pgTable("store_settings", {
   receiptNote: p.text("receipt_note").default("Barang yang sudah dibeli tidak dapat ditukar."),
   logoUrl: p.text("logo_url"),
   updatedAt: p.timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const operationalCosts = p.pgTable("operational_costs", {
+  id: p.serial("id").primaryKey(),
+
+  name: p.varchar("name", { length: 150 }).notNull(),
+  // Contoh: "Listrik PLN", "Gaji Pak Budi", "Sewa Ruko"
+
+  category: costCategory("category").notNull().default("other"),
+
+  amount: p.decimal("amount", { precision: 14, scale: 2 }).notNull(),
+  // Nominal biaya untuk satu periode (sesuai field `period`)
+
+  period: costPeriod("period").notNull().default("monthly"),
+  // Satuan periode dari `amount` di atas
+
+  effectiveFrom: p.date("effective_from").notNull(),
+  // Mulai berlaku. Biaya hanya dihitung jika periode laporan >= tanggal ini.
+
+  effectiveTo: p.date("effective_to"),
+  // Akhir berlaku (null = masih aktif sampai sekarang)
+
+  isActive: p.boolean("is_active").default(true).notNull(),
+
+  notes: p.text("notes"),
+  // Keterangan bebas, misal: "Dibayar tiap tanggal 5"
+
+  createdAt: p.timestamp("created_at").defaultNow(),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
+
+  createdBy: p
+    .integer("created_by")
+    .references(() => users.id, { onDelete: "set null" }),
+});
+
+/**
+ * Tabel konfigurasi pajak.
+ *
+ * Mendukung dua jenis pajak:
+ * 1. percentage + applies_to=revenue     → PPh Final (0.5% dari omset)
+ * 2. percentage + applies_to=gross_profit → PPh Badan (22% dari laba kotor)
+ * 3. fixed (nominal tetap per periode)   → Pajak retribusi daerah, dll.
+ *
+ * Urutan kalkulasi laba bersih:
+ *   Laba Kotor          = Pendapatan − HPP
+ *   Total Biaya Ops     = sum(operationalCosts yang dinormalisasi)
+ *   Pajak dari Omset    = sum(tax where applies_to=revenue, type=percentage) × Pendapatan
+ *   Pajak dari Laba     = sum(tax where applies_to=gross_profit, type=percentage) × Laba Kotor
+ *   Pajak Tetap         = sum(tax where type=fixed, dinormalisasi seperti biaya ops)
+ *   Laba Bersih         = Laba Kotor − Total Biaya Ops − Semua Pajak
+ */
+export const taxConfigs = p.pgTable("tax_configs", {
+  id: p.serial("id").primaryKey(),
+
+  name: p.varchar("name", { length: 150 }).notNull(),
+  // Contoh: "PPh Final UMKM", "PPN", "Retribusi Kebersihan"
+
+  type: taxType("type").notNull().default("percentage"),
+
+  rate: p.decimal("rate", { precision: 6, scale: 4 }),
+  // Untuk type=percentage: nilai dalam desimal. Contoh: 0.005 = 0.5%, 0.11 = 11%
+  // Untuk type=fixed: null (gunakan fixedAmount)
+
+  fixedAmount: p.decimal("fixed_amount", { precision: 14, scale: 2 }),
+  // Untuk type=fixed: nominal tetap. Contoh: 50000 = Rp50.000/bulan
+  // Untuk type=percentage: null
+
+  appliesTo: taxAppliesTo("applies_to"),
+  // Untuk type=percentage: wajib diisi (revenue atau gross_profit)
+  // Untuk type=fixed: null (langsung dipotong dari laba kotor)
+
+  period: costPeriod("period").default("monthly"),
+  // Hanya relevan untuk type=fixed (sama dengan normalisasi biaya ops)
+  // Untuk type=percentage: diabaikan (langsung dihitung dari basis)
+
+  effectiveFrom: p.date("effective_from").notNull(),
+  effectiveTo: p.date("effective_to"),
+  // null = masih berlaku
+
+  isActive: p.boolean("is_active").default(true).notNull(),
+
+  notes: p.text("notes"),
+  // Contoh: "Sesuai PP No. 23 Tahun 2018 untuk omset < 4.8M/tahun"
+
+  createdAt: p.timestamp("created_at").defaultNow(),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
+
+  createdBy: p
+    .integer("created_by")
+    .references(() => users.id, { onDelete: "set null" }),
 });
 
 export const users = p.pgTable(

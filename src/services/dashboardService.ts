@@ -30,6 +30,8 @@ export type DashboardUnpaidDebtAlert = {
   customerName: string;
   remainingAmount: number;
   ageDays: number;
+  originalAmount: number;
+  invoiceNumber: string;
 };
 
 export type DashboardResponse = {

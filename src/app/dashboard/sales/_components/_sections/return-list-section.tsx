@@ -457,12 +457,12 @@ export function ReturnListSection() {
       )}
 
       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
-        <DialogContent className="max-w-[340px] p-0 overflow-hidden">
+        <DialogContent className="max-w-[340px] p-0 overflow-hidden flex flex-col max-h-[90vh]">
           <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle>Nota Retur</DialogTitle>
           </DialogHeader>
 
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 overflow-y-auto flex-grow custom-scrollbar">
             {returnDataResult && <ReturnReceipt ref={receiptRef} result={returnDataResult} />}
           </div>
 

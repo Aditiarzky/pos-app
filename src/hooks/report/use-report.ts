@@ -1,3 +1,9 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// use-report.ts
+// Hook tidak perlu perubahan struktural.
+// Timezone di-inject otomatis di layer service (reportService.ts),
+// sehingga hook tetap bersih dan tidak perlu tahu soal timezone.
+// ─────────────────────────────────────────────────────────────────────────────
 import { QueryConfig } from "@/lib/react-query";
 import {
   getPurchaseReportQueryOptions,

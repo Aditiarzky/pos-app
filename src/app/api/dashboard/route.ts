@@ -162,20 +162,23 @@ export async function GET() {
           asc(
             sql`${products.stock}::numeric / nullif(${products.minStock}::numeric, 0)`,
           ),
-        )
-        .limit(5),
+        ),
+      // Unpaid debts — include invoice number & original amount sebagai referensi
       db
         .select({
           debtId: debts.id,
           customerName: customers.name,
+          invoiceNumber: sales.invoiceNumber,
+          originalAmount: debts.originalAmount,
           remainingAmount: debts.remainingAmount,
+          status: debts.status,
           ageDays: sql<number>`extract(day from now() - ${debts.createdAt})::int`,
         })
         .from(debts)
         .innerJoin(customers, eq(customers.id, debts.customerId))
+        .innerJoin(sales, eq(sales.id, debts.saleId))
         .where(activeDebtFilter)
-        .orderBy(desc(debts.createdAt))
-        .limit(10),
+        .orderBy(desc(debts.createdAt)),
     ]);
 
     return NextResponse.json({
@@ -210,7 +213,10 @@ export async function GET() {
           unpaidDebts: unpaidDebts.map((item) => ({
             debtId: item.debtId,
             customerName: item.customerName,
+            invoiceNumber: item.invoiceNumber,
+            originalAmount: Number(item.originalAmount ?? 0),
             remainingAmount: Number(item.remainingAmount ?? 0),
+            status: item.status,
             ageDays: Number(item.ageDays ?? 0),
           })),
         },

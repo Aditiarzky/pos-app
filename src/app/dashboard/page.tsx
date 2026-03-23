@@ -4,13 +4,16 @@ import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertSkeleton, DashboardSummarySkeleton } from "@/components/ui/loading";
 import { useDashboardSummary } from "@/hooks/dashboard/use-dashboard-summary";
+import { fillDailyGaps } from "@/lib/chart-utils";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   AlertCircle,
+  ArrowRight,
   CircleDollarSign,
   CreditCard,
   ShoppingCart,
@@ -20,42 +23,18 @@ import {
   Wallet,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { ReactNode } from "react";
-import { startOfDay, parseISO, eachDayOfInterval, format, isSameDay, subDays } from 'date-fns';
+import { format, subDays } from "date-fns";
 
-type ChartData = Record<string, string | number>;
-
-const fillDailyGaps = (
-  data: Record<string, string | number>[],
-  startDate: string,
-  endDate: string,
-  keys: string[],
-): ChartData[] => {
-  const start = startOfDay(parseISO(startDate));
-  const end = startOfDay(parseISO(endDate));
-  // Generate all days in the range
-  const days = eachDayOfInterval({ start, end });
-  return days.map((day) => {
-    const dateStr = format(day, "yyyy-MM-dd");
-    const existing = data.find((d) => isSameDay(parseISO(String(d.date)), day));
-    if (existing) {
-      return {
-        ...existing,
-        date: dateStr,
-      };
-    }
-    const obj: ChartData = { date: dateStr };
-    keys.forEach((key) => {
-      obj[key] = 0;
-    });
-    return obj;
-  });
-};
+// Maksimal item yang ditampilkan di alert sebelum tombol "Lihat selengkapnya"
+const ALERT_DISPLAY_LIMIT = 5;
 
 const calculateGrowth = (current: number, previous: number) => {
   if (previous === 0) return current > 0 ? 100 : 0;
   return ((current - previous) / previous) * 100;
 };
+
 const GrowthBadge = ({ value }: { value: number }) => {
   const isPositive = value > 0;
   const isNeutral = value === 0;
@@ -66,7 +45,7 @@ const GrowthBadge = ({ value }: { value: number }) => {
         "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
         isPositive
           ? "bg-emerald-500/10 text-emerald-600"
-          : "bg-rose-500/10 text-rose-600"
+          : "bg-rose-500/10 text-rose-600",
       )}
     >
       {isPositive ? (
@@ -78,6 +57,7 @@ const GrowthBadge = ({ value }: { value: number }) => {
     </div>
   );
 };
+
 const KpiCard = ({
   title,
   value,
@@ -106,10 +86,7 @@ const KpiCard = ({
       <CardHeader className="pb-2 z-10">
         <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
           {title}
-          <div className={cn("p-2 rounded-lg", colorMap[color])}>
-            {/* Clone element untuk memastikan icon berukuran h-4 w-4 seperti di laporan */}
-            {icon}
-          </div>
+          <div className={cn("p-2 rounded-lg", colorMap[color])}>{icon}</div>
         </CardTitle>
       </CardHeader>
       <CardContent className="z-10 pt-0">
@@ -133,6 +110,7 @@ const KpiCard = ({
     </Card>
   );
 };
+
 export default function DashboardPage() {
   const dashboardQuery = useDashboardSummary();
   const summary = dashboardQuery.data?.data?.summary;
@@ -140,9 +118,25 @@ export default function DashboardPage() {
   const alerts = dashboardQuery.data?.data?.alerts;
 
   const today = new Date();
-  const endDate = format(today, 'yyyy-MM-dd');
-  const startDate = format(subDays(today, 29), 'yyyy-MM-dd');
-  const filledSalesTrend = fillDailyGaps(salesTrend, startDate, endDate, ['totalSales']) as Array<{ date: string;[key: string]: string | number }>;
+  const endDate = format(today, "yyyy-MM-dd");
+  const startDate = format(subDays(today, 29), "yyyy-MM-dd");
+
+  // fillDailyGaps dari @/lib/chart-utils — sudah handle range 1 hari (min 2 titik)
+  const filledSalesTrend = fillDailyGaps(
+    salesTrend,
+    startDate,
+    endDate,
+    ["totalSales"],
+  ) as Array<{ date: string;[key: string]: string | number }>;
+
+  const lowStockProducts = alerts?.lowStockProducts ?? [];
+  const unpaidDebts = alerts?.unpaidDebts ?? [];
+
+  // Batasi tampilan — sisanya diakses via tombol "Lihat selengkapnya"
+  const visibleLowStock = lowStockProducts.slice(0, ALERT_DISPLAY_LIMIT);
+  const visibleDebts = unpaidDebts.slice(0, ALERT_DISPLAY_LIMIT);
+  const hasMoreLowStock = lowStockProducts.length > ALERT_DISPLAY_LIMIT;
+  const hasMoreDebts = unpaidDebts.length > ALERT_DISPLAY_LIMIT;
 
   const kpiData = summary
     ? [
@@ -157,7 +151,7 @@ export default function DashboardPage() {
         color: "primary" as const,
       },
       {
-        title: "Total Profit Bulan Ini",
+        title: "Laba Kotor Bulan Ini",
         value: summary.totalProfitMonth,
         growth: calculateGrowth(
           summary.totalProfitMonth,
@@ -189,6 +183,7 @@ export default function DashboardPage() {
       },
     ]
     : [];
+
   return (
     <div className="container mx-auto space-y-4">
       <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
@@ -204,6 +199,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </header>
+
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
         {dashboardQuery.isError ? (
           <Alert variant="destructive">
@@ -215,6 +211,8 @@ export default function DashboardPage() {
             </AlertDescription>
           </Alert>
         ) : null}
+
+        {/* KPI Cards */}
         <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
           {dashboardQuery.isLoading
             ? Array.from({ length: 4 }).map((_, index) => (
@@ -234,6 +232,8 @@ export default function DashboardPage() {
               />
             ))}
         </section>
+
+        {/* Chart & Alerts */}
         <section className="flex flex-col gap-4">
           <div className="w-full">
             <ChartAreaInteractive
@@ -241,7 +241,7 @@ export default function DashboardPage() {
               config={{
                 totalSales: {
                   label: "Omset",
-                  color: "var(--chart-1)", // ini yang bikin warna keluar + responsive
+                  color: "var(--chart-1)",
                 },
               }}
               title="Tren Omset 30 Hari Terakhir"
@@ -249,52 +249,65 @@ export default function DashboardPage() {
               showTimeRange={false}
             />
           </div>
-          <div>
-            <Card className="xl:col-span-1 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center justify-between">
-                  Business Alerts
-                  <Badge variant="destructive" className="gap-1">
-                    <TriangleAlert className="h-3.5 w-3.5" /> Prioritas
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {dashboardQuery.isLoading ? (
-                  <AlertSkeleton />
-                ) : (
-                  <>
-                    <div className="space-y-2">
+
+          {/* Business Alerts */}
+          <Card className="xl:col-span-1 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center justify-between">
+                Business Alerts
+                <Badge variant="destructive" className="gap-1">
+                  <TriangleAlert className="h-3.5 w-3.5" /> Prioritas
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {dashboardQuery.isLoading ? (
+                <AlertSkeleton />
+              ) : (
+                <>
+                  {/* ── Stok di bawah minimum ── */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold">
                         Stok di bawah minimum
                       </p>
-                      {alerts?.lowStockProducts?.length ? (
-                        <ul className="space-y-2">
-                          {alerts.lowStockProducts.map((product) => (
-                            <li
-                              key={product.productId}
-                              className="group relative flex items-center gap-3 overflow-hidden rounded-xl border bg-card p-2 pr-3 transition-all hover:bg-accent/50 hover:shadow-sm"
+                      {lowStockProducts.length > 0 && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] border-destructive/30 text-destructive bg-destructive/5"
+                        >
+                          {lowStockProducts.length} produk
+                        </Badge>
+                      )}
+                    </div>
+
+                    {visibleLowStock.length ? (
+                      <ul className="space-y-2">
+                        {visibleLowStock.map((product) => (
+                          <li
+                            key={product.productId}
+                          >
+                            <Link
+                              href="/dashboard/products"
+                              className="flex gap-2 rounded-lg border p-2.5 text-xs hover:bg-muted/30 transition-colors"
                             >
-                              {/* Container Gambar - Dibuat aspek rasio kotak agar presisi */}
                               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border bg-muted">
                                 <Image
                                   src={product.image}
                                   alt={product.productName}
-                                  fill // Menggunakan fill agar gambar pas di dalam box 12x12
+                                  fill
                                   className="object-cover transition-transform duration-300 group-hover:scale-110"
                                   sizes="48px"
                                 />
                               </div>
-                              {/* Info Produk - Menggunakan flex-1 agar teks mengambil sisa ruang */}
                               <div className="flex flex-1 flex-col min-w-0">
                                 <span className="truncate text-sm font-semibold tracking-tight text-foreground">
                                   {product.productName}
                                 </span>
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                                  ID: {product.productId}{" "}
+                                  ID: {product.productId}
                                 </p>
                               </div>
-                              {/* Status Stok - Badge dengan styling yang lebih tegas */}
                               <div className="flex flex-col items-end gap-1">
                                 <Badge
                                   variant="outline"
@@ -307,51 +320,120 @@ export default function DashboardPage() {
                                   Stok Sisa
                                 </span>
                               </div>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Tidak ada stok kritis saat ini.
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
+                            </Link>
+                          </li>
+                        ))}
+
+                        {hasMoreLowStock && (
+                          <li>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-full h-9 text-xs text-muted-foreground hover:text-primary border border-dashed gap-1.5"
+                              asChild
+                            >
+                              <Link href="/dashboard/products">
+                                Lihat{" "}
+                                {lowStockProducts.length - ALERT_DISPLAY_LIMIT}{" "}
+                                produk lainnya
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              </Link>
+                            </Button>
+                          </li>
+                        )}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Tidak ada stok kritis saat ini.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* ── Piutang belum lunas ── */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold">
                         Daftar Piutang Belum Lunas
                       </p>
-                      {alerts?.unpaidDebts?.length ? (
-                        <ul className="space-y-2">
-                          {alerts.unpaidDebts.map((debt) => (
-                            <li
-                              key={debt.debtId}
-                              className="rounded-lg border p-2.5 text-xs space-y-1"
+                      {unpaidDebts.length > 0 && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] border-amber-300 text-amber-700 bg-amber-50"
+                        >
+                          {unpaidDebts.length} pelanggan
+                        </Badge>
+                      )}
+                    </div>
+
+                    {visibleDebts.length ? (
+                      <ul className="space-y-2">
+                        {visibleDebts.map((debt) => (
+                          <li
+                            key={debt.debtId}
+                          >
+                            <Link
+                              href="/dashboard/sales?tab=history-sales"
+                              className="block rounded-lg border p-2.5 text-xs hover:bg-muted/30 transition-colors"
                             >
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium text-sm">
+                              {/* Baris 1: nama pelanggan + umur hutang */}
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-semibold text-sm truncate">
                                   {debt.customerName}
                                 </span>
-                                <Badge variant="outline">
+                                <Badge variant="outline" className="shrink-0 text-[10px]">
                                   {debt.ageDays} hari
                                 </Badge>
                               </div>
-                              <p className="text-rose-600 font-semibold">
-                                {formatCurrency(debt.remainingAmount)}
+                              {/* Baris 2: nomor invoice sebagai referensi */}
+                              <p className="text-[11px] text-muted-foreground font-mono">
+                                {debt.invoiceNumber}
                               </p>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Tidak ada piutang belum lunas.
-                        </p>
-                      )}
-                    </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                              {/* Baris 3: sisa tagihan vs total awal */}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                  <span>{debt.originalAmount !== debt.remainingAmount ? "Sisa" : "Hutang"}</span>
+                                  <span className="font-semibold text-rose-600">
+                                    {formatCurrency(debt.remainingAmount)}
+                                  </span>
+                                </div>
+                                {debt.originalAmount !== debt.remainingAmount && (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    dari {formatCurrency(debt.originalAmount)}
+                                  </span>
+                                )}
+                              </div>
+                            </Link>
+                          </li>
+                        ))}
+
+                        {hasMoreDebts && (
+                          <li>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-full h-9 text-xs text-muted-foreground hover:text-primary border border-dashed gap-1.5"
+                              asChild
+                            >
+                              <Link href="/dashboard/sales?tab=history-sales">
+                                Lihat{" "}
+                                {unpaidDebts.length - ALERT_DISPLAY_LIMIT}{" "}
+                                piutang lainnya
+                                <ArrowRight className="h-3.5 w-3.5" />
+                              </Link>
+                            </Button>
+                          </li>
+                        )}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Tidak ada piutang belum lunas.
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </section>
       </main>
     </div>

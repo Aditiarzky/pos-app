@@ -209,12 +209,22 @@ const applyNotificationState = (
 ): NotificationItem | null => {
   const state = stateMap.get(item.id);
 
-  if (state?.dismissedAt) {
-    return null;
-  }
-
   const notificationTime = new Date(item.createdAt).getTime();
   const readTime = state?.readAt ? new Date(state.readAt).getTime() : 0;
+  const dismissedTime = state?.dismissedAt
+    ? new Date(state.dismissedAt).getTime()
+    : 0;
+
+  // Low-stock entries are derived from the current product state, not stored
+  // as immutable events. If the product leaves low-stock and later re-enters it,
+  // the notification should appear again even if an older occurrence was cleared.
+  const isDismissed =
+    Boolean(state?.dismissedAt) &&
+    (item.type !== "low_stock" || dismissedTime >= notificationTime);
+
+  if (isDismissed) {
+    return null;
+  }
 
   // For low-stock, treat newer occurrences as unread again.
   // This lets a product become unread when it re-enters low-stock state
