@@ -24,8 +24,8 @@ import {
 } from "lucide-react";
 import { useOperationalCostList } from "./_hooks/use-operational-cost-list";
 import { useTaxConfigList } from "./_hooks/use-tax-config-list";
-import { OperationalCostsSection } from "./_components/_sections/operational-costs-section";
-import { TaxConfigsSection } from "./_components/_sections/tax-configs-section";
+import { OperationalCostsSection } from "./_components/_forms/_sections/operational-costs-section";
+import { TaxConfigsSection } from "./_components/_forms/_sections/tax-configs-section";
 import { useQueryState } from "@/hooks/use-query-state";
 import { useCostAnalytics } from "@/hooks/cost/use-cost";
 import { CATEGORY_LABELS } from "./_types/cost-types";

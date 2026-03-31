@@ -30,13 +30,13 @@ import {
   XCircle,
 } from "lucide-react";
 import { TaxConfig } from "@/services/costService";
-import { TAX_APPLIES_TO_LABELS, PERIOD_LABELS } from "../../_types/cost-types";
-import { useTaxConfigList } from "../../_hooks/use-tax-config-list";
-import { TaxConfigForm } from "../_forms/tax-config-form";
+import { TAX_APPLIES_TO_LABELS, PERIOD_LABELS } from "../../../_types/cost-types";
+import { useTaxConfigList } from "../../../_hooks/use-tax-config-list";
+import { TaxConfigForm } from "../tax-config-form";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { FilterWrap } from "@/components/filter-wrap";
-import { TaxConfigFilterForm } from "../_ui/tax-config-filter-form";
+import { TaxConfigFilterForm } from "../../_ui/tax-config-filter-form";
 import { AppPagination } from "@/components/app-pagination";
 
 type ViewMode = "table" | "card";

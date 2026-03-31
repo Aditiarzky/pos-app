@@ -18,10 +18,16 @@ export const stockMutationType = p.pgEnum("stock_mutation_type", [
 ]);
 
 export const saleStatus = p.pgEnum("sale_status", [
+  "pending_payment",
   "debt",
   "completed",
   "refunded",
   "cancelled",
+]);
+
+export const paymentMethod = p.pgEnum("payment_method", [
+  "cash",
+  "qris",
 ]);
 
 export const debtStatusEnum = p.pgEnum("debt_status", [
@@ -486,26 +492,20 @@ export const purchaseItems = p.pgTable("purchase_items", {
 export const sales = p.pgTable("sales", {
   id: p.serial("id").primaryKey(),
   invoiceNumber: p.varchar("invoice_number", { length: 60 }).notNull().unique(),
-  customerId: p
-    .integer("customer_id")
-    .references(() => customers.id, { onDelete: "cascade" }),
+  customerId: p.integer("customer_id").references(() => customers.id, { onDelete: "cascade" }),
   totalPrice: p.decimal("total_price", { precision: 12, scale: 2 }).notNull(),
   totalPaid: p.decimal("total_paid", { precision: 12, scale: 2 }).notNull(),
   totalReturn: p.decimal("total_return", { precision: 12, scale: 2 }).notNull(),
-  totalBalanceUsed: p
-    .decimal("total_balance_used", { precision: 12, scale: 2 })
-    .notNull(),
+  totalBalanceUsed: p.decimal("total_balance_used", { precision: 12, scale: 2 }).notNull(),
   status: saleStatus("status").default("completed"),
+  paymentMethod: paymentMethod("payment_method").notNull().default("cash"),
   isArchived: p.boolean("is_archived").default(false),
+  qrisPaymentNumber: p.text("qris_payment_number"),
+  qrisExpiredAt: p.timestamp("qris_expired_at"),
+  qrisOrderId: p.varchar("qris_order_id", { length: 100 }),
   createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p
-    .timestamp("updated_at")
-    .defaultNow()
-    .$onUpdateFn(() => new Date()),
-  userId: p
-    .integer("user_id")
-    .references(() => users.id, { onDelete: "cascade" })
-    .notNull(),
+  updatedAt: p.timestamp("updated_at").defaultNow().$onUpdateFn(() => new Date()),
+  userId: p.integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   deletedAt: p.timestamp("deleted_at"),
 });
 

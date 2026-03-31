@@ -29,9 +29,12 @@ export const insertSaleSchema = z
     items: z.array(saleItemInputSchema).min(1, "At least one item is required"),
     isDebt: z.boolean().default(false),
     shouldPayOldDebt: z.boolean().default(false),
+    // ✅ BARU: metode pembayaran, default "cash" agar backward compatible
+    paymentMethod: z.enum(["cash", "qris"]).default("cash"),
   })
   .refine(
     (data) => {
+      // Guest tidak boleh pakai saldo
       if (!data.customerId && data.totalBalanceUsed > 0) {
         return false;
       }
@@ -40,6 +43,32 @@ export const insertSaleSchema = z
     {
       message: "Guest tidak boleh menggunakan saldo",
       path: ["totalBalanceUsed"],
+    },
+  )
+  .refine(
+    (data) => {
+      // QRIS tidak bisa hutang
+      if (data.paymentMethod === "qris" && data.isDebt) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Pembayaran QRIS tidak dapat dicatat sebagai hutang",
+      path: ["isDebt"],
+    },
+  )
+  .refine(
+    (data) => {
+      // Cash non-hutang harus ada totalPaid > 0
+      if (data.paymentMethod === "cash" && !data.isDebt && data.totalPaid <= 0) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Masukkan jumlah pembayaran yang diterima",
+      path: ["totalPaid"],
     },
   );
 

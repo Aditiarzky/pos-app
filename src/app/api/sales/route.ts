@@ -26,6 +26,7 @@ import {
 } from "@/lib/timezone";
 import { processDebtPayment } from "../debts/_lib/debt-service";
 import { SaleStatusEnumType } from "@/drizzle/type";
+import { createPakasirQris, cancelPakasirTransaction } from "@/lib/pakasir";
 
 // GET all sales with search and filters
 export async function GET(request: NextRequest) {
@@ -33,7 +34,6 @@ export async function GET(request: NextRequest) {
     const params = parsePagination(request);
     const { searchParams } = new URL(request.url);
 
-    // Advanced Filters
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const status = searchParams.get("status");
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
     }
 
     const timezoneParam = searchParams.get("timezone");
-    const timezone = normalizeTimezone(timezoneParam ?? undefined); // Fix: Convert null to undefined for normalizeTimezone
+    const timezone = normalizeTimezone(timezoneParam ?? undefined);
     const todayStart = getLocalMidnightUtc(timezone);
     const todayEnd = new Date(todayStart.getTime() + MS_DAY - 1);
     const yesterdayStart = new Date(todayStart.getTime() - MS_DAY);
@@ -82,12 +82,7 @@ export async function GET(request: NextRequest) {
       db.query.sales.findMany({
         where: filter,
         with: {
-          user: {
-            columns: {
-              id: true,
-              name: true,
-            },
-          },
+          user: { columns: { id: true, name: true } },
           debt: {
             columns: {
               id: true,
@@ -98,13 +93,7 @@ export async function GET(request: NextRequest) {
               updatedAt: true,
             },
           },
-          customer: {
-            columns: {
-              id: true,
-              name: true,
-              creditBalance: true,
-            },
-          },
+          customer: { columns: { id: true, name: true, creditBalance: true } },
           items: {
             columns: {
               id: true,
@@ -114,18 +103,8 @@ export async function GET(request: NextRequest) {
               subtotal: true,
             },
             with: {
-              product: {
-                columns: {
-                  id: true,
-                  name: true,
-                },
-              },
-              productVariant: {
-                columns: {
-                  id: true,
-                  name: true,
-                },
-              },
+              product: { columns: { id: true, name: true } },
+              productVariant: { columns: { id: true, name: true } },
             },
           },
         },
@@ -134,17 +113,9 @@ export async function GET(request: NextRequest) {
         offset: params.offset,
       }),
 
-      db
-        .select({ count: sql<number>`count(*)` })
-        .from(sales)
-        .where(filter),
+      db.select({ count: sql<number>`count(*)` }).from(sales).where(filter),
 
-      // Analytics Queries
-      // -----------------
-
-      // TODAY
       Promise.all([
-        // Sales & Activity Today
         db
           .select({
             totalSales: sql<string>`coalesce(sum(${sales.totalPrice}), 0)`,
@@ -159,7 +130,6 @@ export async function GET(request: NextRequest) {
               sql`${sales.createdAt} <= ${todayEnd}`,
             ),
           ),
-        // Net Revenue Today
         db
           .select({
             netRevenue: sql<string>`coalesce(sum(${saleItems.subtotal} - (${saleItems.costAtSale} * ${saleItems.qty} * ${saleItems.unitFactorAtSale})), 0)`,
@@ -174,7 +144,6 @@ export async function GET(request: NextRequest) {
               sql`${sales.createdAt} <= ${todayEnd}`,
             ),
           ),
-        // Piutang Today (Remaining from debts created today)
         db
           .select({
             totalDebt: sql<string>`coalesce(sum(${debts.remainingAmount}), 0)`,
@@ -187,7 +156,6 @@ export async function GET(request: NextRequest) {
               sql`${debts.createdAt} <= ${todayEnd}`,
             ),
           ),
-        // Returns Count Today (for Activity)
         db
           .select({ count: sql<number>`count(*)` })
           .from(customerReturns)
@@ -200,9 +168,7 @@ export async function GET(request: NextRequest) {
           ),
       ]),
 
-      // YESTERDAY
       Promise.all([
-        // Sales & Activity Yesterday
         db
           .select({
             totalSales: sql<string>`coalesce(sum(${sales.totalPrice}), 0)`,
@@ -217,7 +183,6 @@ export async function GET(request: NextRequest) {
               sql`${sales.createdAt} <= ${yesterdayEnd}`,
             ),
           ),
-        // Net Revenue Yesterday
         db
           .select({
             netRevenue: sql<string>`coalesce(sum(${saleItems.subtotal} - (${saleItems.costAtSale} * ${saleItems.qty} * ${saleItems.unitFactorAtSale})), 0)`,
@@ -232,7 +197,6 @@ export async function GET(request: NextRequest) {
               sql`${sales.createdAt} <= ${yesterdayEnd}`,
             ),
           ),
-        // Piutang Yesterday (Remaining from debts created yesterday)
         db
           .select({
             totalDebt: sql<string>`coalesce(sum(${debts.remainingAmount}), 0)`,
@@ -245,7 +209,6 @@ export async function GET(request: NextRequest) {
               sql`${debts.createdAt} <= ${yesterdayEnd}`,
             ),
           ),
-        // Returns Count Yesterday (for Activity)
         db
           .select({ count: sql<number>`count(*)` })
           .from(customerReturns)
@@ -267,29 +230,19 @@ export async function GET(request: NextRequest) {
     const totalCount = Number(totalRes[0]?.count || 0);
     const lifetimeCount = Number(lifetimeRes[0]?.count || 0);
 
-    // Extract Today
-    const [todaySalesData, todayNetRes, todayDebtRes, todayReturnRes] =
-      todayAnalytics;
+    const [todaySalesData, todayNetRes, todayDebtRes, todayReturnRes] = todayAnalytics;
     const todaySales = Number(todaySalesData[0]?.totalSales || 0);
     const todayNet = Number(todayNetRes[0]?.netRevenue || 0);
     const todayDebt = Number(todayDebtRes[0]?.totalDebt || 0);
     const todayActivity =
-      Number(todaySalesData[0]?.count || 0) +
-      Number(todayReturnRes[0]?.count || 0);
+      Number(todaySalesData[0]?.count || 0) + Number(todayReturnRes[0]?.count || 0);
 
-    // Extract Yesterday
-    const [
-      yesterdaySalesData,
-      yesterdayNetRes,
-      yesterdayDebtRes,
-      yesterdayReturnRes,
-    ] = yesterdayAnalytics;
+    const [yesterdaySalesData, yesterdayNetRes, yesterdayDebtRes, yesterdayReturnRes] = yesterdayAnalytics;
     const yesterdaySales = Number(yesterdaySalesData[0]?.totalSales || 0);
     const yesterdayNet = Number(yesterdayNetRes[0]?.netRevenue || 0);
     const yesterdayDebt = Number(yesterdayDebtRes[0]?.totalDebt || 0);
     const yesterdayActivity =
-      Number(yesterdaySalesData[0]?.count || 0) +
-      Number(yesterdayReturnRes[0]?.count || 0);
+      Number(yesterdaySalesData[0]?.count || 0) + Number(yesterdayReturnRes[0]?.count || 0);
 
     return NextResponse.json({
       success: true,
@@ -324,26 +277,29 @@ export async function POST(request: NextRequest) {
       totalBalanceUsed,
       isDebt,
       shouldPayOldDebt,
+      paymentMethod, // ✅ BARU: "cash" | "qris"
     } = validation;
 
-    // Cek Duplikat Variant dalam satu keranjang
+    // Validasi: QRIS tidak bisa hutang
+    if (paymentMethod === "qris" && isDebt) {
+      return NextResponse.json(
+        { success: false, error: "Pembayaran QRIS tidak dapat dicatat sebagai hutang" },
+        { status: 400 },
+      );
+    }
+
+    // Cek Duplikat Variant
     const variantIds = items.map((i) => i.variantId);
     if (new Set(variantIds).size !== variantIds.length) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Terdapat item duplikat, silahkan digabung kuantitasnya",
-        },
+        { success: false, error: "Terdapat item duplikat, silahkan digabung kuantitasnya" },
         { status: 400 },
       );
     }
 
     if (!customerId && totalBalanceUsed > 0) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Customer tidak ditemukan",
-        },
+        { success: false, error: "Customer tidak ditemukan" },
         { status: 404 },
       );
     }
@@ -368,13 +324,13 @@ export async function POST(request: NextRequest) {
 
     if (isDebt && !customerId) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Hutang hanya diperbolehkan untuk member/customer terdaftar",
-        },
+        { success: false, error: "Hutang hanya diperbolehkan untuk member/customer terdaftar" },
         { status: 400 },
       );
     }
+
+    // ✅ Untuk QRIS: status awal adalah pending_payment
+    const initialStatus = paymentMethod === "qris" ? "pending_payment" : "completed";
 
     const result = await db.transaction(async (tx) => {
       const invoiceNum = `INV-${Date.now()}`;
@@ -384,12 +340,14 @@ export async function POST(request: NextRequest) {
         .values({
           invoiceNumber: invoiceNum,
           totalPrice: "0",
-          totalPaid: totalPaid.toString(),
+          // ✅ QRIS: totalPaid = 0 dulu, akan diupdate setelah webhook
+          totalPaid: paymentMethod === "qris" ? "0" : totalPaid.toString(),
           totalReturn: "0",
           totalBalanceUsed: totalBalanceUsed.toString(),
           userId,
           customerId,
-          status: "completed",
+          paymentMethod: paymentMethod ?? "cash",
+          status: initialStatus,
         })
         .returning();
 
@@ -403,17 +361,14 @@ export async function POST(request: NextRequest) {
           where: eq(productVariants.id, item.variantId),
         });
 
-        if (!productData || !variantData)
-          throw new Error("Produk tidak ditemukan");
+        if (!productData || !variantData) throw new Error("Produk tidak ditemukan");
 
         const conversion = Number(variantData.conversionToBase);
         const qtyInBaseUnit = Number(item.qty) * conversion;
         const currentStock = Number(productData.stock);
 
         if (currentStock < qtyInBaseUnit) {
-          throw new Error(
-            `Stok tidak mencukupi untuk produk: ${productData.name}`,
-          );
+          throw new Error(`Stok tidak mencukupi untuk produk: ${productData.name}`);
         }
 
         const subtotal = Number(item.qty) * Number(variantData.sellPrice);
@@ -421,9 +376,7 @@ export async function POST(request: NextRequest) {
 
         await tx
           .update(products)
-          .set({
-            stock: sql`${products.stock} - ${qtyInBaseUnit.toFixed(3)}`,
-          })
+          .set({ stock: sql`${products.stock} - ${qtyInBaseUnit.toFixed(3)}` })
           .where(eq(products.id, item.productId));
 
         await tx.insert(saleItems).values({
@@ -453,39 +406,41 @@ export async function POST(request: NextRequest) {
       }
 
       const netTotal = grandTotal - totalBalanceUsed;
-      const paidAmount = Number(totalPaid);
+      const paidAmount = paymentMethod === "qris" ? netTotal : Number(totalPaid);
       let calculatedReturn = 0;
-      let saleStatus: "completed" | "debt" = "completed";
+      let saleStatus: "completed" | "debt" | "pending_payment" = initialStatus;
 
-      if (paidAmount < netTotal) {
-        if (!isDebt) {
-          throw new Error(
-            `Pembayaran kurang! Total: ${new Intl.NumberFormat("id-ID", {
-              style: "currency",
-              currency: "IDR",
-            }).format(netTotal)}, Dibayar: ${new Intl.NumberFormat("id-ID", {
-              style: "currency",
-              currency: "IDR",
-            }).format(paidAmount)}`,
-          );
+      // ✅ QRIS: lewati validasi pembayaran kurang karena pembayaran belum terjadi
+      if (paymentMethod !== "qris") {
+        if (paidAmount < netTotal) {
+          if (!isDebt) {
+            throw new Error(
+              `Pembayaran kurang! Total: ${new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: "IDR",
+              }).format(netTotal)}, Dibayar: ${new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: "IDR",
+              }).format(paidAmount)}`,
+            );
+          }
+
+          saleStatus = "debt";
+          const debtAmount = netTotal - paidAmount;
+
+          await tx.insert(debts).values({
+            saleId: newSale.id,
+            customerId: customerId!,
+            originalAmount: debtAmount.toFixed(2),
+            remainingAmount: debtAmount.toFixed(2),
+            status: "unpaid",
+          });
+        } else {
+          calculatedReturn = paidAmount - netTotal;
         }
-
-        saleStatus = "debt";
-        const debtAmount = netTotal - paidAmount;
-
-        await tx.insert(debts).values({
-          saleId: newSale.id,
-          customerId: customerId!,
-          originalAmount: debtAmount.toFixed(2),
-          remainingAmount: debtAmount.toFixed(2),
-          status: "unpaid",
-        });
-      } else {
-        calculatedReturn = paidAmount - netTotal;
       }
 
       if (customerId && totalBalanceUsed > 0) {
-        // Ambil balance sebelum dikurangi
         const customerBefore = await tx.query.customers.findFirst({
           where: eq(customers.id, customerId),
         });
@@ -502,7 +457,7 @@ export async function POST(request: NextRequest) {
 
         await tx.insert(customerBalanceMutations).values({
           customerId: customerId,
-          amount: (-totalBalanceUsed).toFixed(2), // negatif karena pengurangan
+          amount: (-totalBalanceUsed).toFixed(2),
           balanceBefore: balanceBefore.toFixed(2),
           balanceAfter: balanceAfter.toFixed(2),
           type: "sale_balance_used",
@@ -513,11 +468,10 @@ export async function POST(request: NextRequest) {
       const finalInvoice = `INV-${newSale.id.toString().padStart(7, "0")}`;
       let finalReturn = calculatedReturn;
 
-      // --- Handle Old Debt Repayment with Surplus (Calculated Return) ---
-      if (shouldPayOldDebt && finalReturn > 0 && customerId) {
+      // Bayar hutang lama dari surplus (hanya untuk pembayaran cash)
+      if (paymentMethod !== "qris" && shouldPayOldDebt && finalReturn > 0 && customerId) {
         let remainingSurplus = finalReturn;
 
-        // Get active debts for this customer, FIFO (oldest first)
         const activeDebts = await tx.query.debts.findMany({
           where: and(
             eq(debts.customerId, customerId),
@@ -553,25 +507,27 @@ export async function POST(request: NextRequest) {
           totalReturn: finalReturn.toFixed(2),
           invoiceNumber: finalInvoice,
           status: saleStatus,
+          // ✅ Simpan invoice sebagai qrisOrderId untuk lookup saat webhook
+          ...(paymentMethod === "qris" && {
+            qrisOrderId: finalInvoice,
+          }),
         })
         .where(eq(sales.id, newSale.id));
 
       return {
         id: newSale.id,
+        grandTotal,
+        netTotal,
+        finalInvoice,
       };
     });
 
-    // Fetch full sale data with relations for receipt
+    // Fetch full sale data
     const fullSale = await db.query.sales.findFirst({
       where: eq(sales.id, result.id),
       with: {
         customer: true,
-        user: {
-          columns: {
-            id: true,
-            name: true,
-          },
-        },
+        user: { columns: { id: true, name: true } },
         debt: {
           columns: {
             id: true,
@@ -584,23 +540,77 @@ export async function POST(request: NextRequest) {
         },
         items: {
           with: {
-            product: {
-              columns: {
-                id: true,
-                name: true,
-              },
-            },
-            productVariant: {
-              columns: {
-                id: true,
-                name: true,
-                sku: true,
-              },
-            },
+            product: { columns: { id: true, name: true } },
+            productVariant: { columns: { id: true, name: true, sku: true } },
           },
         },
       },
     });
+
+    // ✅ Panggil Pakasir QRIS setelah sale berhasil dibuat
+    if (paymentMethod === "qris") {
+      const qrisAmount = result.netTotal; // amount setelah dikurangi balance/voucher
+
+      try {
+        const pakasirRes = await createPakasirQris(result.finalInvoice, qrisAmount);
+
+        // Simpan QR string dan expiry ke database
+        await db
+          .update(sales)
+          .set({
+            qrisPaymentNumber: pakasirRes.payment.payment_number,
+            qrisExpiredAt: new Date(pakasirRes.payment.expired_at),
+          })
+          .where(eq(sales.id, result.id));
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            ...fullSale,
+            // Sertakan qrisData untuk ditampilkan di frontend
+            qrisData: {
+              paymentNumber: pakasirRes.payment.payment_number,
+              expiredAt: pakasirRes.payment.expired_at,
+              totalPayment: pakasirRes.payment.total_payment,
+              fee: pakasirRes.payment.fee,
+            },
+          },
+        });
+      } catch (pakasirError) {
+        // Jika Pakasir gagal, batalkan sale (rollback stok)
+        console.error("Pakasir QRIS creation failed:", pakasirError);
+
+        // Revert sale
+        await db
+          .update(sales)
+          .set({ isArchived: true, status: "cancelled", deletedAt: new Date() })
+          .where(eq(sales.id, result.id));
+
+        // Revert stok
+        const saleItemsData = await db
+          .select()
+          .from(saleItems)
+          .where(eq(saleItems.saleId, result.id));
+
+        for (const item of saleItemsData) {
+          const variantData = await db.query.productVariants.findFirst({
+            where: eq(productVariants.id, item.variantId),
+          });
+          if (variantData) {
+            const qtyToRevert = Number(item.qty) * Number(variantData.conversionToBase);
+            await db
+              .update(products)
+              .set({ stock: sql`${products.stock} + ${qtyToRevert.toFixed(3)}` })
+              .where(eq(products.id, item.productId));
+          }
+        }
+
+        return NextResponse.json(
+          { success: false, error: "Gagal membuat pembayaran QRIS. Silakan coba lagi." },
+          { status: 502 },
+        );
+      }
+    }
 
     return NextResponse.json({ success: true, data: fullSale });
   } catch (error) {
