@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, desc, eq, gte, lte, not, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { products, purchaseOrders, saleItems, sales } from "@/drizzle/schema";
+import { categories, products, purchaseOrders, saleItems, sales } from "@/drizzle/schema";
 import { handleApiError } from "@/lib/api-utils";
 import {
   normalizeTimezone,
@@ -104,6 +104,20 @@ export async function GET(request: NextRequest) {
       lte(purchaseOrders.createdAt, prevEnd),
     );
 
+    const dailySalesFilter = and(
+      not(sales.isArchived),
+      not(eq(sales.status, "cancelled")),
+      not(eq(sales.status, "refunded")),
+      gte(sales.createdAt, prevStart),
+      lte(sales.createdAt, end),
+    );
+
+    const dailyPurchaseFilter = and(
+      not(purchaseOrders.isArchived),
+      gte(purchaseOrders.createdAt, prevStart),
+      lte(purchaseOrders.createdAt, end),
+    );
+
     const getSalesTotals = (filter: ReturnType<typeof and>) =>
       db
         .select({
@@ -141,6 +155,7 @@ export async function GET(request: NextRequest) {
         prevSalesBaseTotals,
         prevSalesGrossProfit,
         topProducts,
+        topCategories,
         dailySales,
       ] = await Promise.all([
         getSalesTotals(salesFilter),
@@ -166,12 +181,30 @@ export async function GET(request: NextRequest) {
           .limit(10),
         db
           .select({
+            categoryId: categories.id,
+            categoryName: categories.name,
+            qtySold: sql<string>`coalesce(sum(${saleItems.qty}), 0)`,
+            revenue: sql<string>`coalesce(sum(${saleItems.subtotal}), 0)`,
+            grossProfit: sql<string>`coalesce(sum(
+              ${saleItems.subtotal} - (${saleItems.costAtSale} * ${saleItems.qty} * ${saleItems.unitFactorAtSale})
+            ), 0)`,
+          })
+          .from(saleItems)
+          .innerJoin(sales, eq(sales.id, saleItems.saleId))
+          .innerJoin(products, eq(products.id, saleItems.productId))
+          .innerJoin(categories, eq(categories.id, products.categoryId))
+          .where(salesFilter)
+          .groupBy(categories.id, categories.name)
+          .orderBy(desc(sql`sum(${saleItems.qty})`))
+          .limit(10),
+        db
+          .select({
             date: localDateExpr(sql`${sales.createdAt}`, timezone),
             totalSales: sql<string>`coalesce(sum(${sales.totalPrice}), 0)`,
             totalTransactions: sql<number>`count(*)`,
           })
           .from(sales)
-          .where(salesFilter)
+          .where(dailySalesFilter)
           .groupBy(localDateExpr(sql`${sales.createdAt}`, timezone))
           .orderBy(localDateExpr(sql`${sales.createdAt}`, timezone)),
       ]);
@@ -201,6 +234,12 @@ export async function GET(request: NextRequest) {
             revenue: Number(item.revenue || 0),
             grossProfit: Number(item.grossProfit || 0),
           })),
+          topCategories: topCategories.map((item) => ({
+            ...item,
+            qtySold: Number(item.qtySold || 0),
+            revenue: Number(item.revenue || 0),
+            grossProfit: Number(item.grossProfit || 0),
+          })),
           daily: dailySales,
         },
         filter: { startDate, endDate },
@@ -220,7 +259,7 @@ export async function GET(request: NextRequest) {
               totalTransactions: sql<number>`count(*)`,
             })
             .from(purchaseOrders)
-            .where(purchaseFilter)
+            .where(dailyPurchaseFilter)
             .groupBy(localDateExpr(sql`${purchaseOrders.createdAt}`, timezone))
             .orderBy(localDateExpr(sql`${purchaseOrders.createdAt}`, timezone)),
         ]);
@@ -249,6 +288,7 @@ export async function GET(request: NextRequest) {
       prevSalesGrossProfit,
       prevPurchaseTotals,
       topProducts,
+      topCategories,
       dailySales,
       dailyPurchases,
     ] = await Promise.all([
@@ -277,11 +317,29 @@ export async function GET(request: NextRequest) {
         .limit(5),
       db
         .select({
+          categoryId: categories.id,
+          categoryName: categories.name,
+          qtySold: sql<string>`coalesce(sum(${saleItems.qty}), 0)`,
+          revenue: sql<string>`coalesce(sum(${saleItems.subtotal}), 0)`,
+          grossProfit: sql<string>`coalesce(sum(
+            ${saleItems.subtotal} - (${saleItems.costAtSale} * ${saleItems.qty} * ${saleItems.unitFactorAtSale})
+          ), 0)`,
+        })
+        .from(saleItems)
+        .innerJoin(sales, eq(sales.id, saleItems.saleId))
+        .innerJoin(products, eq(products.id, saleItems.productId))
+        .innerJoin(categories, eq(categories.id, products.categoryId))
+        .where(salesFilter)
+        .groupBy(categories.id, categories.name)
+        .orderBy(desc(sql`sum(${saleItems.qty})`))
+        .limit(5),
+      db
+        .select({
           date: localDateExpr(sql`${sales.createdAt}`, timezone),
           totalSales: sql<string>`coalesce(sum(${sales.totalPrice}), 0)`,
         })
         .from(sales)
-        .where(salesFilter)
+        .where(dailySalesFilter)
         .groupBy(localDateExpr(sql`${sales.createdAt}`, timezone))
         .orderBy(localDateExpr(sql`${sales.createdAt}`, timezone)),
       db
@@ -290,7 +348,7 @@ export async function GET(request: NextRequest) {
           totalPurchases: sql<string>`coalesce(sum(${purchaseOrders.total}), 0)`,
         })
         .from(purchaseOrders)
-        .where(purchaseFilter)
+        .where(dailyPurchaseFilter)
         .groupBy(localDateExpr(sql`${purchaseOrders.createdAt}`, timezone))
         .orderBy(localDateExpr(sql`${purchaseOrders.createdAt}`, timezone)),
     ]);
@@ -353,6 +411,12 @@ export async function GET(request: NextRequest) {
         summary,
         netProfitBreakdown: netProfitData.breakdown,
         topProducts: topProducts.map((item) => ({
+          ...item,
+          qtySold: Number(item.qtySold || 0),
+          revenue: Number(item.revenue || 0),
+          grossProfit: Number(item.grossProfit || 0),
+        })),
+        topCategories: topCategories.map((item) => ({
           ...item,
           qtySold: Number(item.qtySold || 0),
           revenue: Number(item.revenue || 0),

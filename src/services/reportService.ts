@@ -62,6 +62,14 @@ export type TopProductSummary = {
   grossProfit: number;
 };
 
+export type TopCategorySummary = {
+  categoryId: number;
+  categoryName: string;
+  qtySold: number;
+  revenue: number;
+  grossProfit: number;
+};
+
 export type DailyReportSummary = {
   date: string;
   totalSales: number;
@@ -72,6 +80,7 @@ export type ReportResponse = {
   summary: ReportSummary;
   netProfitBreakdown: NetProfitBreakdown;
   topProducts: TopProductSummary[];
+  topCategories: TopCategorySummary[];
   daily: DailyReportSummary[];
 };
 
@@ -101,6 +110,7 @@ export type SalesReportResponse = {
   summary: SalesReportSummary;
   netProfitBreakdown: NetProfitBreakdown;
   topProducts: SalesTopProduct[];
+  topCategories: TopCategorySummary[];
   daily: Array<{
     date: string;
     totalSales: string;

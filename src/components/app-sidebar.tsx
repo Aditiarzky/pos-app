@@ -29,78 +29,82 @@ interface NavItem {
   roles: Array<"admin toko" | "admin sistem">;
 }
 
+// Konstanta untuk role agar lebih mudah dibaca dan dikelola
+const STORE_AND_SYSTEM_ROLES: NavItem["roles"] = ["admin toko", "admin sistem"];
+const SYSTEM_ADMIN_ONLY_ROLES: NavItem["roles"] = ["admin sistem"];
+
 const navItems: NavItem[] = [
   {
     label: "Beranda",
     href: "/dashboard",
     icon: <IconLayout className="w-5 h-5" />,
-    roles: ["admin toko", "admin sistem"],
+    roles: STORE_AND_SYSTEM_ROLES,
   },
   {
     label: "Kasir",
     href: "/dashboard/sales",
     icon: <IconCalculator className="w-5 h-5" />,
-    roles: ["admin toko"],
+    roles: STORE_AND_SYSTEM_ROLES,
   },
   {
     label: "Produk & Stok",
     href: "/dashboard/products",
     icon: <Package className="w-5 h-5" />,
-    roles: ["admin toko"],
+    roles: STORE_AND_SYSTEM_ROLES,
   },
   {
     label: "Pembelian & Supplier",
     href: "/dashboard/purchases",
     icon: <IconTrolley className="w-5 h-5" />,
-    roles: ["admin toko"],
+    roles: STORE_AND_SYSTEM_ROLES,
   },
   {
     label: "Pelanggan & Saldo",
     href: "/dashboard/customers",
     icon: <IconUsers className="w-5 h-5" />,
-    roles: ["admin toko"],
+    roles: STORE_AND_SYSTEM_ROLES,
   },
   {
     label: "Operasional & Pajak",
     href: "/dashboard/cost",
     icon: <IconTax className="w-5 h-5" />,
-    roles: ["admin toko"],
+    roles: SYSTEM_ADMIN_ONLY_ROLES,
   },
   {
     label: "Laporan",
     href: "/dashboard/report",
     icon: <IconReport className="w-5 h-5" />,
-    roles: ["admin toko"],
+    roles: STORE_AND_SYSTEM_ROLES,
   },
   {
     label: "Notifikasi",
     href: "/dashboard/notifications",
     icon: <IconBell className="w-5 h-5" />,
-    roles: ["admin toko", "admin sistem"],
+    roles: STORE_AND_SYSTEM_ROLES,
   },
   {
     label: "Tempat Sampah",
     href: "/dashboard/trash",
     icon: <IconTrash className="w-5 h-5" />,
-    roles: ["admin toko", "admin sistem"],
+    roles: STORE_AND_SYSTEM_ROLES,
   },
   {
     label: "User & Akses",
     href: "/dashboard/users",
     icon: <IconShieldLock className="w-5 h-5" />,
-    roles: ["admin sistem"],
+    roles: SYSTEM_ADMIN_ONLY_ROLES,
   },
   {
     label: "Master Data",
     href: "/dashboard/master-data",
     icon: <IconDatabase className="w-5 h-5" />,
-    roles: ["admin sistem"],
+    roles: SYSTEM_ADMIN_ONLY_ROLES,
   },
   {
     label: "Pengaturan",
     href: "/dashboard/setting",
     icon: <Settings className="w-5 h-5" />,
-    roles: ["admin toko", "admin sistem"],
+    roles: STORE_AND_SYSTEM_ROLES,
   },
 ];
 
@@ -127,13 +131,13 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
             : "-translate-x-full -left-10 w-64",
         )}
       >
-        <Link
-          href="/dashboard">
+        <Link href="/dashboard">
           <div className="pt-6 px-4">
             <LogoNav height={32} type="sidebar" />
             <Separator className="mt-3" />
           </div>
         </Link>
+
         {/* Close button for mobile */}
         <div className="absolute right-[-16px] top-4">
           <Button
@@ -145,10 +149,12 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
             <ChevronLeft className="w-5 h-5" />
           </Button>
         </div>
+
         {/* Navigation */}
         <nav className="p-4">
           {filteredNavItems.map((item) => {
             const isActive = pathname === item.href;
+
             return (
               <Link key={item.href} href={item.href}>
                 <button
@@ -171,16 +177,15 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
             );
           })}
         </nav>
-      </div >
+      </div>
+
       {/* Overlay for mobile */}
-      {
-        isOpen && (
-          <div
-            className="fixed inset-0 bg-background/50 backdrop-blur-sm z-30 md:hidden"
-            onClick={onToggle}
-          />
-        )
-      }
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-background/50 backdrop-blur-sm z-30 md:hidden"
+          onClick={onToggle}
+        />
+      )}
     </>
   );
 }

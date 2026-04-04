@@ -7,6 +7,8 @@ import { UserListSection } from "./_components/user-list-section";
 import { UserFormModal } from "./_components/user-form-modal";
 import { UserResponse } from "@/services/userService";
 import { useAuth } from "@/hooks/use-auth";
+import { RoleGuard } from "@/components/role-guard";
+import { AccessDenied } from "@/components/access-denied";
 
 function UsersContent() {
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -91,14 +93,16 @@ function UsersContent() {
 
 export default function UsersPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      }
-    >
-      <UsersContent />
-    </Suspense>
+    <RoleGuard allowedRoles={["admin sistem"]} fallback={<AccessDenied />}>
+      <Suspense
+        fallback={
+          <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        }
+      >
+        <UsersContent />
+      </Suspense>
+    </RoleGuard>
   );
 }

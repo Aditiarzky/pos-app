@@ -45,8 +45,10 @@ export async function POST() {
 
     // Optional: Rotate Refresh Token (Delete old, create new)
     // For better security, we rotate it.
-    await db.delete(refreshTokens).where(eq(refreshTokens.id, validToken.id));
-    await createRefreshToken(userResult.id);
+    await db.transaction(async (tx) => {
+      await tx.delete(refreshTokens).where(eq(refreshTokens.id, validToken.id));
+      await createRefreshToken(userResult.id);
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

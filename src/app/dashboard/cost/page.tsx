@@ -31,6 +31,8 @@ import { useCostAnalytics } from "@/hooks/cost/use-cost";
 import { CATEGORY_LABELS } from "./_types/cost-types";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { RoleGuard } from "@/components/role-guard";
+import { AccessDenied } from "@/components/access-denied";
 
 // function InfoBanner() {
 //   return (
@@ -308,14 +310,16 @@ function CostsContent() {
 
 export default function CostsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      }
-    >
-      <CostsContent />
-    </Suspense>
+    <RoleGuard allowedRoles={["admin sistem"]} fallback={<AccessDenied />}>
+      <Suspense
+        fallback={
+          <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        }
+      >
+        <CostsContent />
+      </Suspense>
+    </RoleGuard>
   );
 }

@@ -33,6 +33,8 @@ import { AnimatedNumber } from "@/components/ui/animated-number";
 import { CardBg } from "@/assets/card-background/card-bg";
 import { Badge } from "@/components/ui/badge";
 import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
+import { RoleGuard } from "@/components/role-guard";
+import { AccessDenied } from "@/components/access-denied";
 
 // ============================================
 // MAIN CONTENT COMPONENT
@@ -252,10 +254,11 @@ function AnalyticsCards({
           <div className="mt-1 flex items-center gap-2">
             <Badge
               variant="outline"
-              className={`text-[8px] px-1 py-0 font-bold ${isPositive
-                ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                : "bg-rose-50 text-rose-600 border-rose-100"
-                }`}
+              className={`text-[8px] px-1 py-0 font-bold ${
+                isPositive
+                  ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                  : "bg-rose-50 text-rose-600 border-rose-100"
+              }`}
             >
               {isPositive ? "+" : "-"}
               {formattedPercentage}%
@@ -339,14 +342,19 @@ function AnalyticsCards({
 
 export default function PurchasesPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      }
+    <RoleGuard
+      allowedRoles={["admin toko", "admin sistem"]}
+      fallback={<AccessDenied />}
     >
-      <PurchasesContent />
-    </Suspense>
+      <Suspense
+        fallback={
+          <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        }
+      >
+        <PurchasesContent />
+      </Suspense>
+    </RoleGuard>
   );
 }

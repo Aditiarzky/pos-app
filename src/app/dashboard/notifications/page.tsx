@@ -11,6 +11,8 @@ import {
   useNotifications,
 } from "@/hooks/notifications/use-notifications";
 import { NotificationItem } from "@/services/notificationService";
+import { RoleGuard } from "@/components/role-guard";
+import { AccessDenied } from "@/components/access-denied";
 
 const FILTERS = [
   { value: "all", label: "All" },
@@ -39,7 +41,7 @@ const matchesFilter = (notification: NotificationItem, filter: FilterValue) => {
   return notification.category === filter;
 };
 
-export default function NotificationsPage() {
+function NotificationsContent() {
   const [filter, setFilter] = useState<FilterValue>("all");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -56,7 +58,10 @@ export default function NotificationsPage() {
   const unreadCount = notificationsQuery.data?.data?.unreadCount || 0;
 
   const filteredNotifications = useMemo(
-    () => notifications.filter((notification) => matchesFilter(notification, filter)),
+    () =>
+      notifications.filter((notification) =>
+        matchesFilter(notification, filter),
+      ),
     [notifications, filter],
   );
 
@@ -100,8 +105,12 @@ export default function NotificationsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => markManyAsReadMutation.mutate(notifications.map((n) => n.id))}
-            disabled={notifications.length === 0 || markManyAsReadMutation.isPending}
+            onClick={() =>
+              markManyAsReadMutation.mutate(notifications.map((n) => n.id))
+            }
+            disabled={
+              notifications.length === 0 || markManyAsReadMutation.isPending
+            }
           >
             {markManyAsReadMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -141,9 +150,13 @@ export default function NotificationsPage() {
         </div>
 
         {notificationsQuery.isLoading ? (
-          <div className="p-8 text-sm text-muted-foreground">Memuat notifikasi...</div>
+          <div className="p-8 text-sm text-muted-foreground">
+            Memuat notifikasi...
+          </div>
         ) : notificationsQuery.isError ? (
-          <div className="p-8 text-sm text-destructive">Gagal memuat notifikasi</div>
+          <div className="p-8 text-sm text-destructive">
+            Gagal memuat notifikasi
+          </div>
         ) : visibleNotifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-12 text-center border-dashed text-muted-foreground min-h-[280px] rounded-md border">
             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 text-2xl">
@@ -163,14 +176,18 @@ export default function NotificationsPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <Badge variant={notification.read ? "secondary" : "default"}>
+                      <Badge
+                        variant={notification.read ? "secondary" : "default"}
+                      >
                         {notification.read ? "Read" : "Unread"}
                       </Badge>
                       <Badge variant="outline">{notification.category}</Badge>
                       <Badge variant="outline">{notification.severity}</Badge>
                     </div>
 
-                    <p className="text-sm leading-snug">{notification.message}</p>
+                    <p className="text-sm leading-snug">
+                      {notification.message}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDateTime(notification.createdAt)}
                     </p>
@@ -193,5 +210,16 @@ export default function NotificationsPage() {
         )}
       </main>
     </>
+  );
+}
+
+export default function NotificationsPage() {
+  return (
+    <RoleGuard
+      allowedRoles={["admin toko", "admin sistem"]}
+      fallback={<AccessDenied />}
+    >
+      <NotificationsContent />
+    </RoleGuard>
   );
 }

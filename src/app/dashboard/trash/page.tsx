@@ -52,6 +52,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { formatDate } from "@/lib/format";
+import { useAuth } from "@/hooks/use-auth";
+import { RoleGuard } from "@/components/role-guard";
+import { AccessDenied } from "@/components/access-denied";
 
 type ConfirmAction = {
   mode: "restore" | "force-delete";
@@ -91,7 +94,7 @@ function getErrorMessage(error: unknown) {
   return err.error || err.message || "Terjadi kesalahan";
 }
 
-export default function TrashPage() {
+function TrashContent() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [searchInput, setSearchInput] = useState("");
@@ -114,6 +117,8 @@ export default function TrashPage() {
   const restoreMutation = useRestoreTrash();
   const forceDeleteMutation = useForceDeleteTrash();
   const cleanupTrashMutation = useCleanupTrash();
+  const { roles } = useAuth();
+  const isSystemAdmin = (roles as string[]).includes("admin sistem");
 
   const rows = trashQuery.data?.data ?? [];
   const meta = trashQuery.data?.meta;
@@ -127,6 +132,10 @@ export default function TrashPage() {
   const isMutating = restoreMutation.isPending || forceDeleteMutation.isPending;
 
   useEffect(() => {
+    if (!isSystemAdmin) {
+      return;
+    }
+
     cleanupTrashMutation
       .mutateAsync(undefined)
       .then((res) => {
@@ -143,7 +152,7 @@ export default function TrashPage() {
       })
       .catch(() => { });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isSystemAdmin]);
 
   const toggleOne = (row: TrashListItem, checked: boolean) => {
     const key = `${row.type}:${row.id}`;
@@ -316,14 +325,16 @@ export default function TrashPage() {
               <ArchiveRestore className="h-4 w-4 mr-0 sm:mr-2" />
               <p className="hidden sm:block">Restore Selected</p>
             </Button>
-            <Button
-              variant="destructive"
-              onClick={() => openBulkAction("force-delete")}
-              disabled={selectedItems.length === 0 || isMutating}
-            >
-              <Trash2 className="h-4 w-4 mr-0 sm:mr-2" />
-              <p className="hidden sm:block">Delete Permanently</p>
-            </Button>
+            {isSystemAdmin && (
+              <Button
+                variant="destructive"
+                onClick={() => openBulkAction("force-delete")}
+                disabled={selectedItems.length === 0 || isMutating}
+              >
+                <Trash2 className="h-4 w-4 mr-0 sm:mr-2" />
+                <p className="hidden sm:block">Delete Permanently</p>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -459,13 +470,15 @@ export default function TrashPage() {
                               <ArchiveRestore className="h-4 w-4 mr-2" />
                               Restore
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={() => openSingleAction("force-delete", row)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete Permanently
-                            </DropdownMenuItem>
+                            {isSystemAdmin && (
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => openSingleAction("force-delete", row)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete Permanently
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -518,13 +531,15 @@ export default function TrashPage() {
                         <ArchiveRestore className="h-4 w-4 mr-2" />
                         Restore
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => openSingleAction("force-delete", row)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Permanently
-                      </DropdownMenuItem>
+                      {isSystemAdmin && (
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => openSingleAction("force-delete", row)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Permanently
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -596,5 +611,16 @@ export default function TrashPage() {
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+export default function TrashPage() {
+  return (
+    <RoleGuard
+      allowedRoles={["admin toko", "admin sistem"]}
+      fallback={<AccessDenied />}
+    >
+      <TrashContent />
+    </RoleGuard>
   );
 }

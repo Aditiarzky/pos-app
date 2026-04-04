@@ -25,6 +25,8 @@ import { useQueryState } from "@/hooks/use-query-state";
 import { CardBg } from "@/assets/card-background/card-bg";
 import { ProductResponse } from "@/services/productService";
 import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
+import { RoleGuard } from "@/components/role-guard";
+import { AccessDenied } from "@/components/access-denied";
 
 function ProductsContent() {
   const [tab, setTab] = useQueryState<string>("tab", "list");
@@ -207,14 +209,19 @@ function ProductsContent() {
 
 export default function ProductsPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      }
+    <RoleGuard
+      allowedRoles={["admin toko", "admin sistem"]}
+      fallback={<AccessDenied />}
     >
-      <ProductsContent />
-    </Suspense>
+      <Suspense
+        fallback={
+          <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        }
+      >
+        <ProductsContent />
+      </Suspense>
+    </RoleGuard>
   );
 }

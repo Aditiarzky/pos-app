@@ -72,6 +72,7 @@ import { useUpdateUnit } from "@/hooks/units/use-update-unit";
 import { useDeleteUnit } from "@/hooks/units/use-delete-unit";
 import { useRestoreUnit } from "@/hooks/units/use-restore-unit";
 import { useForceDeleteUnit } from "@/hooks/units/use-force-delete-unit";
+import { AccessDenied } from "@/components/access-denied";
 
 type ManagedItem = CategoryResponse | UnitResponse;
 
@@ -254,9 +255,9 @@ function EntitySection({
         : confirmState.mode === "restore"
           ? Promise.all(deletedItems.map((item) => onRestore(item.id)))
           : Promise.all([
-            ...deletedItems.map((item) => onForceDelete(item.id)),
-            ...activeItems.map((item) => onDelete(item.id)),
-          ]);
+              ...deletedItems.map((item) => onForceDelete(item.id)),
+              ...activeItems.map((item) => onDelete(item.id)),
+            ]);
 
     toast.promise(action, {
       loading:
@@ -668,9 +669,7 @@ function EntitySection({
                     <Badge variant="secondary">
                       {(row.usageCount ?? 0).toLocaleString("id-ID")} produk
                     </Badge>
-                    <Badge
-                      variant={row.deletedAt ? "destructive" : "outline"}
-                    >
+                    <Badge variant={row.deletedAt ? "destructive" : "outline"}>
                       {row.deletedAt ? "Terhapus" : "Aktif"}
                     </Badge>
                   </div>
@@ -795,26 +794,6 @@ function EntitySection({
   );
 }
 
-function AccessDenied() {
-  return (
-    <div className="container mx-auto px-4">
-      <Card className="mx-auto max-w-xl border-dashed">
-        <CardHeader>
-          <CardTitle>Akses Ditolak</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Halaman master data hanya tersedia untuk System Admin.
-          </p>
-          <Button asChild variant="outline">
-            <Link href="/dashboard">Kembali ke Dashboard</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 function MasterDataContent() {
   const categoriesQuery = useCategories({
     params: { includeDeleted: true },
@@ -920,12 +899,18 @@ function MasterDataContent() {
             onRetry={() => {
               void categoriesQuery.refetch();
             }}
-            onCreate={(name) => createCategory.mutateAsync({ name }).then(() => undefined)}
+            onCreate={(name) =>
+              createCategory.mutateAsync({ name }).then(() => undefined)
+            }
             onUpdate={(id, name) =>
               updateCategory.mutateAsync({ id, name }).then(() => undefined)
             }
-            onDelete={(id) => deleteCategory.mutateAsync(id).then(() => undefined)}
-            onRestore={(id) => restoreCategory.mutateAsync(id).then(() => undefined)}
+            onDelete={(id) =>
+              deleteCategory.mutateAsync(id).then(() => undefined)
+            }
+            onRestore={(id) =>
+              restoreCategory.mutateAsync(id).then(() => undefined)
+            }
             onForceDelete={(id) =>
               forceDeleteCategory.mutateAsync(id).then(() => undefined)
             }
@@ -950,12 +935,16 @@ function MasterDataContent() {
             onRetry={() => {
               void unitsQuery.refetch();
             }}
-            onCreate={(name) => createUnit.mutateAsync({ name }).then(() => undefined)}
+            onCreate={(name) =>
+              createUnit.mutateAsync({ name }).then(() => undefined)
+            }
             onUpdate={(id, name) =>
               updateUnit.mutateAsync({ id, name }).then(() => undefined)
             }
             onDelete={(id) => deleteUnit.mutateAsync(id).then(() => undefined)}
-            onRestore={(id) => restoreUnit.mutateAsync(id).then(() => undefined)}
+            onRestore={(id) =>
+              restoreUnit.mutateAsync(id).then(() => undefined)
+            }
             onForceDelete={(id) =>
               forceDeleteUnit.mutateAsync(id).then(() => undefined)
             }

@@ -24,6 +24,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wallet, CreditCard, UserPlus } from "lucide-react";
 import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
 import { useDebounce } from "@/hooks/use-debounce";
+import { RoleGuard } from "@/components/role-guard";
+import { AccessDenied } from "@/components/access-denied";
 
 function AnalyticsCards({ analytics }: { analytics?: CustomerAnalytics }) {
   return (
@@ -198,14 +200,19 @@ function CustomersContent() {
 
 export default function CustomersPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      }
+    <RoleGuard
+      allowedRoles={["admin toko", "admin sistem"]}
+      fallback={<AccessDenied />}
     >
-      <CustomersContent />
-    </Suspense>
+      <Suspense
+        fallback={
+          <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        }
+      >
+        <CustomersContent />
+      </Suspense>
+    </RoleGuard>
   );
 }

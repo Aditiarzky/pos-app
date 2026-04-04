@@ -28,6 +28,8 @@ import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { useSaleList } from "@/hooks/sales/use-sale";
 import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
+import { RoleGuard } from "@/components/role-guard";
+import { AccessDenied } from "@/components/access-denied";
 
 // ============================================
 // HELPERS
@@ -299,7 +301,7 @@ function SalesContent() {
 
             {/* Cashier Forms */}
             {cashierMode === "sales" ? (
-              <TransactionForm onSuccess={() => { }} />
+              <TransactionForm onSuccess={() => {}} />
             ) : (
               <ReturnForm />
             )}
@@ -357,14 +359,19 @@ function SalesContent() {
 
 export default function SalesPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      }
+    <RoleGuard
+      allowedRoles={["admin toko", "admin sistem"]}
+      fallback={<AccessDenied />}
     >
-      <SalesContent />
-    </Suspense>
+      <Suspense
+        fallback={
+          <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        }
+      >
+        <SalesContent />
+      </Suspense>
+    </RoleGuard>
   );
 }
