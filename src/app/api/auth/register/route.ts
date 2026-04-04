@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, name, password, roles: rolesInput } = validation.data;
+    const { email, name, password, role: rolesInput } = validation.data;
 
     // Validasi password
     if (!password) {
@@ -61,13 +61,15 @@ export async function POST(req: NextRequest) {
         .returning();
 
       // 2. Insert roles
-      const finalRoles =
-        rolesInput && rolesInput.length > 0 ? rolesInput : ["admin toko"];
+      const rolesArray = Array.isArray(rolesInput)
+        ? rolesInput
+        : [rolesInput || "admin toko"];
+      const finalRoles = rolesArray.filter(Boolean) as UserRoleEnumType[];
 
       await tx.insert(userRoles).values(
-        finalRoles.map((r) => ({
+        finalRoles.map((r: UserRoleEnumType) => ({
           userId: newUser.id,
-          role: r as UserRoleEnumType,
+          role: r,
         })),
       );
 

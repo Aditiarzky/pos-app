@@ -13,9 +13,9 @@ export const createUserSchema = insertSchema.extend({
     ),
   email: insertSchema.shape.email.email("Email tidak valid"),
   name: insertSchema.shape.name.min(1, "Nama wajib diisi"),
-  roles: z
-    .array(z.enum(["admin toko", "admin sistem"]))
-    .min(1, "Minimal pilih satu role"),
+  role: z.enum(["admin toko", "admin sistem"], {
+    message: "Role wajib dipilih",
+  }),
 });
 
 export const updateUserSchema = insertSchema.extend({
@@ -28,10 +28,7 @@ export const updateUserSchema = insertSchema.extend({
     )
     .optional()
     .or(z.literal("")),
-  roles: z
-    .array(z.enum(["admin toko", "admin sistem"]))
-    .min(1, "Minimal pilih satu role")
-    .optional(),
+  role: z.enum(["admin toko", "admin sistem"]).optional(),
 });
 
 export const userFormSchema = createSelectSchema(users).extend({

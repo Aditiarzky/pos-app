@@ -203,10 +203,18 @@ export function UserListSection({ onEdit }: UserListSectionProps) {
           <Table>
             <TableHeader className="bg-muted/20 border-t border-b border-border/50">
               <TableRow className="border-none">
-                <TableHead className="w-[200px] text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Nama</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Email</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Role</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tanggal Dibuat</TableHead>
+                <TableHead className="w-[200px] text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Nama
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Email
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Role
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Tanggal Dibuat
+                </TableHead>
                 <TableHead className="w-[50px] text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide"></TableHead>
               </TableRow>
             </TableHeader>
@@ -235,16 +243,25 @@ export function UserListSection({ onEdit }: UserListSectionProps) {
                 </TableRow>
               ) : (
                 users.map((user) => (
-                  <TableRow key={user.id} className="hover:bg-muted/50 transition-colors border-b border-border/30 last:border-none">
-                    <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-semibold">{user.name}</TableCell>
-                    <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2">{user.email}</TableCell>
+                  <TableRow
+                    key={user.id}
+                    className="hover:bg-muted/50 transition-colors border-b border-border/30 last:border-none"
+                  >
+                    <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-semibold">
+                      {user.name}
+                    </TableCell>
+                    <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2">
+                      {user.email}
+                    </TableCell>
                     <TableCell className="px-2 sm:px-4 py-2">
                       <div className="flex flex-wrap gap-1">
                         {user.roles.map((r, idx) => (
                           <Badge
                             key={idx}
                             variant={
-                              r.role === "admin sistem" ? "default" : "secondary"
+                              r.role === "admin sistem"
+                                ? "default"
+                                : "secondary"
                             }
                             className="capitalize"
                           >
@@ -256,8 +273,8 @@ export function UserListSection({ onEdit }: UserListSectionProps) {
                     <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 text-muted-foreground">
                       {user.createdAt
                         ? format(new Date(user.createdAt), "dd MMM yyyy", {
-                          locale: id,
-                        })
+                            locale: id,
+                          })
                         : "-"}
                     </TableCell>
                     <TableCell className="px-2 sm:px-4 py-2">
@@ -296,7 +313,10 @@ export function UserListSection({ onEdit }: UserListSectionProps) {
       ) : isLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="flex flex-col items-center justify-center p-8 text-center border-dashed text-muted-foreground min-h-[220px]">
+            <Card
+              key={i}
+              className="flex flex-col items-center justify-center p-8 text-center border-dashed text-muted-foreground min-h-[220px]"
+            >
               <Skeleton className="h-[180px] sm:h-[210px] rounded-2xl" />
             </Card>
           ))}
@@ -325,14 +345,18 @@ export function UserListSection({ onEdit }: UserListSectionProps) {
               <div className="p-2.5 sm:p-4 flex-1 space-y-2">
                 <div className="text-[10px] sm:text-xs text-muted-foreground">
                   {user.createdAt
-                    ? format(new Date(user.createdAt), "dd MMM yyyy", { locale: id })
+                    ? format(new Date(user.createdAt), "dd MMM yyyy", {
+                        locale: id,
+                      })
                     : "-"}
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {user.roles.map((r, idx) => (
                     <Badge
                       key={idx}
-                      variant={r.role === "admin sistem" ? "default" : "secondary"}
+                      variant={
+                        r.role === "admin sistem" ? "default" : "secondary"
+                      }
                       className="capitalize text-[10px]"
                     >
                       {r.role}

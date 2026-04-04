@@ -16,6 +16,12 @@ export type UserResponse = {
   updatedAt: string;
 };
 
+export type UserAnalytics = {
+  totalUsers: number;
+  adminSistem: number;
+  adminToko: number;
+};
+
 export type ApiResponse<T = unknown> = {
   success: boolean;
   data?: T;
@@ -27,6 +33,7 @@ export type ApiResponse<T = unknown> = {
     total: number;
     totalPages: number;
   };
+  analytics: UserAnalytics;
 };
 
 // Get all users

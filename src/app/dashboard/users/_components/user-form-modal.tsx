@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ShieldCheck, UserCog } from "lucide-react";
 import {
   createUserSchema,
   updateUserSchema,
@@ -60,7 +61,7 @@ export function UserFormModal({
       name: "",
       email: "",
       password: "",
-      roles: [],
+      role: undefined,
     },
   });
 
@@ -70,8 +71,8 @@ export function UserFormModal({
         form.reset({
           name: userData.name,
           email: userData.email,
-          // Roles in userData are objects { role: "..." }, but form expects ["..."]
-          roles: userData.roles.map((r) => r.role),
+          // Roles in userData are objects { role: "..." }, but form expects a string
+          role: userData.roles[0]?.role,
           password: "", // Password always empty on edit
         });
       } else {
@@ -79,7 +80,7 @@ export function UserFormModal({
           name: "",
           email: "",
           password: "",
-          roles: [],
+          role: undefined,
         });
       }
     }
@@ -119,11 +120,9 @@ export function UserFormModal({
     }
   };
 
-  const roles = ["admin toko", "admin sistem"] as const;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit User" : "Tambah User"}</DialogTitle>
           <DialogDescription>
@@ -193,66 +192,77 @@ export function UserFormModal({
 
             <FormField
               control={form.control}
-              name="roles"
-              render={() => (
-                <FormItem>
+              name="role"
+              render={({ field }) => (
+                <FormItem className="space-y-3 pt-2">
                   <div className="mb-4">
-                    <FormLabel className="text-base">Role</FormLabel>
+                    <FormLabel className="text-base text-foreground font-semibold">
+                      Role Akses
+                    </FormLabel>
                     <DialogDescription>
-                      Pilih role yang dimiliki user.
+                      Pilih satu role untuk menentukan hak akses user.
                     </DialogDescription>
                   </div>
-                  {roles.map((role) => (
-                    <FormField
-                      key={role}
-                      control={form.control}
-                      name="roles"
-                      render={({ field }) => {
-                        return (
-                          <FormItem
-                            key={role}
-                            className="flex flex-row items-start space-x-3 space-y-0"
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(role)}
-                                onCheckedChange={(checked) => {
-                                  return checked
-                                    ? field.onChange([
-                                        ...(field.value || []),
-                                        role,
-                                      ])
-                                    : field.onChange(
-                                        field.value?.filter(
-                                          (value) => value !== role,
-                                        ),
-                                      );
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="font-normal capitalize">
-                              {role}
-                            </FormLabel>
-                          </FormItem>
-                        );
-                      }}
-                    />
-                  ))}
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value || ""}
+                      className="grid grid-cols-2 gap-4"
+                    >
+                      <FormItem>
+                        <FormControl>
+                          <RadioGroupItem
+                            value="admin toko"
+                            className="peer sr-only"
+                          />
+                        </FormControl>
+                        <FormLabel className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary cursor-pointer transition-all">
+                          <UserCog className="mb-3 h-8 w-8 text-rose-500" />
+                          <div className="space-y-1 text-center">
+                            <span className="font-semibold text-sm">Admin Toko</span>
+                            <p className="text-[11px] text-muted-foreground font-normal leading-tight">
+                              Fokus operasional toko
+                            </p>
+                          </div>
+                        </FormLabel>
+                      </FormItem>
+
+                      <FormItem>
+                        <FormControl>
+                          <RadioGroupItem
+                            value="admin sistem"
+                            className="peer sr-only"
+                          />
+                        </FormControl>
+                        <FormLabel className="flex flex-col items-center justify-between rounded-xl border-2 border-muted bg-transparent p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary cursor-pointer transition-all">
+                          <ShieldCheck className="mb-3 h-8 w-8 text-emerald-500" />
+                          <div className="space-y-1 text-center">
+                            <span className="font-semibold text-sm">Admin Sistem</span>
+                            <p className="text-[11px] text-muted-foreground font-normal leading-tight">
+                              Akses penuh sistem
+                            </p>
+                          </div>
+                        </FormLabel>
+                      </FormItem>
+                    </RadioGroup>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="pt-4">
               <Button
                 type="button"
-                variant="secondary"
+                variant="outline"
+                className="rounded-xl"
                 onClick={() => onOpenChange(false)}
                 disabled={isPending}
               >
                 Batal
               </Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" className="rounded-xl shadow-md" disabled={isPending}>
                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Simpan
               </Button>

@@ -116,9 +116,9 @@ export async function PUT(
       );
     }
 
-    const { roles: rolesInput, ...validatedData } = validation.data;
+    const { role, ...validatedData } = validation.data;
 
-    if (!isSystemAdmin && rolesInput !== undefined) {
+    if (!isSystemAdmin && role !== undefined) {
       return NextResponse.json(
         { success: false, error: "Forbidden to update roles" },
         { status: 403 },
@@ -155,16 +155,14 @@ export async function PUT(
         .where(eq(users.id, id))
         .returning();
 
-      // 2. Sync roles
-      if (isSystemAdmin && rolesInput !== undefined) {
+      // 2. Sync role
+      if (isSystemAdmin && role !== undefined) {
         await tx.delete(userRoles).where(eq(userRoles.userId, id));
-        if (rolesInput.length > 0) {
-          await tx.insert(userRoles).values(
-            rolesInput.map((r) => ({
-              userId: id,
-              role: r as UserRoleEnumType,
-            })),
-          );
+        if (role) {
+          await tx.insert(userRoles).values({
+            userId: id,
+            role: role as UserRoleEnumType,
+          });
         }
       }
 

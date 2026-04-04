@@ -1,7 +1,6 @@
 "use client";
 
 import { type ReactNode, Suspense, useMemo, useState } from "react";
-import Link from "next/link";
 import {
   ArchiveRestore,
   FolderTree,

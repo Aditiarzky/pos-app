@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
@@ -55,6 +56,11 @@ export function ChartAreaInteractive({
 }: ChartAreaInteractiveProps) {
   const isMobile = useIsMobile();
   const [timeRange, setTimeRange] = React.useState(defaultTimeRange);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     if (isMobile && showTimeRange) {
@@ -130,80 +136,97 @@ export function ChartAreaInteractive({
       </CardHeader>
       <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
         <ChartContainer
+          key={filteredData.length > 0 ? "has-data" : "no-data"}
           config={config}
-          className="aspect-auto h-[300px] w-full"
+          className="aspect-auto h-[300px] w-full overflow-visible"
         >
-          <AreaChart data={filteredData}>
-            <defs>
-              {configKeys.map((key) => (
-                <linearGradient
-                  key={key}
-                  id={`fill${key}`}
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop
-                    offset="5%"
-                    stopColor={`var(--color-${key})`}
-                    stopOpacity={0.8}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor={`var(--color-${key})`}
-                    stopOpacity={0.1}
-                  />
-                </linearGradient>
-              ))}
-            </defs>
-            <CartesianGrid
-              vertical={false}
-              strokeDasharray="3 3"
-              opacity={0.4}
-            />
-            <XAxis
-              dataKey="date"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              minTickGap={32}
-              tickFormatter={(value) => {
-                const date = new Date(value);
-                return date.toLocaleDateString("id-ID", {
-                  month: "short",
-                  day: "numeric",
-                });
+          {mounted ? (
+            <AreaChart
+              data={filteredData}
+              margin={{
+                left: 12,
+                right: 12,
+                top: 20,
+                bottom: 0,
               }}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={
-                <ChartTooltipContent
-                  labelFormatter={(value) => {
-                    return new Date(value).toLocaleDateString("id-ID", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    });
-                  }}
-                  indicator="dot"
-                />
-              }
-            />
-            <ChartLegend content={<ChartLegendContent />} />
-            {configKeys.map((key) => (
-              <Area
-                key={key}
-                dataKey={key}
-                type="natural"
-                fill={`url(#fill${key})`}
-                stroke={`var(--color-${key})`}
-                strokeWidth={2}
-                stackId="a"
+            >
+              <defs>
+                {configKeys.map((key) => (
+                  <linearGradient
+                    key={key}
+                    id={`fill${key}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor={`var(--color-${key})`}
+                      stopOpacity={0.8}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor={`var(--color-${key})`}
+                      stopOpacity={0.1}
+                    />
+                  </linearGradient>
+                ))}
+              </defs>
+              <CartesianGrid
+                vertical={false}
+                strokeDasharray="3 3"
+                opacity={0.4}
+                stroke="var(--border)"
               />
-            ))}
-          </AreaChart>
+              <YAxis hide domain={["auto", "dataMax + (dataMax * 0.1)"]} />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+                tickFormatter={(value) => {
+                  const date = new Date(value);
+                  return date.toLocaleDateString("id-ID", {
+                    month: "short",
+                    day: "numeric",
+                  });
+                }}
+              />
+              <ChartTooltip
+                cursor={false}
+                content={
+                  <ChartTooltipContent
+                    labelFormatter={(value) => {
+                      return new Date(value).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      });
+                    }}
+                    indicator="dot"
+                  />
+                }
+              />
+              <ChartLegend content={<ChartLegendContent />} />
+              {configKeys.map((key) => (
+                <Area
+                  key={key}
+                  dataKey={key}
+                  type="natural"
+                  fill={`url(#fill${key})`}
+                  stroke={`var(--color-${key})`}
+                  strokeWidth={2}
+                  stackId="a"
+                />
+              ))}
+            </AreaChart>
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
         </ChartContainer>
       </CardContent>
     </Card>

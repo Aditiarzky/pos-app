@@ -73,10 +73,35 @@ export async function GET(request: NextRequest) {
       .where(finalFilter);
     const totalCount = Number(totalRes[0]?.count || 0);
 
+    const adminSistemCountRes = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .innerJoin(userRoles, eq(users.id, userRoles.userId))
+      .where(and(eq(users.isActive, true), eq(userRoles.role, "admin sistem")));
+    const adminSistemCount = Number(adminSistemCountRes[0]?.count || 0);
+
+    const adminTokoCountRes = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .innerJoin(userRoles, eq(users.id, userRoles.userId))
+      .where(and(eq(users.isActive, true), eq(userRoles.role, "admin toko")));
+    const adminTokoCount = Number(adminTokoCountRes[0]?.count || 0);
+
+    const totalActiveUsersRes = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(eq(users.isActive, true));
+    const totalActiveUsers = Number(totalActiveUsersRes[0]?.count || 0);
+
     return NextResponse.json({
       success: true,
       data: usersData,
       pagination: formatMeta(totalCount, params.page, params.limit),
+      analytics: {
+        totalUsers: totalActiveUsers,
+        adminSistem: adminSistemCount,
+        adminToko: adminTokoCount,
+      },
     });
   } catch (error) {
     console.error("fetch users error:", error);
@@ -117,7 +142,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, name, password, roles: rolesInput } = validation.data;
+    const { email, name, password, role } = validation.data;
 
     // Cek apakah email sudah terdaftar
     const existingUser = await db.query.users.findFirst({
@@ -146,14 +171,12 @@ export async function POST(req: NextRequest) {
         })
         .returning();
 
-      // 2. Insert roles
-      if (rolesInput && rolesInput.length > 0) {
-        await tx.insert(userRoles).values(
-          rolesInput.map((r) => ({
-            userId: newUser.id,
-            role: r as UserRoleEnumType,
-          })),
-        );
+      // 2. Insert role
+      if (role) {
+        await tx.insert(userRoles).values({
+          userId: newUser.id,
+          role: role as UserRoleEnumType,
+        });
       }
 
       return newUser;

@@ -13,7 +13,6 @@ import {
   authLogin,
   authForgotPassword,
   authRegister,
-  UserRegisterInputType,
 } from "@/services/authService";
 import LogoNav from "@/assets/logo-nav/logo-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -34,9 +33,9 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [rememberEmail, setRememberEmail] = useState(false);
-  const [resetNotificationEmail, setResetNotificationEmail] = useState<string | null>(
-    null,
-  );
+  const [resetNotificationEmail, setResetNotificationEmail] = useState<
+    string | null
+  >(null);
 
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -76,10 +75,7 @@ export default function LoginPage() {
   const persistResetNotificationEmail = (value: string) => {
     const trimmed = value.trim();
     if (trimmed) {
-      localStorage.setItem(
-        PASSWORD_RESET_NOTIFICATION_EMAIL_KEY,
-        trimmed,
-      );
+      localStorage.setItem(PASSWORD_RESET_NOTIFICATION_EMAIL_KEY, trimmed);
       setResetNotificationEmail(trimmed);
     } else {
       localStorage.removeItem(PASSWORD_RESET_NOTIFICATION_EMAIL_KEY);
@@ -94,9 +90,7 @@ export default function LoginPage() {
 
     (async () => {
       try {
-        const response = await checkPasswordResetStatus(
-          resetNotificationEmail,
-        );
+        const response = await checkPasswordResetStatus(resetNotificationEmail);
 
         if (!response.success || !response.data) {
           return;
@@ -163,8 +157,8 @@ export default function LoginPage() {
         name,
         email,
         password,
-        roles: ["admin toko"],
-      } as UserRegisterInputType);
+        role: "admin toko",
+      });
 
       if (response.success) {
         toast.success("Registrasi berhasil! Silakan login.");

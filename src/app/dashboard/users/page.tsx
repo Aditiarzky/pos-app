@@ -5,15 +5,90 @@ import { Plus, Users, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserListSection } from "./_components/user-list-section";
 import { UserFormModal } from "./_components/user-form-modal";
-import { UserResponse } from "@/services/userService";
-import { useAuth } from "@/hooks/use-auth";
+import { UserAnalytics, UserResponse } from "@/services/userService";
 import { RoleGuard } from "@/components/role-guard";
 import { AccessDenied } from "@/components/access-denied";
+import { useUsers } from "@/hooks/users/use-users";
+import { CardBg } from "@/assets/card-background/card-bg";
+import { AnimatedNumber } from "@/components/ui/animated-number";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
+import { ShieldCheck, UserCog } from "lucide-react";
+
+function AnalyticsCards({ analytics }: { analytics?: UserAnalytics }) {
+  return (
+    <StickyCardStack className="animate-in fade-in slide-in-from-top-4 duration-500">
+      {/* Total User */}
+      <Card className="relative overflow-hidden border-none shadow-md">
+        <CardBg />
+        <CardHeader className="pb-2 z-10">
+          <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+            Total User
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Users className="h-4 w-4 text-primary" />
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="z-10 pt-0 text-primary">
+          <div className="text-2xl font-bold">
+            <AnimatedNumber value={analytics?.totalUsers ?? 0} />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1 font-medium italic opacity-60">
+            Pengguna aktif terdaftar
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Admin Toko */}
+      <Card className="relative overflow-hidden border-none shadow-md">
+        <CardBg />
+        <CardHeader className="pb-2 z-10">
+          <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+            Admin Toko
+            <div className="p-2 bg-rose-500/10 rounded-lg">
+              <UserCog className="h-4 w-4 text-rose-500" />
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="z-10 pt-0 text-primary">
+          <div className="text-2xl font-bold">
+            <AnimatedNumber value={analytics?.adminToko ?? 0} />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1 font-medium italic opacity-60">
+            Operator operasional toko
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Admin Sistem */}
+      <Card className="relative overflow-hidden border-none shadow-md">
+        <CardBg />
+        <CardHeader className="pb-2 z-10">
+          <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+            Admin Sistem
+            <div className="p-2 bg-emerald-500/10 rounded-lg">
+              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="z-10 pt-0 text-primary">
+          <div className="text-2xl font-bold">
+            <AnimatedNumber value={analytics?.adminSistem ?? 0} />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1 font-medium italic opacity-60">
+            Akses kontrol penuh sistem
+          </p>
+        </CardContent>
+      </Card>
+    </StickyCardStack>
+  );
+}
 
 function UsersContent() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<UserResponse | null>(null);
-  const { roles } = useAuth();
+  const { data } = useUsers();
+  const analytics = data?.analytics;
 
   const handleCreateNew = () => {
     setEditingUser(null);
@@ -51,9 +126,13 @@ function UsersContent() {
       </header>
 
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Users className="h-5 w-5 text-primary" />
+        <AnalyticsCards analytics={analytics} />
+
+        <div className="pt-4">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="p-1.5 bg-primary/10 rounded-lg">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
             <h2 className="text-lg font-semibold">Daftar Pengguna</h2>
           </div>
 

@@ -15,7 +15,7 @@ export interface UserResponse {
 }
 
 export interface UserRegisterInputType extends InsertUserType {
-  roles: Array<{ role: "admin toko" | "admin sistem" }>;
+  roles: Array<"admin toko" | "admin sistem">;
 }
 
 export type ApiResponse<T = unknown> = {
