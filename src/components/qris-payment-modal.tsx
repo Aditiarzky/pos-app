@@ -33,7 +33,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-import QRCode from "react-qr-code";
+import { QRCodeSVG } from "qrcode.react";
 
 export interface QrisPaymentData {
   paymentNumber: string;
@@ -63,7 +63,9 @@ export function QrisPaymentModal({
   onCancel,
   data,
 }: QrisPaymentModalProps) {
-  const [status, setStatus] = useState<"waiting" | "success" | "expired">("waiting");
+  const [status, setStatus] = useState<"waiting" | "success" | "expired">(
+    "waiting",
+  );
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [isSimulating, setIsSimulating] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -93,7 +95,9 @@ export function QrisPaymentModal({
 
     updateTimer();
     timerRef.current = setInterval(updateTimer, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [data, isOpen, status]);
 
   const checkPaymentStatus = useCallback(async () => {
@@ -116,7 +120,9 @@ export function QrisPaymentModal({
       return;
     }
     pollRef.current = setInterval(checkPaymentStatus, POLL_INTERVAL_MS);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [isOpen, status, checkPaymentStatus]);
 
   useEffect(() => {
@@ -142,20 +148,21 @@ export function QrisPaymentModal({
       if (!contentType.includes("application/json")) {
         throw new Error(
           `Server return ${res.status} bukan JSON. ` +
-          `Pastikan file app/api/pakasir-simulate/route.ts ada dan Next.js sudah di-restart.`,
+            `Pastikan file app/api/pakasir-simulate/route.ts ada dan Next.js sudah di-restart.`,
         );
       }
 
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`);
+      if (!res.ok || !json.success)
+        throw new Error(json.error || `HTTP ${res.status}`);
 
       // Sukses — polling di useEffect akan detect status "completed" dalam ~3 detik
       toast.success("Pembayaran dikonfirmasi, memproses...", { id: toastId });
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Simulasi gagal",
-        { id: toastId, duration: 6000 },
-      );
+      toast.error(err instanceof Error ? err.message : "Simulasi gagal", {
+        id: toastId,
+        duration: 6000,
+      });
     } finally {
       setIsSimulating(false);
     }
@@ -180,7 +187,8 @@ export function QrisPaymentModal({
       }
 
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`);
+      if (!res.ok || !json.success)
+        throw new Error(json.error || `HTTP ${res.status}`);
 
       toast.success("Transaksi QRIS berhasil dibatalkan", { id: toastId });
 
@@ -201,9 +209,13 @@ export function QrisPaymentModal({
   const seconds = secondsLeft % 60;
   const timeStr = `${minutes}:${String(seconds).padStart(2, "0")}`;
   const totalDuration = data
-    ? Math.floor((new Date(data.expiredAt).getTime() - Date.now() + secondsLeft * 1000) / 1000)
+    ? Math.floor(
+        (new Date(data.expiredAt).getTime() - Date.now() + secondsLeft * 1000) /
+          1000,
+      )
     : 300;
-  const progress = totalDuration > 0 ? Math.min(100, (secondsLeft / totalDuration) * 100) : 0;
+  const progress =
+    totalDuration > 0 ? Math.min(100, (secondsLeft / totalDuration) * 100) : 0;
   const timerColor = secondsLeft > 60 ? "text-amber-600" : "text-destructive";
 
   return (
@@ -236,14 +248,12 @@ export function QrisPaymentModal({
 
         {/* Body */}
         <div className="px-6 py-5">
-
           {/* ── Waiting ── */}
           {status === "waiting" && data && (
             <div className="flex flex-col items-center gap-4">
-
               {/* QR Code */}
               <div className="p-3 border-2 rounded-2xl bg-white shadow-sm">
-                <QRCode
+                <QRCodeSVG
                   value={data.paymentNumber}
                   size={200}
                   style={{ height: "auto", maxWidth: "100%", width: "100%" }}
@@ -251,7 +261,12 @@ export function QrisPaymentModal({
               </div>
 
               {/* Timer */}
-              <div className={cn("flex items-center gap-1.5 text-sm font-semibold", timerColor)}>
+              <div
+                className={cn(
+                  "flex items-center gap-1.5 text-sm font-semibold",
+                  timerColor,
+                )}
+              >
                 <Clock className="h-4 w-4" />
                 <span>QR berlaku {timeStr}</span>
               </div>
@@ -291,10 +306,11 @@ export function QrisPaymentModal({
                     onClick={handleSimulate}
                     disabled={isSimulating || isCancelling}
                   >
-                    {isSimulating
-                      ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                      : <FlaskConical className="mr-2 h-3.5 w-3.5" />
-                    }
+                    {isSimulating ? (
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <FlaskConical className="mr-2 h-3.5 w-3.5" />
+                    )}
                     Simulasikan Pembayaran
                   </Button>
                 </div>
@@ -319,16 +335,19 @@ export function QrisPaymentModal({
                     className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
                     disabled={isCancelling || isSimulating}
                   >
-                    {isCancelling
-                      ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                      : <X className="mr-2 h-3.5 w-3.5" />
-                    }
+                    {isCancelling ? (
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <X className="mr-2 h-3.5 w-3.5" />
+                    )}
                     Batalkan Transaksi
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Batalkan transaksi QRIS?</AlertDialogTitle>
+                    <AlertDialogTitle>
+                      Batalkan transaksi QRIS?
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
                       Stok akan dikembalikan dan saldo customer (jika ada) akan
                       dikembalikan. Transaksi Pakasir juga akan dibatalkan.
@@ -346,7 +365,6 @@ export function QrisPaymentModal({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-
             </div>
           )}
 
@@ -358,7 +376,9 @@ export function QrisPaymentModal({
               </div>
               <div className="text-center">
                 <p className="font-bold text-xl">Pembayaran Berhasil!</p>
-                <p className="text-sm text-muted-foreground mt-1">Transaksi telah dikonfirmasi</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Transaksi telah dikonfirmasi
+                </p>
               </div>
             </div>
           )}
@@ -384,18 +404,22 @@ export function QrisPaymentModal({
                     className="w-full gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
                     disabled={isCancelling}
                   >
-                    {isCancelling
-                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                      : <X className="h-4 w-4" />
-                    }
+                    {isCancelling ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <X className="h-4 w-4" />
+                    )}
                     Batalkan & Kembalikan Stok
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Batalkan transaksi QRIS?</AlertDialogTitle>
+                    <AlertDialogTitle>
+                      Batalkan transaksi QRIS?
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
-                      QR sudah kadaluarsa. Stok dan saldo customer akan dikembalikan.
+                      QR sudah kadaluarsa. Stok dan saldo customer akan
+                      dikembalikan.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

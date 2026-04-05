@@ -5,7 +5,6 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import Barcode from "react-barcode";
 import { forwardRef } from "react";
 import { useGetStoreSetting } from "@/hooks/store-setting/use-setting";
-import Image from "next/image";
 
 interface SaleReceiptProps {
   sale: SaleResponse;
@@ -59,16 +58,27 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
         {/* Header */}
         <div style={{ textAlign: "center", paddingTop: "4px" }}>
           {setting?.logoUrl ? (
-            <Image
-              src={setting.logoUrl}
-              alt="Logo toko"
-              width={56}
-              height={56}
+            <div
               style={{
-                objectFit: "contain",
-                margin: "0 auto 4px",
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+                backgroundColor: "white",
               }}
-            />
+            >
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  backgroundImage: `url(${setting.logoUrl})`,
+                  backgroundSize: "contain",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  margin: "0 auto 4px",
+                }}
+                aria-label="Logo toko"
+              />
+            </div>
           ) : null}
           <h2
             style={{
@@ -81,12 +91,8 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
           >
             {storeName}
           </h2>
-          <p style={{ fontSize: "9px", margin: "1px 0" }}>
-            {storeAddress}
-          </p>
-          <p style={{ fontSize: "9px", margin: "1px 0" }}>
-            Telp: {storePhone}
-          </p>
+          <p style={{ fontSize: "9px", margin: "1px 0" }}>{storeAddress}</p>
+          <p style={{ fontSize: "9px", margin: "1px 0" }}>Telp: {storePhone}</p>
         </div>
 
         <div style={dashedBorder} />

@@ -12,7 +12,15 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppPagination } from "@/components/app-pagination";
 import { Button } from "@/components/ui/button";
-import { Trash2, Eye, PrinterIcon, ListIcon, ScanLine, Loader2, X } from "lucide-react";
+import {
+  Trash2,
+  Eye,
+  PrinterIcon,
+  ListIcon,
+  ScanLine,
+  Loader2,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useSaleList, useDeleteSale } from "@/hooks/sales/use-sale";
 import { useState } from "react";
@@ -51,7 +59,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { QrisPaymentModal, QrisPaymentData } from "@/components/qris-payment-modal";
+import {
+  QrisPaymentModal,
+  QrisPaymentData,
+} from "@/components/qris-payment-modal";
 import { getSaleById } from "@/services/saleService";
 
 interface SalesListSectionProps {
@@ -116,7 +127,10 @@ export function SalesListSection({
       const res = await getSaleById(saleId);
       const sale = res.data;
 
-      if (!sale) { toast.error("Data transaksi tidak ditemukan"); return; }
+      if (!sale) {
+        toast.error("Data transaksi tidak ditemukan");
+        return;
+      }
 
       if (sale.status === "completed") {
         toast.info("Transaksi ini sudah lunas");
@@ -173,7 +187,8 @@ export function SalesListSection({
       }
 
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || `HTTP ${res.status}`);
+      if (!res.ok || !json.success)
+        throw new Error(json.error || `HTTP ${res.status}`);
 
       toast.success("Transaksi QRIS berhasil dibatalkan", { id: toastId });
       refetch();
@@ -228,7 +243,6 @@ export function SalesListSection({
 
   return (
     <div className="space-y-6">
-
       {/* QRIS modal — di luar semua container */}
       <QrisPaymentModal
         isOpen={!!qrisData}
@@ -264,7 +278,10 @@ export function SalesListSection({
           <Separator orientation="vertical" className="h-10 mx-1 block" />
 
           <div className="text-sm font-medium flex items-center bg-muted/30 px-3 rounded-lg border">
-            Total: <span className="text-primary font-bold ml-1">{meta?.total || 0}</span>
+            Total:{" "}
+            <span className="text-primary font-bold ml-1">
+              {meta?.total || 0}
+            </span>
           </div>
         </div>
       </div>
@@ -279,15 +296,31 @@ export function SalesListSection({
             <Table>
               <TableHeader className="bg-muted/20 border-t border-b border-border/50">
                 <TableRow className="border-none">
-                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
-                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Invoice</TableHead>
-                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tanggal</TableHead>
-                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Customer</TableHead>
-                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Items</TableHead>
-                  <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Total</TableHead>
-                  <TableHead className="text-center text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Status</TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    No.
+                  </TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    No. Invoice
+                  </TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    Tanggal
+                  </TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    Customer
+                  </TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    Items
+                  </TableHead>
+                  <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    Total
+                  </TableHead>
+                  <TableHead className="text-center text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    Status
+                  </TableHead>
                   {/* Lebih lebar untuk akomodasi 3 tombol saat pending */}
-                  <TableHead className="text-right w-32 text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Aksi</TableHead>
+                  <TableHead className="text-right w-32 text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    Aksi
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -322,18 +355,35 @@ export function SalesListSection({
                               {itemCount} item{itemCount !== 1 ? "s" : ""}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-80" align="start" sideOffset={4}>
+                          <PopoverContent
+                            className="w-80"
+                            align="start"
+                            sideOffset={4}
+                          >
                             <div className="space-y-3">
-                              <div className="font-semibold text-sm">Daftar Item Penjualan</div>
+                              <div className="font-semibold text-sm">
+                                Daftar Item Penjualan
+                              </div>
                               <div className="space-y-2 text-sm max-h-[240px] overflow-y-auto pr-1">
                                 {sale.items?.slice(0, 3).map((item) => (
-                                  <div key={item.id} className="flex justify-between border-l-2 border-primary/20 pl-3 py-1">
+                                  <div
+                                    key={item.id}
+                                    className="flex justify-between border-l-2 border-primary/20 pl-3 py-1"
+                                  >
                                     <div className="flex-1">
-                                      <span className="font-medium">{item.product?.name || "Unknown Product"}</span>
-                                      <span className="text-muted-foreground ml-1">({item.productVariant?.name || "-"})</span>
+                                      <span className="font-medium">
+                                        {item.product?.name ||
+                                          "Unknown Product"}
+                                      </span>
+                                      <span className="text-muted-foreground ml-1">
+                                        ({item.productVariant?.name || "-"})
+                                      </span>
                                     </div>
                                     <div className="text-right whitespace-nowrap font-mono">
-                                      {item.qty ?? 0} x {formatCurrency(Number(item.priceAtSale ?? 0))}
+                                      {item.qty ?? 0} x{" "}
+                                      {formatCurrency(
+                                        Number(item.priceAtSale ?? 0),
+                                      )}
                                     </div>
                                   </div>
                                 ))}
@@ -355,7 +405,6 @@ export function SalesListSection({
                       </TableCell>
                       <TableCell className="px-2 sm:px-4 py-2">
                         <div className="flex justify-end gap-1">
-
                           {/* Pending: tombol buka QR */}
                           {isPending && (
                             <Button
@@ -363,13 +412,17 @@ export function SalesListSection({
                               variant="ghost"
                               className="text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30"
                               onClick={() => handleReopenQris(sale.id)}
-                              disabled={isLoadingQris === sale.id || isCancellingId === sale.id}
+                              disabled={
+                                isLoadingQris === sale.id ||
+                                isCancellingId === sale.id
+                              }
                               title="Buka QR Pembayaran"
                             >
-                              {isLoadingQris === sale.id
-                                ? <Loader2 className="h-4 w-4 animate-spin" />
-                                : <ScanLine className="h-4 w-4" />
-                              }
+                              {isLoadingQris === sale.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <ScanLine className="h-4 w-4" />
+                              )}
                             </Button>
                           )}
 
@@ -381,21 +434,28 @@ export function SalesListSection({
                                   size="icon"
                                   variant="ghost"
                                   className="text-destructive hover:bg-destructive/10"
-                                  disabled={isCancellingId === sale.id || isLoadingQris === sale.id}
+                                  disabled={
+                                    isCancellingId === sale.id ||
+                                    isLoadingQris === sale.id
+                                  }
                                   title="Batalkan Transaksi QRIS"
                                 >
-                                  {isCancellingId === sale.id
-                                    ? <Loader2 className="h-4 w-4 animate-spin" />
-                                    : <X className="h-4 w-4" />
-                                  }
+                                  {isCancellingId === sale.id ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <X className="h-4 w-4" />
+                                  )}
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Batalkan transaksi QRIS?</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Batalkan transaksi QRIS?
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Stok akan dikembalikan dan transaksi Pakasir akan dibatalkan.
-                                    Tindakan ini tidak dapat dibatalkan.
+                                    Stok akan dikembalikan dan transaksi Pakasir
+                                    akan dibatalkan. Tindakan ini tidak dapat
+                                    dibatalkan.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -434,10 +494,13 @@ export function SalesListSection({
                               </AlertDialogTrigger>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
-                                  <AlertDialogTitle>Batalkan Transaksi?</AlertDialogTitle>
+                                  <AlertDialogTitle>
+                                    Batalkan Transaksi?
+                                  </AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    Tindakan ini akan mengembalikan stok dan membatalkan
-                                    pencatatan keuangan. Data tidak dapat dipulihkan.
+                                    Tindakan ini akan mengembalikan stok dan
+                                    membatalkan pencatatan keuangan. Data tidak
+                                    dapat dipulihkan.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -452,7 +515,6 @@ export function SalesListSection({
                               </AlertDialogContent>
                             </AlertDialog>
                           )}
-
                         </div>
                       </TableCell>
                     </TableRow>
@@ -489,13 +551,17 @@ export function SalesListSection({
                   <div className="p-2.5 sm:p-4 flex-1 flex flex-col gap-2.5 sm:gap-4">
                     <div className="flex justify-between items-start border-b pb-4 border-dashed">
                       <div>
-                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Total Transaksi</span>
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
+                          Total Transaksi
+                        </span>
                         <div className="text-sm sm:text-2xl font-black text-primary tracking-tight">
                           {formatCurrency(Number(sale.totalPrice))}
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Customer</span>
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
+                          Customer
+                        </span>
                         <div className="font-semibold text-[10px] sm:text-sm max-w-[120px] truncate">
                           {sale.customer?.name || "Umum"}
                         </div>
@@ -508,12 +574,21 @@ export function SalesListSection({
                       </div>
                       <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
                         {sale.items?.slice(0, 3).map((item) => (
-                          <div key={item.id} className="flex justify-between text-xs items-center bg-muted/30 p-1.5 rounded-sm">
+                          <div
+                            key={item.id}
+                            className="flex justify-between text-xs items-center bg-muted/30 p-1.5 rounded-sm"
+                          >
                             <div className="truncate flex-1 mr-2">
-                              <span className="text-foreground font-medium">{item.product?.name}</span>
-                              <span className="text-muted-foreground ml-1 text-[10px]">({item.productVariant?.name})</span>
+                              <span className="text-foreground font-medium">
+                                {item.product?.name}
+                              </span>
+                              <span className="text-muted-foreground ml-1 text-[10px]">
+                                ({item.productVariant?.name})
+                              </span>
                             </div>
-                            <div className="whitespace-nowrap font-mono text-[10px]">{item.qty} x</div>
+                            <div className="whitespace-nowrap font-mono text-[10px]">
+                              {item.qty} x
+                            </div>
                           </div>
                         ))}
                         {(sale.items?.length || 0) > 3 && (
@@ -533,13 +608,17 @@ export function SalesListSection({
                           variant="outline"
                           size="sm"
                           onClick={() => handleReopenQris(sale.id)}
-                          disabled={isLoadingQris === sale.id || isCancellingId === sale.id}
+                          disabled={
+                            isLoadingQris === sale.id ||
+                            isCancellingId === sale.id
+                          }
                           className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs border-amber-400 text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30 flex-1"
                         >
-                          {isLoadingQris === sale.id
-                            ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                            : <ScanLine className="mr-1 h-3.5 w-3.5" />
-                          }
+                          {isLoadingQris === sale.id ? (
+                            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <ScanLine className="mr-1 h-3.5 w-3.5" />
+                          )}
                           Buka QR
                         </Button>
 
@@ -549,19 +628,26 @@ export function SalesListSection({
                               variant="ghost"
                               size="sm"
                               className="h-7 sm:h-8 px-2 text-destructive hover:bg-destructive/10"
-                              disabled={isCancellingId === sale.id || isLoadingQris === sale.id}
-                            >
-                              {isCancellingId === sale.id
-                                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                : <X className="h-3.5 w-3.5" />
+                              disabled={
+                                isCancellingId === sale.id ||
+                                isLoadingQris === sale.id
                               }
+                            >
+                              {isCancellingId === sale.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <X className="h-3.5 w-3.5" />
+                              )}
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Batalkan transaksi QRIS?</AlertDialogTitle>
+                              <AlertDialogTitle>
+                                Batalkan transaksi QRIS?
+                              </AlertDialogTitle>
                               <AlertDialogDescription>
-                                Stok akan dikembalikan dan transaksi Pakasir akan dibatalkan.
+                                Stok akan dikembalikan dan transaksi Pakasir
+                                akan dibatalkan.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -601,10 +687,13 @@ export function SalesListSection({
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Batalkan Transaksi?</AlertDialogTitle>
+                              <AlertDialogTitle>
+                                Batalkan Transaksi?
+                              </AlertDialogTitle>
                               <AlertDialogDescription>
-                                Tindakan ini akan mengembalikan stok dan membatalkan
-                                pencatatan keuangan. Data tidak dapat dipulihkan.
+                                Tindakan ini akan mengembalikan stok dan
+                                membatalkan pencatatan keuangan. Data tidak
+                                dapat dipulihkan.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -645,10 +734,16 @@ export function SalesListSection({
             <DialogTitle>Nota Penjualan</DialogTitle>
           </DialogHeader>
           <div className="px-4 pb-4 overflow-y-auto flex-grow custom-scrollbar">
-            {selectedSale && <SaleReceipt ref={receiptRef} sale={selectedSale} />}
+            {selectedSale && (
+              <SaleReceipt ref={receiptRef} sale={selectedSale} />
+            )}
           </div>
-          <DialogFooter className="px-4 pb-4 pt-2 flex justify-end gap-2 flex-shrink-0 border-t bg-white">
-            <Button variant="outline" size="sm" onClick={() => setIsReceiptOpen(false)}>
+          <DialogFooter className="px-4 pb-4 pt-2 flex justify-end gap-2 flex-shrink-0 border-t">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsReceiptOpen(false)}
+            >
               Tutup
             </Button>
             <Button size="sm" onClick={handlePrint}>

@@ -1,9 +1,9 @@
 import QueryProvider from "@/components/providers/QueryProvider";
 import ThemeInitializer from "@/components/providers/ThemeInitializer";
 import { Metadata } from "next";
-import { Instrument_Serif, Inter, Geist } from "next/font/google";
 import "./globals.css";
 import { ConfirmProvider } from "@/contexts/ConfirmDialog";
+import ProvidersProgressBar from "@/components/providers/ProgressBar";
 
 export const metadata: Metadata = {
   icons: {
@@ -13,30 +13,6 @@ export const metadata: Metadata = {
   description: "Point of Sale for Gunung Muria grosir snack",
 };
 
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  display: "swap",
-  variable: "--font-instrument",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
-  display: "swap",
-  variable: "--font-inter",
-});
-
-const geist = Geist({
-  subsets: ["latin"],
-  weight: "400",
-  style: ["normal"],
-  display: "swap",
-  variable: "--font-geist",
-});
-
 export default function RootLayout({
   children,
 }: {
@@ -44,9 +20,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geist.variable} ${instrumentSerif.variable} ${inter.variable} font-geist`}
-      >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Instrument+Serif:ital@0;1&family=Inter:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+      </head>
+      <body className="font-geist antialiased">
+        <ProvidersProgressBar />
         <QueryProvider>
           <ThemeInitializer />
           <ConfirmProvider>{children}</ConfirmProvider>
