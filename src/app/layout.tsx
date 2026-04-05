@@ -1,6 +1,7 @@
 import QueryProvider from "@/components/providers/QueryProvider";
 import ThemeInitializer from "@/components/providers/ThemeInitializer";
 import { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { ConfirmProvider } from "@/contexts/ConfirmDialog";
 import ProvidersProgressBar from "@/components/providers/ProgressBar";
@@ -27,7 +28,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Instrument+Serif:ital@0;1&family=Inter:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
       </head>
       <body className="font-geist antialiased">
-        <ProvidersProgressBar />
+        <Suspense fallback={null}>
+          <ProvidersProgressBar />
+        </Suspense>
         <QueryProvider>
           <ThemeInitializer />
           <ConfirmProvider>{children}</ConfirmProvider>
