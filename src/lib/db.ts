@@ -4,8 +4,11 @@ import { Pool } from "@neondatabase/serverless";
 import * as schema from "../drizzle/schema";
 import * as relations from "../drizzle/relations";
 
+const fullSchema = { ...schema, ...relations };
+type DbInstance = ReturnType<typeof drizzle<typeof fullSchema>>;
+
 // Cache instances to avoid recreating them every time
-const dbCache = new Map<string, ReturnType<typeof drizzle>>();
+const dbCache = new Map<string, DbInstance>();
 
 function getConnectionString() {
   // In Cloudflare Workers (via vinext/vite-plugin-cloudflare shims),
@@ -19,16 +22,15 @@ function getConnectionString() {
   return process.env.DATABASE_URL!;
 }
 
-function getDbInstance() {
+function getDbInstance(): DbInstance {
   const connectionString = getConnectionString();
 
-  if (dbCache.has(connectionString)) {
-    return dbCache.get(connectionString);
-  }
+  const cached = dbCache.get(connectionString);
+  if (cached) return cached;
 
   const pool = new Pool({ connectionString });
   const instance = drizzle(pool, {
-    schema: { ...schema, ...relations },
+    schema: fullSchema,
   });
 
   dbCache.set(connectionString, instance);
@@ -37,7 +39,7 @@ function getDbInstance() {
 
 // Export a Proxy as 'db' so we don't have to update imports in other files.
 // This ensures that we always use the correct connection string (Hyperdrive or local).
-export const db = new Proxy({} as ReturnType<typeof drizzle>, {
+export const db = new Proxy({} as DbInstance, {
   get(target, prop) {
     const activeDb = getDbInstance();
     const value = (activeDb as any)[prop];
