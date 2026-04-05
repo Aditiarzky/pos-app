@@ -9,7 +9,7 @@ binding = "ASSETS"
 
 [[hyperdrive]]
 binding = "HYPERDRIVE"
-id = "<YOUR_HYPERDRIVE_ID>"
+id = "ef115716151840da96e07d23abcacc74"
 
 [observability]
 enabled = false
