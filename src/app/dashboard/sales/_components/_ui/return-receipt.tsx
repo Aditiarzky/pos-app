@@ -5,7 +5,6 @@ import { forwardRef } from "react";
 import { ReturnResult } from "../../_hooks/use-return-form";
 import Barcode from "react-barcode";
 import { useGetStoreSetting } from "@/hooks/store-setting/use-setting";
-import Image from "next/image";
 
 interface ReturnReceiptProps {
   result: ReturnResult;
@@ -19,12 +18,11 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
   function ReturnReceipt({ result }, ref) {
     const { data: settingResult } = useGetStoreSetting();
     const setting = settingResult?.data;
-    const storeName = setting?.storeName || "TOKO ADITIARZKY";
-    const storeAddress = setting?.address || "Jl. Raya No. 123, Kota ABC";
+    const storeName = setting?.storeName || "Gunung Muri Grosir Snack";
+    const storeAddress = setting?.address || "Sidorekso, Kudus";
     const storePhone = setting?.phone || "0812-3456-7890";
     const footerMessage = setting?.footerMessage || "*** TERIMA KASIH ***";
-    const receiptNote =
-      setting?.receiptNote || "Retur telah diproses sesuai kebijakan toko.";
+    const receiptNote = "Retur telah diproses sesuai kebijakan toko.";
 
     const fontMono =
       "'Courier New', Courier, 'Lucida Console', Monaco, monospace";
@@ -64,16 +62,27 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
         {/* Header */}
         <div style={{ textAlign: "center", paddingTop: "4px" }}>
           {setting?.logoUrl ? (
-            <Image
-              src={setting.logoUrl}
-              alt="Logo toko"
-              width={56}
-              height={56}
+            <div
               style={{
-                objectFit: "contain",
-                margin: "0 auto 4px",
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+                backgroundColor: "white",
               }}
-            />
+            >
+              <div
+                style={{
+                  width: "56px",
+                  height: "56px",
+                  backgroundImage: `url(${setting.logoUrl})`,
+                  backgroundSize: "contain",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                  margin: "0 auto 4px",
+                }}
+                aria-label="Logo toko"
+              />
+            </div>
           ) : null}
           <h2
             style={{
@@ -86,12 +95,8 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           >
             {storeName}
           </h2>
-          <p style={{ fontSize: "9px", margin: "1px 0" }}>
-            {storeAddress}
-          </p>
-          <p style={{ fontSize: "9px", margin: "1px 0" }}>
-            Telp: {storePhone}
-          </p>
+          <p style={{ fontSize: "9px", margin: "1px 0" }}>{storeAddress}</p>
+          <p style={{ fontSize: "9px", margin: "1px 0" }}>Telp: {storePhone}</p>
         </div>
 
         <div style={dashedBorder} />
