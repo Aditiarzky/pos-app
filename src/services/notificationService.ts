@@ -91,7 +91,7 @@ export const markNotificationsAsRead = async (ids: string[]) => {
 export const clearReadNotifications = async (ids?: string[]) => {
   const response = await axiosInstance.delete<ApiResponse<{ count: number }>>(
     "/notifications/clear",
-    { data: ids && ids.length ? { ids } : undefined },
+    { data: ids && ids.length ? { ids } : {} },
   );
 
   return response.data;

@@ -34,15 +34,27 @@ export function TransactionCartItems({
   onRemove,
 }: TransactionCartItemsProps) {
   return (
-    <Card className="flex-1 min-h-[300px] max-h-[500px] p-0 gap-0 overflow-hidden flex flex-col">
-      <div className="p-4 bg-muted/10 border-b flex justify-between items-center">
+    <Card className="flex-1 min-h-[400px] gap-0 max-h-[600px] p-0 border-none shadow-xl bg-background/50 backdrop-blur-sm overflow-hidden flex flex-col">
+      <div className="p-5 bg-primary/5 border-b border-primary/10 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <Label className="font-bold uppercase tracking-wider text-muted-foreground text-xs flex items-center gap-2">
-            <ShoppingCart className="h-4 w-4" />
-            Keranjang Belanja
-          </Label>
+          <div className="p-2 bg-primary/5 rounded-lg border border-primary/10">
+            <ShoppingCart className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <Label className="font-bold text-xs text-foreground block">
+              Keranjang Belanja
+            </Label>
+            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest opacity-60">
+              Daftar barang transaksi
+            </p>
+          </div>
         </div>
-        <Badge variant="secondary">{fields.length} Item</Badge>
+        <Badge
+          variant="outline"
+          className="bg-background font-bold text-primary border-primary/20 px-3 py-1"
+        >
+          {fields.length} Item
+        </Badge>
       </div>
 
       <div className="flex-1 overflow-y-auto p-0">
@@ -83,10 +95,13 @@ export function TransactionCartItems({
                     const lineTotal = qty * price;
 
                     return (
-                      <tr key={field.id} className="hover:bg-muted/10 group">
-                        <td className="px-4 py-3 max-w-[200px]">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-muted">
+                      <tr
+                        key={field.id}
+                        className="hover:bg-primary/5 group transition-colors"
+                      >
+                        <td className="px-5 py-4 max-w-[250px]">
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border bg-muted shadow-sm transition-transform group-hover:scale-105">
                               {field.image ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img
@@ -102,7 +117,7 @@ export function TransactionCartItems({
                             </div>
                             <div className="flex flex-col gap-1 overflow-hidden">
                               <div
-                                className="font-medium truncate text-xs"
+                                className="font-semibold text-[13px] text-foreground truncate"
                                 title={field.productName || ""}
                               >
                                 {field.productName}
@@ -145,8 +160,8 @@ export function TransactionCartItems({
                                     }
                                   }}
                                 >
-                                  <SelectTrigger className="h-6 w-full max-w-[140px] text-[10px] px-2">
-                                    <SelectValue placeholder="Pilih Varian" />
+                                  <SelectTrigger className="mt-1 h-6 w-fit min-w-[100px] text-[10px] px-2 py-0 bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-bold rounded-full transition-colors whitespace-nowrap">
+                                    <SelectValue placeholder="Ganti Varian" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     {field.variants.map(
@@ -163,18 +178,18 @@ export function TransactionCartItems({
                                   </SelectContent>
                                 </Select>
                               ) : (
-                                <div className="text-xs text-muted-foreground">
+                                <div className="text-[11px] text-muted-foreground font-medium italic">
                                   {field.variantName}
                                 </div>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="px-2 py-3">
+                        <td className="px-2 py-4">
                           <Input
                             type="number"
                             min={1}
-                            className="h-8 w-16 text-center mx-auto"
+                            className="h-10 w-20 text-center mx-auto font-bold text-base bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary/40"
                             value={qty || ""}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -189,20 +204,20 @@ export function TransactionCartItems({
                             }}
                           />
                         </td>
-                        <td className="px-4 py-3 text-right tabular-nums">
+                        <td className="px-5 py-4 text-right tabular-nums text-xs font-semibold text-muted-foreground">
                           {formatCurrency(price)}
                         </td>
-                        <td className="px-4 py-3 text-right font-bold tabular-nums">
+                        <td className="px-5 py-4 text-right font-bold text-[15px] text-primary tabular-nums tracking-tight">
                           {formatCurrency(lineTotal)}
                         </td>
-                        <td className="px-2 py-3 text-center">
+                        <td className="px-2 py-4 text-center">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all font-bold"
                             onClick={() => onRemove(index)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-5 w-5" />
                           </Button>
                         </td>
                       </tr>
@@ -360,11 +375,11 @@ export function TransactionCartItems({
                       </div>
 
                       {/* Card Footer: Subtotal */}
-                      <div className="pt-3 border-t border-dashed flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-muted-foreground uppercase">
-                          Subtotal
+                      <div className="pt-3 border-t border-dashed border-primary/10 flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">
+                          Total Per Item
                         </span>
-                        <span className="font-black text-sm text-foreground">
+                        <span className="font-bold text-base text-primary">
                           {formatCurrency(lineTotal)}
                         </span>
                       </div>

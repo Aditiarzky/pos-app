@@ -29,82 +29,101 @@ interface NavItem {
   roles: Array<"admin toko" | "admin sistem">;
 }
 
-// Konstanta untuk role agar lebih mudah dibaca dan dikelola
 const STORE_AND_SYSTEM_ROLES: NavItem["roles"] = ["admin toko", "admin sistem"];
 const SYSTEM_ADMIN_ONLY_ROLES: NavItem["roles"] = ["admin sistem"];
 
-const navItems: NavItem[] = [
+const navGroups: { label: string; items: NavItem[] }[] = [
   {
-    label: "Beranda",
-    href: "/dashboard",
-    icon: <IconLayout className="w-5 h-5" />,
-    roles: STORE_AND_SYSTEM_ROLES,
+    label: "Utama",
+    items: [
+      {
+        label: "Beranda",
+        href: "/dashboard",
+        icon: <IconLayout className="w-5 h-5" />,
+        roles: STORE_AND_SYSTEM_ROLES,
+      },
+      {
+        label: "Kasir",
+        href: "/dashboard/sales",
+        icon: <IconCalculator className="w-5 h-5" />,
+        roles: STORE_AND_SYSTEM_ROLES,
+      },
+    ],
   },
   {
-    label: "Kasir",
-    href: "/dashboard/sales",
-    icon: <IconCalculator className="w-5 h-5" />,
-    roles: STORE_AND_SYSTEM_ROLES,
+    label: "Inventori",
+    items: [
+      {
+        label: "Produk & Stok",
+        href: "/dashboard/products",
+        icon: <Package className="w-5 h-5" />,
+        roles: STORE_AND_SYSTEM_ROLES,
+      },
+      {
+        label: "Pembelian & Supplier",
+        href: "/dashboard/purchases",
+        icon: <IconTrolley className="w-5 h-5" />,
+        roles: STORE_AND_SYSTEM_ROLES,
+      },
+      {
+        label: "Pelanggan & Saldo",
+        href: "/dashboard/customers",
+        icon: <IconUsers className="w-5 h-5" />,
+        roles: STORE_AND_SYSTEM_ROLES,
+      },
+    ],
   },
   {
-    label: "Produk & Stok",
-    href: "/dashboard/products",
-    icon: <Package className="w-5 h-5" />,
-    roles: STORE_AND_SYSTEM_ROLES,
+    label: "Keuangan",
+    items: [
+      {
+        label: "Operasional & Pajak",
+        href: "/dashboard/cost",
+        icon: <IconTax className="w-5 h-5" />,
+        roles: SYSTEM_ADMIN_ONLY_ROLES,
+      },
+      {
+        label: "Laporan",
+        href: "/dashboard/report",
+        icon: <IconReport className="w-5 h-5" />,
+        roles: STORE_AND_SYSTEM_ROLES,
+      },
+    ],
   },
   {
-    label: "Pembelian & Supplier",
-    href: "/dashboard/purchases",
-    icon: <IconTrolley className="w-5 h-5" />,
-    roles: STORE_AND_SYSTEM_ROLES,
-  },
-  {
-    label: "Pelanggan & Saldo",
-    href: "/dashboard/customers",
-    icon: <IconUsers className="w-5 h-5" />,
-    roles: STORE_AND_SYSTEM_ROLES,
-  },
-  {
-    label: "Operasional & Pajak",
-    href: "/dashboard/cost",
-    icon: <IconTax className="w-5 h-5" />,
-    roles: SYSTEM_ADMIN_ONLY_ROLES,
-  },
-  {
-    label: "Laporan",
-    href: "/dashboard/report",
-    icon: <IconReport className="w-5 h-5" />,
-    roles: STORE_AND_SYSTEM_ROLES,
-  },
-  {
-    label: "Notifikasi",
-    href: "/dashboard/notifications",
-    icon: <IconBell className="w-5 h-5" />,
-    roles: STORE_AND_SYSTEM_ROLES,
-  },
-  {
-    label: "Tempat Sampah",
-    href: "/dashboard/trash",
-    icon: <IconTrash className="w-5 h-5" />,
-    roles: STORE_AND_SYSTEM_ROLES,
-  },
-  {
-    label: "User & Akses",
-    href: "/dashboard/users",
-    icon: <IconShieldLock className="w-5 h-5" />,
-    roles: SYSTEM_ADMIN_ONLY_ROLES,
-  },
-  {
-    label: "Master Data",
-    href: "/dashboard/master-data",
-    icon: <IconDatabase className="w-5 h-5" />,
-    roles: SYSTEM_ADMIN_ONLY_ROLES,
-  },
-  {
-    label: "Pengaturan",
-    href: "/dashboard/setting",
-    icon: <Settings className="w-5 h-5" />,
-    roles: STORE_AND_SYSTEM_ROLES,
+    label: "Sistem",
+    items: [
+      {
+        label: "Notifikasi",
+        href: "/dashboard/notifications",
+        icon: <IconBell className="w-5 h-5" />,
+        roles: STORE_AND_SYSTEM_ROLES,
+      },
+      {
+        label: "Tempat Sampah",
+        href: "/dashboard/trash",
+        icon: <IconTrash className="w-5 h-5" />,
+        roles: STORE_AND_SYSTEM_ROLES,
+      },
+      {
+        label: "User & Akses",
+        href: "/dashboard/users",
+        icon: <IconShieldLock className="w-5 h-5" />,
+        roles: SYSTEM_ADMIN_ONLY_ROLES,
+      },
+      {
+        label: "Master Data",
+        href: "/dashboard/master-data",
+        icon: <IconDatabase className="w-5 h-5" />,
+        roles: SYSTEM_ADMIN_ONLY_ROLES,
+      },
+      {
+        label: "Pengaturan",
+        href: "/dashboard/setting",
+        icon: <Settings className="w-5 h-5" />,
+        roles: STORE_AND_SYSTEM_ROLES,
+      },
+    ],
   },
 ];
 
@@ -117,9 +136,10 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { roles } = useAuth();
 
-  const filteredNavItems = navItems.filter((item) =>
-    item.roles.some((role) => (roles as string[]).includes(role)),
-  );
+  const filterItems = (items: NavItem[]) =>
+    items.filter((item) =>
+      item.roles.some((role) => (roles as string[]).includes(role)),
+    );
 
   return (
     <>
@@ -151,29 +171,59 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4">
-          {filteredNavItems.map((item) => {
-            const isActive = pathname === item.href;
+        <nav className="p-4 space-y-4">
+          {navGroups.map((group) => {
+            const visibleItems = filterItems(group.items);
+            if (visibleItems.length === 0) return null;
 
             return (
-              <Link key={item.href} href={item.href}>
-                <button
-                  onClick={() => {
-                    if (window.innerWidth < 768) {
-                      onToggle();
-                    }
-                  }}
-                  className={cn(
-                    "w-full flex items-center my-1 gap-3 px-4 py-2 cursor-pointer rounded-lg transition-colors",
-                    isActive
-                      ? "bg-primary/90 border-border shadow-lg via-primary to-primary/5 text-primary-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  )}
-                >
-                  {item.icon}
-                  <span className="font-regular">{item.label}</span>
-                </button>
-              </Link>
+              <div key={group.label}>
+                {/* Group label */}
+                <p className="px-4 mb-1 text-[10px] font-semibold tracking-widest uppercase text-sidebar-foreground/40 select-none">
+                  {group.label}
+                </p>
+
+                {visibleItems.map((item) => {
+                  const isActive = pathname === item.href;
+
+                  return (
+                    <Link key={item.href} href={item.href}>
+                      <button
+                        onClick={() => {
+                          if (window.innerWidth < 768) onToggle();
+                        }}
+                        className={cn(
+                          "group relative w-full flex items-center my-0.5 gap-3 px-4 py-2 cursor-pointer rounded-lg transition-all duration-200",
+                          isActive
+                            ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                            : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                        )}
+                      >
+                        {/* Active left indicator bar */}
+                        {isActive && (
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary-foreground/50" />
+                        )}
+
+                        {/* Icon */}
+                        <span
+                          className={cn(
+                            "transition-transform duration-200 group-hover:scale-110",
+                            isActive
+                              ? "text-primary-foreground"
+                              : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground",
+                          )}
+                        >
+                          {item.icon}
+                        </span>
+
+                        <span className="text-sm font-medium">
+                          {item.label}
+                        </span>
+                      </button>
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>

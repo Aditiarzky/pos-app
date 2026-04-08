@@ -141,15 +141,15 @@ function CustomersContent() {
 
   return (
     <>
-      <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
-        <div className="overflow-hidden flex gap-2">
-          <span className="w-2 bg-primary" />
+      <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 sm:px-6 justify-between w-full items-center gap-4 pb-16">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-1.5 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
           <div className="flex flex-col">
-            <h1 className="text-2xl text-primary font-geist font-semibold truncate">
-              Kelola Pelanggan
+            <h1 className="text-3xl text-primary font-bold tracking-tight">
+              Pelanggan
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Daftar pelanggan dan riwayat piutang
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest opacity-80">
+              Database Pelanggan • Riwayat Piutang
             </p>
           </div>
         </div>

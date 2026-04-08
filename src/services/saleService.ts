@@ -68,3 +68,13 @@ export const deleteSale = async (id: number): Promise<ApiResponse<void>> => {
   const response = await axiosInstance.delete(`/sales/${id}`);
   return response.data;
 };
+
+/**
+ * Memverifikasi status pembayaran QRIS langsung ke Pakasir sistem.
+ */
+export const verifyPakasirStatus = async (
+  saleId: number,
+): Promise<ApiResponse<SaleResponse>> => {
+  const response = await axiosInstance.post("/pakasir-verify", { saleId });
+  return response.data;
+};

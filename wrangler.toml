@@ -1,9 +1,27 @@
 name = "pos-app"
 main = "dist/server/index.js"
 compatibility_date = "2024-09-23"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat_v2"]
 
 [assets]
 directory = ".vinext/client"
 binding = "ASSETS"
 
+[[hyperdrive]]
+binding = "HYPERDRIVE"
+id = "ef115716151840da96e07d23abcacc74"
+
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false
+persist = true
+head_sampling_rate = 1

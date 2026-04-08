@@ -11,7 +11,7 @@ import { useCreateSale } from "@/hooks/sales/use-sale";
 import { Card } from "@/components/ui/card";
 import { CustomerSelect } from "@/components/ui/customer-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Loader2, Search, QrCode, Ticket, Banknote, ScanLine } from "lucide-react";
+import { Loader2, Search, QrCode, Ticket, Banknote, ScanLine, ShoppingCart } from "lucide-react";
 import { useProductSearch } from "@/hooks/use-product-search";
 import { useSaleForm } from "../../_hooks/use-sale-form";
 import { TransactionCartItems } from "../transaction-cart-items";
@@ -182,8 +182,8 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         data={qrisData}
       />
 
-      {/* Form utama — tidak ada modal di dalamnya */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 h-full items-start">
+      {/* Main Form Layout */}
+      <div className="relative grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8 min-h-[600px] items-start pb-24 lg:pb-0">
         {/* LEFT COLUMN */}
         <div className="lg:col-span-2 flex flex-col gap-3 md:gap-4">
           {/* SEARCH BAR */}
@@ -324,37 +324,47 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
           </Card>
 
           {/* PAYMENT METHOD TOGGLE */}
-          <Card className="p-3 md:p-4">
-            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">
+          <Card className="p-4 border-none shadow-md bg-muted/30">
+            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] mb-4 block opacity-70">
               Metode Pembayaran
             </Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setPaymentMethod("cash")}
                 className={cn(
-                  "flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all",
+                  "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all duration-200",
                   paymentMethod === "cash"
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border text-muted-foreground hover:border-primary/40",
+                    ? "border-primary bg-background text-primary shadow-sm scale-[1.02]"
+                    : "border-transparent text-muted-foreground hover:border-primary/20",
                 )}
               >
-                <Banknote className="h-5 w-5" />
-                <span className="text-xs font-bold">Tunai</span>
+                <div className={cn(
+                  "p-1.5 rounded-lg transition-colors",
+                  paymentMethod === "cash" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  <Banknote className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-bold uppercase tracking-wide">Tunai</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setPaymentMethod("qris")}
                 className={cn(
-                  "flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all",
+                  "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all duration-200",
                   paymentMethod === "qris"
-                    ? "border-primary bg-primary/5 text-primary"
-                    : "border-border text-muted-foreground hover:border-primary/40",
+                    ? "border-primary bg-background text-primary shadow-sm scale-[1.02]"
+                    : "border-transparent text-muted-foreground hover:border-primary/20",
                 )}
               >
-                <ScanLine className="h-5 w-5" />
-                <span className="text-xs font-bold">QRIS</span>
+                <div className={cn(
+                  "p-1.5 rounded-lg transition-colors",
+                  paymentMethod === "qris" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  <ScanLine className="h-5 w-5" />
+                </div>
+                <span className="text-xs font-bold uppercase tracking-wide">QRIS</span>
               </button>
             </div>
           </Card>
@@ -401,16 +411,16 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                 </div>
               )}
 
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center py-2 border-b border-muted/50">
                 <div className="grid gap-0.5">
-                  <span className="font-bold text-lg uppercase leading-none">Total</span>
+                  <span className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground opacity-60">Total Tagihan</span>
                   {!isQris && form.watch("shouldPayOldDebt") && (
-                    <span className="text-[10px] text-muted-foreground italic">
-                      Transaksi + Bayar Hutang
+                    <span className="text-[10px] text-destructive font-black uppercase tracking-wider">
+                      + Hutang Lama
                     </span>
                   )}
                 </div>
-                <span className="font-black text-2xl text-primary">
+                <span className="font-black text-2xl text-primary tracking-tight">
                   {formatCurrency(
                     isQris
                       ? total - (form.watch("totalBalanceUsed") || 0)
@@ -421,60 +431,66 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
 
               {/* CASH: input pembayaran */}
               {!isQris && (
-                <>
-                  <div className="space-y-2 pt-2 md:pt-4">
-                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      Pembayaran diterima (Tunai)
+                <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+                  <div className="space-y-2 pt-1">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+                      Uang Diterima
                     </Label>
-                    <CurrencyInput
-                      className="h-11 md:h-12 text-lg md:text-xl font-bold text-right"
-                      placeholder="Rp 0"
-                      value={form.watch("totalPaid")}
-                      onChange={(val) => form.setValue("totalPaid", Number(val))}
-                    />
+                    <div className="relative">
+                      <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/30" />
+                      <CurrencyInput
+                        className="h-12 text-xl font-bold text-right pr-4 pl-10 bg-background border-2 border-muted focus:border-primary rounded-xl shadow-sm transition-all"
+                        placeholder="Rp 0"
+                        value={form.watch("totalPaid")}
+                        onChange={(val) => form.setValue("totalPaid", Number(val))}
+                      />
+                    </div>
                     {form.formState.errors.totalPaid && (
-                      <p className="text-xs text-destructive">
-                        {form.formState.errors.totalPaid.message}
+                      <p className="text-xs font-bold text-destructive">
+                        ⚠️ {form.formState.errors.totalPaid.message}
                       </p>
                     )}
                   </div>
 
                   {transactionMode === "customer" && isInsufficient && (
-                    <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-lg border border-destructive/20 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex items-start gap-3 p-3 bg-destructive/5 rounded-xl border border-destructive/20">
                       <Checkbox
                         id="is-debt"
                         checked={isDebt}
                         onCheckedChange={(checked) => setIsDebt(!!checked)}
-                        className="mt-0.5 border-destructive/50 data-[state=checked]:bg-destructive data-[state=checked]:border-destructive"
+                        className="mt-0.5"
                       />
                       <div className="grid gap-0.5">
                         <Label
                           htmlFor="is-debt"
-                          className="text-sm font-bold text-destructive cursor-pointer"
+                          className="text-[11px] font-bold text-destructive uppercase tracking-wide cursor-pointer"
                         >
-                          Catat Sisa sebagai Hutang
+                          Sisa Sebagai Hutang
                         </Label>
-                        <p className="text-xs text-destructive/80">
-                          Sisa {formatCurrency(deficiency)} akan dicatat sebagai hutang customer.
+                        <p className="text-[10px] text-destructive/70">
+                          {formatCurrency(deficiency)} akan dicatat di piutang.
                         </p>
                       </div>
                     </div>
                   )}
 
-                  <div className="flex justify-between items-center p-2.5 md:p-3 bg-background rounded-lg border">
-                    <span className="font-medium text-sm">
-                      {isInsufficient ? (isDebt ? "Sisa Hutang" : "Kekurangan") : "Kembalian"}
+                  <div className={cn(
+                    "flex justify-between items-center p-3.5 rounded-xl border transition-all",
+                    isInsufficient ? "bg-destructive/5 border-destructive/20" : "bg-emerald-500/5 border-emerald-500/20 shadow-sm"
+                  )}>
+                    <span className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground opacity-60">
+                      {isInsufficient ? (isDebt ? "Sisa" : "Kurang") : "Kembali"}
                     </span>
                     <span
                       className={cn(
-                        "font-bold text-lg",
+                        "font-bold text-xl tabular-nums",
                         isInsufficient ? "text-destructive" : "text-emerald-600",
                       )}
                     >
                       {formatCurrency(isInsufficient ? deficiency : change)}
                     </span>
                   </div>
-                </>
+                </div>
               )}
 
               {/* QRIS: info box */}
@@ -493,18 +509,55 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
 
               {/* ✅ FIX: type="button" + onClick manual, bukan type="submit" */}
               {/* Ini mencegah form HTML submit yang bisa diblokir Zod validation */}
+               {/* ACTION BUTTON (Desktop) */}
+              <div className="hidden lg:block pt-4">
+                <Button
+                  size="lg"
+                  type="button"
+                  className="w-full font-black uppercase tracking-[0.2em] text-lg shadow-xl shadow-primary/20 h-16 rounded-2xl transition-all hover:scale-[1.01] active:scale-95"
+                  onClick={handleClickSubmit}
+                  disabled={!canSubmit}
+                >
+                  {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                  {isQris ? "Bayar QRIS" : "Selesaikan Transaksi"}
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* ── MOBILE STICKY BOTTOM BAR ── */}
+        <div className={cn(
+          "lg:hidden fixed bottom-16 left-0 right-0 z-50 transition-all duration-300 transform translate-y-0",
+          fields.length === 0 ? "translate-y-full opacity-0" : "translate-y-0 opacity-100"
+        )}>
+          <div className="bg-background/95 backdrop-blur-md border-t border-muted shadow-[0_-8px_20px_rgba(0,0,0,0.1)] p-4 mx-auto container">
+            <div className="flex items-center justify-between gap-4">
+              <div className="grid gap-0.5">
+                <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground opacity-60 leading-none">Total Tagihan</span>
+                <span className="text-lg font-black text-primary tabular-nums tracking-tighter">
+                  {formatCurrency(
+                    isQris
+                      ? total - (form.watch("totalBalanceUsed") || 0)
+                      : combinedTotal,
+                  )}
+                </span>
+              </div>
               <Button
                 size="lg"
                 type="button"
-                className="w-full font-bold uppercase tracking-widest text-base md:text-md shadow-lg shadow-primary/20 h-12 md:h-14"
+                className="flex-1 h-12 font-bold uppercase tracking-widest text-xs rounded-xl shadow-md"
                 onClick={handleClickSubmit}
                 disabled={!canSubmit}
               >
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isQris ? "Tampilkan QR Code" : "Proses Transaksi"}
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>Bayar Sekarang</>
+                )}
               </Button>
             </div>
-          </Card>
+          </div>
         </div>
       </div>
     </>
