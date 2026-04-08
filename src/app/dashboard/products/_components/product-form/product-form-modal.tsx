@@ -67,7 +67,7 @@ export function ProductFormModal({
     createMutation,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateMutation: updateMutation as any,
-    onSuccess: () => onOpenChange(false),
+    onSuccess: () => handleClose(),
   });
 
   const { imagePreview, setImagePreview, uploading, inputRef, uploadImage } =
@@ -107,7 +107,6 @@ export function ProductFormModal({
         }
       },
     )();
-    handleClose();
   };
 
   const handleClose = () => {
