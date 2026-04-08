@@ -189,7 +189,7 @@ export function TransactionCartItems({
                           <Input
                             type="number"
                             min={1}
-                            className="h-10 w-20 text-center mx-auto font-bold text-base bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary/40"
+                            className="h-10 w-20 text-center mx-auto font-bold text-base bg-muted/30 focus-visible:ring-1 focus-visible:ring-primary/40"
                             value={qty || ""}
                             onChange={(e) => {
                               const val = e.target.value;

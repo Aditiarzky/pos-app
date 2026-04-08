@@ -33,8 +33,8 @@ export const insertProductSchema = baseInsertSchema
   .extend({
     name: baseInsertSchema.shape.name.min(3, "Nama harus diisi"),
     sku: baseInsertSchema.shape.sku.optional(),
-    minStock: z.coerce.string().optional(),
-    stock: z.coerce.string().optional(),
+    minStock: z.coerce.string().optional().transform((v) => (v === "" ? "0" : v)),
+    stock: z.coerce.string().optional().transform((v) => (v === "" ? "0" : v)),
     baseUnitId: z.number({
       error: () => ({
         message: "Satuan terkecil harus diisi",

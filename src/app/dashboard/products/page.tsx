@@ -22,6 +22,7 @@ import { StockAdjustmentModal } from "./_components/stock-adjustment-modal";
 import { ProductListSection } from "./_components/sections/product-list-section";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { useQueryState } from "@/hooks/use-query-state";
+import { useAuth } from "@/hooks/use-auth";
 import { CardBg } from "@/assets/card-background/card-bg";
 import { ProductResponse } from "@/services/productService";
 import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
@@ -29,6 +30,9 @@ import { RoleGuard } from "@/components/role-guard";
 import { AccessDenied } from "@/components/access-denied";
 
 function ProductsContent() {
+  const { roles } = useAuth();
+  const isSystemAdmin = (roles as string[]).includes("admin sistem");
+
   const [tab, setTab] = useQueryState<string>("tab", "list");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
@@ -161,13 +165,15 @@ function ProductsContent() {
               <LayoutPanelTopIcon className="mr-2 h-4 w-4" />
               <p className="truncate">Daftar Produk</p>
             </TabsTrigger>
-            <TabsTrigger
-              value="mutations"
-              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
-            >
-              <Table className="mr-2 h-4 w-4" />
-              <p className="truncate">Mutasi Stok</p>
-            </TabsTrigger>
+            {isSystemAdmin && (
+              <TabsTrigger
+                value="mutations"
+                className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
+              >
+                <Table className="mr-2 h-4 w-4" />
+                <p className="truncate">Mutasi Stok</p>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* DAFTAR PRODUK */}
@@ -179,9 +185,11 @@ function ProductsContent() {
           </TabsContent>
 
           {/* MUTASI STOK */}
-          <TabsContent value="mutations">
-            <StockMutationsSection />
-          </TabsContent>
+          {isSystemAdmin && (
+            <TabsContent value="mutations">
+              <StockMutationsSection />
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* MODALS */}

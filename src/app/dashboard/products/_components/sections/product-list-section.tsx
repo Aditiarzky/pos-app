@@ -12,6 +12,7 @@ import { useProducts } from "@/hooks/products/use-products";
 import { useCategories } from "@/hooks/master/use-categories";
 import { useDeleteProduct } from "@/hooks/products/use-delete-product";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
 import { ProductCard } from "../product-card";
@@ -31,6 +32,9 @@ export function ProductListSection({
   onEdit,
   onAdjust,
 }: ProductListSectionProps) {
+  const { roles } = useAuth();
+  const isSystemAdmin = (roles as string[]).includes("admin sistem");
+
   const [searchInput, setSearchInput] = useState("");
   const debouncedSearch = useDebounce(searchInput, 500);
 
@@ -265,6 +269,7 @@ export function ProductListSection({
                   onEdit={() => onEdit(product.id)}
                   onDelete={() => handleDelete(product.id)}
                   onAdjust={(p) => onAdjust(p)}
+                  isSystemAdmin={isSystemAdmin}
                 />
               ))}
             </div>
@@ -317,6 +322,7 @@ export function ProductListSection({
                 onEdit={() => onEdit(product.id)}
                 onDelete={() => handleDelete(product.id)}
                 onAdjust={(p) => onAdjust(p)}
+                isSystemAdmin={isSystemAdmin}
               />
             ))}
           </div>

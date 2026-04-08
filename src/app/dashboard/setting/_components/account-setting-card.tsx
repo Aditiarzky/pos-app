@@ -100,6 +100,8 @@ export function AccountSettingCard({ user }: AccountSettingCardProps) {
     [user?.roles],
   );
 
+  const isSystemAdmin = joinedRoles.includes("admin sistem");
+
   const handleEditProfile = () => {
     setFormMode("profile");
     setActiveView("form");
@@ -176,16 +178,18 @@ export function AccountSettingCard({ user }: AccountSettingCardProps) {
             <Eye className="h-4 w-4 mr-1" />
             Preview
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleEditProfile}
-            disabled={activeView === "form" && formMode === "profile"}
-          >
-            <Pencil className="h-4 w-4 mr-1" />
-            Edit Profil
-          </Button>
+          {isSystemAdmin && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleEditProfile}
+              disabled={activeView === "form" && formMode === "profile"}
+            >
+              <Pencil className="h-4 w-4 mr-1" />
+              Edit Profil
+            </Button>
+          )}
           <Button
             type="button"
             variant="outline"
@@ -213,16 +217,18 @@ export function AccountSettingCard({ user }: AccountSettingCardProps) {
                 <Eye className="h-4 w-4 mr-1" />
                 Preview
               </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleEditProfile}
-                disabled={activeView === "form" && formMode === "profile"}
-              >
-                <Pencil className="h-4 w-4 mr-1" />
-                Edit Profil
-              </Button>
+              {isSystemAdmin && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleEditProfile}
+                  disabled={activeView === "form" && formMode === "profile"}
+                >
+                  <Pencil className="h-4 w-4 mr-1" />
+                  Edit Profil
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="ghost"
