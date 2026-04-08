@@ -35,6 +35,7 @@ interface ProductCardProps {
   onEdit?: (id: number) => void;
   onDelete?: (id: number) => void;
   onAdjust?: (product: ProductResponse) => void;
+  isSystemAdmin?: boolean;
 }
 
 // ====================== MODAL DETAIL ======================
@@ -46,6 +47,7 @@ function ProductDetailModal({
   onDelete,
   onAdjust,
   handleDeleteClick,
+  isSystemAdmin = false,
 }: {
   product: ProductResponse;
   open: boolean;
@@ -54,6 +56,7 @@ function ProductDetailModal({
   onDelete?: (id: number) => void;
   onAdjust?: (product: ProductResponse) => void;
   handleDeleteClick: () => void;
+  isSystemAdmin?: boolean;
 }) {
   const stockNum = Number(product.stock);
   const minStockNum = Number(product.minStock);
@@ -206,7 +209,7 @@ function ProductDetailModal({
                           <p className="text-sm font-bold text-primary">
                             Rp {Number(v.sellPrice).toLocaleString("id-ID")}
                           </p>
-                          {margin.hpp > 0 && (
+                          {isSystemAdmin && margin.hpp > 0 && (
                             <Badge
                               variant={
                                 margin.isProfitable ? "default" : "destructive"
@@ -286,6 +289,7 @@ export function ProductCard({
   onEdit,
   onDelete,
   onAdjust,
+  isSystemAdmin = false,
 }: ProductCardProps) {
   const confirm = useConfirm();
   const [modalOpen, setModalOpen] = useState(false);
@@ -329,6 +333,7 @@ export function ProductCard({
         onEdit={onEdit}
         onDelete={onDelete}
         onAdjust={onAdjust}
+        isSystemAdmin={isSystemAdmin}
       />
 
       <Card className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50">

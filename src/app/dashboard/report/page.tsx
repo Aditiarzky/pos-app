@@ -1280,7 +1280,7 @@ export function ReportContent() {
 export default function ReportPage() {
   return (
     <RoleGuard
-      allowedRoles={["admin toko", "admin sistem"]}
+      allowedRoles={["admin sistem"]}
       fallback={<AccessDenied />}
     >
       <Suspense

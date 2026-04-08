@@ -617,7 +617,7 @@ function TrashContent() {
 export default function TrashPage() {
   return (
     <RoleGuard
-      allowedRoles={["admin toko", "admin sistem"]}
+      allowedRoles={["admin sistem"]}
       fallback={<AccessDenied />}
     >
       <TrashContent />

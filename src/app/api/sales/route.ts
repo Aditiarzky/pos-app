@@ -406,6 +406,17 @@ export async function POST(request: NextRequest) {
       }
 
       const netTotal = grandTotal - totalBalanceUsed;
+
+      // ✅ Validasi nominal minimal QRIS (Pakasir mengharuskan min Rp 500)
+      if (paymentMethod === "qris" && netTotal < 500) {
+        throw new Error(
+          `Nominal pembayaran QRIS minimal adalah Rp 500. Total saat ini: ${new Intl.NumberFormat(
+            "id-ID",
+            { style: "currency", currency: "IDR" },
+          ).format(netTotal)}`,
+        );
+      }
+
       const paidAmount = paymentMethod === "qris" ? netTotal : Number(totalPaid);
       let calculatedReturn = 0;
       let saleStatus: "completed" | "debt" | "pending_payment" = initialStatus;
@@ -465,7 +476,12 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      const finalInvoice = `INV-${newSale.id.toString().padStart(7, "0")}`;
+      // Gunakan prefix tanggal (YYYYMMDD) + ID agar unik di Pakasir (mencegah collision jika DB reset/dev)
+      const datePrefix = new Date()
+        .toISOString()
+        .slice(0, 10)
+        .replace(/-/g, "");
+      const finalInvoice = `INV-${datePrefix}-${newSale.id.toString().padStart(7, "0")}`;
       let finalReturn = calculatedReturn;
 
       // Bayar hutang lama dari surplus (hanya untuk pembayaran cash)
@@ -552,6 +568,12 @@ export async function POST(request: NextRequest) {
       const qrisAmount = result.netTotal; // amount setelah dikurangi balance/voucher
 
       try {
+        console.log(`[QRIS_DEBUG] Creating QRIS for ${result.finalInvoice}:`, {
+          qrisAmount,
+          grandTotal: result.grandTotal,
+          balanceUsed: totalBalanceUsed,
+        });
+
         const pakasirRes = await createPakasirQris(result.finalInvoice, qrisAmount);
 
         // Simpan QR string dan expiry ke database

@@ -20,6 +20,7 @@ import { BasicInfoTab } from "./tabs/basic-info-tab";
 import { VariantsTab } from "./tabs/variants-tab";
 import { BarcodesTab } from "./tabs/barcodes-tab";
 import { ErrorIndicator } from "@/components/ui/error-indicator";
+import { useAuth } from "@/hooks/use-auth";
 import { CategoryType, UnitType } from "@/drizzle/type";
 
 export function ProductFormModal({
@@ -37,6 +38,9 @@ export function ProductFormModal({
   const isEdit = mode === "edit" && !!productId;
 
   const [activeTab, setActiveTab] = useState("basic");
+
+  const { roles } = useAuth();
+  const isSystemAdmin = (roles as string[]).includes("admin sistem");
 
   const { data: productData } = useProduct(productId!, {
     enabled: isEdit && open,
@@ -168,12 +172,13 @@ export function ProductFormModal({
               <VariantsTab
                 {...form}
                 errors={form.formState.errors}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                units={units as any}
                 variantFields={variantFields}
                 appendVariant={appendVariant}
                 removeVariant={removeVariant}
                 averageCost={Number(productData?.data?.averageCost ?? 0)}
+                isSystemAdmin={isSystemAdmin}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                units={units as any}
               />
             </TabsContent>
 

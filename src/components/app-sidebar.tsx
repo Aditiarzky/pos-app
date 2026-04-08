@@ -86,7 +86,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         label: "Laporan",
         href: "/dashboard/report",
         icon: <IconReport className="w-5 h-5" />,
-        roles: STORE_AND_SYSTEM_ROLES,
+        roles: SYSTEM_ADMIN_ONLY_ROLES,
       },
     ],
   },
@@ -103,7 +103,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         label: "Tempat Sampah",
         href: "/dashboard/trash",
         icon: <IconTrash className="w-5 h-5" />,
-        roles: STORE_AND_SYSTEM_ROLES,
+        roles: SYSTEM_ADMIN_ONLY_ROLES,
       },
       {
         label: "User & Akses",

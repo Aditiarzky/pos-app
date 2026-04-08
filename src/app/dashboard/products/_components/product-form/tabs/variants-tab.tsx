@@ -29,6 +29,7 @@ export function VariantsTab({
   removeVariant,
   control,
   averageCost,
+  isSystemAdmin = false,
 }: {
   register: UseFormRegister<InsertProductInputType | UpdateProductInputType>;
   errors: FormFieldErrors;
@@ -40,6 +41,7 @@ export function VariantsTab({
   removeVariant: (index: number) => void;
   control: Control<InsertProductInputType | UpdateProductInputType>;
   averageCost: number;
+  isSystemAdmin?: boolean;
 }) {
   const confirm = useConfirm();
 
@@ -62,7 +64,7 @@ export function VariantsTab({
 
   const baseUnitId = watch("baseUnitId");
   const baseUnitName =
-    units.find((u: UnitType) => u.id === baseUnitId)?.name || "Satuan Terkecil";
+    units?.find((u: UnitType) => u.id === baseUnitId)?.name || "Satuan Terkecil";
   return (
     <div className="space-y-4">
       <TabsContent value="variants" className="mt-4 space-y-4">
@@ -82,6 +84,7 @@ export function VariantsTab({
               handleRemoveVariant={handleRemoveVariant}
               variantFieldsLength={variantFields.length}
               averageCost={averageCost}
+              isSystemAdmin={isSystemAdmin}
             />
           ),
         )}

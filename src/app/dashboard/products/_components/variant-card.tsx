@@ -35,6 +35,7 @@ type VariantCardProps = {
   handleRemoveVariant: (index: number) => void;
   variantFieldsLength: number;
   averageCost?: number | null;
+  isSystemAdmin?: boolean;
 };
 
 export function VariantCard({
@@ -50,6 +51,7 @@ export function VariantCard({
   handleRemoveVariant,
   variantFieldsLength,
   averageCost,
+  isSystemAdmin = false,
 }: VariantCardProps) {
   const variantUnitName =
     units.find((u) => u.id === field.unitId)?.name || "unit";
@@ -112,7 +114,7 @@ export function VariantCard({
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <Label>Harga Jual</Label>
-            {Number(averageCost) > 0 && (
+            {isSystemAdmin && Number(averageCost) > 0 && (
               <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-sm">
                 Modal: Rp{" "}
                 {Math.round(
@@ -133,7 +135,7 @@ export function VariantCard({
                   value={Number(value) ?? 0}
                   onChange={onChange}
                 />
-                {Number(averageCost) > 0 && Number(value) > 0 && (
+                {isSystemAdmin && Number(averageCost) > 0 && Number(value) > 0 && (
                   <div className="flex justify-between items-center px-1 text-xs">
                     <span className="uppercase font-bold tracking-tighter text-muted-foreground">
                       Estimasi Margin

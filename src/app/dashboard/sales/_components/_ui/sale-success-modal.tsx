@@ -35,7 +35,7 @@ export function SaleSuccessModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-0 gap-0 border-none sm:rounded-3xl">
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 gap-0 border-none sm:rounded-3xl">
         <div className="p-6 md:p-8 space-y-6">
           <DialogHeader className="items-center text-center space-y-4">
             <div className="h-16 w-16 bg-emerald-100 rounded-full flex items-center justify-center animate-in zoom-in duration-500">
