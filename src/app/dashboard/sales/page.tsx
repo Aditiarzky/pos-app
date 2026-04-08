@@ -82,15 +82,15 @@ function SalesContent() {
   return (
     <>
       {/* Header Section */}
-      <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 justify-between w-full items-center gap-4 pb-16">
-        <div className="overflow-hidden flex gap-2">
-          <span className="w-2 bg-primary" />
+      <header className="sticky top-6 mx-auto container z-10 flex flex-row px-6 justify-between w-full items-center gap-4 pb-16">
+        <div className="flex items-center gap-4">
+          <div className="h-12 w-1.5 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
           <div className="flex flex-col">
-            <h1 className="text-2xl text-primary font-geist font-semibold truncate">
+            <h1 className="text-3xl text-primary font-bold tracking-tight">
               Kasir & Penjualan
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Transaksi penjualan dan retur barang
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest opacity-80">
+              Transaksi Real-time • Manajemen Retur
             </p>
           </div>
         </div>
@@ -243,27 +243,27 @@ function SalesContent() {
 
         {/* Tabs */}
         <Tabs value={tab} onValueChange={setTab} className="gap-4">
-          <TabsList className="bg-background w-full justify-start overflow-x-auto h-auto p-1">
+          <TabsList className="bg-muted/50 p-1 rounded-2xl w-full sm:w-fit justify-start h-auto gap-1 overflow-x-auto flex-nowrap scrollbar-hide">
             <TabsTrigger
               value="cashier"
-              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary px-4 py-2"
+              className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-xl px-3 sm:px-6 py-2.5 font-bold transition-all whitespace-nowrap text-xs sm:text-sm"
             >
-              <ShoppingCart className="mr-2 h-4 w-4" />
+              <ShoppingCart className="mr-2 h-4 w-4 shrink-0" />
               Menu Kasir
             </TabsTrigger>
             <TabsTrigger
               value="history-sales"
-              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary px-4 py-2"
+              className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-xl px-3 sm:px-6 py-2.5 font-bold transition-all whitespace-nowrap text-xs sm:text-sm"
             >
-              <History className="mr-2 h-4 w-4" />
-              Riwayat Penjualan
+              <History className="mr-2 h-4 w-4 shrink-0" />
+              Riwayat
             </TabsTrigger>
             <TabsTrigger
               value="history-returns"
-              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary px-4 py-2"
+              className="data-[state=active]:bg-background data-[state=active]:text-destructive data-[state=active]:shadow-sm rounded-xl px-3 sm:px-6 py-2.5 font-bold transition-all whitespace-nowrap text-xs sm:text-sm"
             >
-              <Undo2 className="mr-2 h-4 w-4" />
-              Riwayat Retur
+              <Undo2 className="mr-2 h-4 w-4 shrink-0" />
+              Retur
             </TabsTrigger>
           </TabsList>
 

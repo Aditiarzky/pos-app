@@ -43,7 +43,7 @@ export function usePrintReceipt() {
         await navigator.share({
           files: [file],
           title: "Nota Penjualan",
-          text: "Nota penjualan dari Toko Aditiarzky",
+          text: "Nota penjualan toko Gunung Muria Grosir Snack",
         });
       } else {
         // Fallback: auto-download PNG for manual sharing

@@ -23,6 +23,7 @@ import {
   useNotifications,
 } from "@/hooks/notifications/use-notifications";
 import { NotificationItem } from "@/services/notificationService";
+import { toast } from "sonner";
 
 const POPOVER_MAX_ITEMS = 8;
 
@@ -80,6 +81,7 @@ export function NotificationPanel() {
 
   const notifications = notificationsQuery.data?.data?.notifications || [];
   const unreadCount = notificationsQuery.data?.data?.unreadCount || 0;
+  const readCount = notifications.length - unreadCount;
 
   const latestNotifications = notifications.slice(0, POPOVER_MAX_ITEMS);
 
@@ -90,11 +92,23 @@ export function NotificationPanel() {
 
     if (!unreadIds.length) return;
 
-    await markManyAsReadMutation.mutateAsync(unreadIds);
+    try {
+      await markManyAsReadMutation.mutateAsync(unreadIds);
+      toast.success(`${unreadIds.length} notifikasi ditandai telah dibaca`);
+    } catch {
+      toast.error("Gagal menandai notifikasi");
+    }
   };
 
   const handleClearRead = async () => {
-    await clearReadMutation.mutateAsync(undefined);
+    if (readCount === 0) return;
+
+    try {
+      const result = await clearReadMutation.mutateAsync(undefined);
+      toast.success(result.message || "Notifikasi yang sudah dibaca telah dibersihkan");
+    } catch {
+      toast.error("Gagal membersihkan notifikasi");
+    }
   };
 
   React.useEffect(() => {
@@ -146,7 +160,7 @@ export function NotificationPanel() {
               size="sm"
               className="h-8 px-2 text-xs"
               onClick={handleClearRead}
-              disabled={clearReadMutation.isPending}
+              disabled={clearReadMutation.isPending || readCount === 0}
             >
               {clearReadMutation.isPending ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />

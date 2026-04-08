@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
-import { getSaleById } from "@/services/saleService";
+import { verifyPakasirStatus } from "@/services/saleService";
 import {
   Loader2,
   CheckCircle2,
@@ -103,13 +103,16 @@ export function QrisPaymentModal({
   const checkPaymentStatus = useCallback(async () => {
     if (!data || status !== "waiting") return;
     try {
-      const res = await getSaleById(data.saleId);
-      if (res.data?.status === "completed") {
+      // ✅ Ganti getSaleById dengan verifyPakasirStatus
+      // Ini akan memaksa server untuk kroscek langsung ke Pakasir API
+      const res = await verifyPakasirStatus(data.saleId);
+      if (res.success && res.data?.status === "completed") {
         setStatus("success");
         if (pollRef.current) clearInterval(pollRef.current);
         setTimeout(() => onSuccess(data.saleId), 1800);
       }
-    } catch {
+    } catch (err) {
+      console.warn("Polling status error:", err);
       // abaikan, coba lagi di interval berikutnya
     }
   }, [data, status, onSuccess]);
@@ -220,7 +223,7 @@ export function QrisPaymentModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm p-0 overflow-hidden">
+      <DialogContent className="max-w-sm max-h-dvh p-0 overflow-hidden overflow-y-scroll">
         <DialogTitle className="sr-only">Pembayaran QRIS</DialogTitle>
         <DialogDescription className="sr-only">
           Scan QR code untuk menyelesaikan pembayaran
@@ -282,10 +285,20 @@ export function QrisPaymentModal({
                 />
               </div>
 
-              {/* Polling indicator */}
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                <span>Menunggu konfirmasi pembayaran...</span>
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Menunggu konfirmasi pembayaran...</span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-7 text-[10px] text-muted-foreground hover:text-primary"
+                  onClick={checkPaymentStatus}
+                >
+                  <RefreshCw className="mr-1 h-3 w-3" />
+                  Cek Status Manual
+                </Button>
               </div>
 
               {/* ── SANDBOX: hanya di development ── */}

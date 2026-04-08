@@ -36,7 +36,9 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `${count} notifikasi read dibersihkan`,
+      message: count > 0 
+        ? `${count} notifikasi berhasil dibersihkan` 
+        : "Tidak ada notifikasi yang perlu dibersihkan",
       data: { count },
     });
   } catch (error) {

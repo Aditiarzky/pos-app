@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { notificationStates } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 
@@ -60,6 +60,7 @@ export const markNotificationsAsRead = async (userId: number, ids: string[]) => 
       target: [notificationStates.userId, notificationStates.notificationId],
       set: {
         readAt: now,
+        dismissedAt: null,
       },
     })
     .returning({ id: notificationStates.id });
@@ -71,7 +72,6 @@ export const clearReadNotifications = async (userId: number, ids?: string[]) => 
   const whereBase = and(
     eq(notificationStates.userId, userId),
     isNotNull(notificationStates.readAt),
-    isNull(notificationStates.dismissedAt),
   );
 
   const whereClause =
