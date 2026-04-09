@@ -70,9 +70,16 @@ export function useProductForm({
   const submitHandler = async (
     data: InsertProductInputType | UpdateProductInputType,
   ) => {
+    const filteredVariants = (data.variants ?? []).filter((variant) => {
+      const isBaseUnit = Number(variant.unitId) === Number(data.baseUnitId);
+      const isSold = variant.isActive !== false;
+      return !isBaseUnit || isSold;
+    });
+
     const cleanedData = {
       ...data,
       barcodes: (data.barcodes ?? []).filter((b) => !!b.barcode),
+      variants: filteredVariants,
     };
 
     const onSuccessToast = (response: ApiResponse<unknown>) => {
