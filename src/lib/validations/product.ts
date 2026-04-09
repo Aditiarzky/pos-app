@@ -10,9 +10,7 @@ export const productVariantSchema = baseVariantInsert
     productId: baseVariantInsert.shape.productId.optional(),
     sku: baseVariantInsert.shape.sku.optional(),
     name: baseVariantInsert.shape.name.min(1, "Nama variant harus diisi"),
-    sellPrice: z.coerce
-      .string()
-      .refine((v) => Number(v) >= 1, "Harga jual harus lebih dari 1"),
+    sellPrice: z.coerce.string(),
     conversionToBase: z.coerce
       .string()
       .refine(
@@ -24,6 +22,16 @@ export const productVariantSchema = baseVariantInsert
         message: "Satuan terkecil harus diisi",
       }),
     }),
+  })
+  .superRefine((variant, ctx) => {
+    if (variant.isActive === false) return;
+    if (Number(variant.sellPrice) < 1) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["sellPrice"],
+        message: "Harga jual harus lebih dari 1",
+      });
+    }
   })
   .strip();
 

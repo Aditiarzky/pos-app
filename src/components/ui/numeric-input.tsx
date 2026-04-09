@@ -18,6 +18,8 @@ export function NumericInput({
   className,
   suffix,
   decimalPlaces = 3,
+  onBlur,
+  onFocus,
   ...props
 }: NumericInputProps) {
   // Internal state for what the user is typing (with comma)
@@ -95,8 +97,14 @@ export function NumericInput({
         )}
         value={inputValue}
         onChange={handleChange}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
+        onFocus={(event) => {
+          setIsFocused(true);
+          onFocus?.(event);
+        }}
+        onBlur={(event) => {
+          setIsFocused(false);
+          onBlur?.(event);
+        }}
         type="text"
         inputMode="decimal"
       />

@@ -99,7 +99,7 @@ export function ProductFormModal({
             setActiveTab("basic");
             break;
           case hasVariantError:
-            toast.error("Mohon isi minimal satu data Variant");
+            toast.error("Periksa kembali data pada tab Satuan & Harga");
             setActiveTab("variants");
             break;
           case hasBarcodeError:
@@ -139,7 +139,7 @@ export function ProductFormModal({
               </TabsTrigger>
 
               <TabsTrigger type="button" value="variants" className="relative">
-                Variants
+                Satuan & Harga
                 <ErrorIndicator show={hasVariantError} />
               </TabsTrigger>
 
