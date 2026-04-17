@@ -22,7 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useSaleList, useDeleteSale } from "@/hooks/sales/use-sale";
+import { useDeleteSale } from "@/hooks/sales/use-sale";
 import { useState } from "react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { toast } from "sonner";
@@ -49,11 +49,7 @@ import {
 } from "@/components/ui/dialog";
 
 import { ApiResponse } from "@/services/productService";
-import { SaleResponse } from "../../_types/sale-type";
 import { SaleReceipt } from "../_ui/sale-receipt";
-import { Separator } from "@/components/ui/separator";
-import { FilterWrap } from "@/components/filter-wrap";
-import { SalesFilterForm } from "../_ui/sales-filter-form";
 import {
   Popover,
   PopoverContent,
@@ -63,38 +59,40 @@ import {
   QrisPaymentModal,
   QrisPaymentData,
 } from "@/components/qris-payment-modal";
-import { getSaleById } from "@/services/saleService";
+import { getSaleById, SaleResponse as SaleServiceResponse } from "@/services/saleService";
+import type { SaleResponse as SaleUiResponse } from "../../_types/sale-type";
 
 interface SalesListSectionProps {
   viewMode: "table" | "card";
-  searchInput: string;
+  searchInput?: string;
+  sales: SaleServiceResponse[] | undefined;
+  isLoading: boolean;
+  meta:
+    | {
+        total: number;
+        totalPages: number;
+      }
+    | undefined;
+  page: number;
+  setPage: (p: number) => void;
+  limit: number;
+  setLimit: (v: number) => void;
+  refetch: () => void;
 }
 
 export function SalesListSection({
   viewMode,
-  searchInput: externalSearch,
+  searchInput,
+  sales,
+  isLoading,
+  meta,
+  page,
+  setPage,
+  limit,
+  setLimit,
+  refetch,
 }: SalesListSectionProps) {
-  const {
-    sales,
-    isLoading,
-    meta,
-    page,
-    setPage,
-    limit,
-    setLimit,
-    dateRange,
-    setDateRange,
-    status,
-    setStatus,
-    customerId,
-    setCustomerId,
-    hasActiveFilters,
-    resetFilters,
-    searchInput,
-    refetch,
-  } = useSaleList({ search: externalSearch });
-
-  const [selectedSale, setSelectedSale] = useState<SaleResponse | null>(null);
+  const [selectedSale, setSelectedSale] = useState<SaleServiceResponse | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const { receiptRef, handlePrint } = usePrintReceipt();
 
@@ -115,8 +113,8 @@ export function SalesListSection({
     });
   };
 
-  const openReceipt = (sale: SaleResponse) => {
-    setSelectedSale(sale as SaleResponse);
+  const openReceipt = (sale: SaleServiceResponse) => {
+    setSelectedSale(sale);
     setIsReceiptOpen(true);
   };
 
@@ -261,22 +259,6 @@ export function SalesListSection({
         </div>
 
         <div className="flex w-full justify-between sm:w-fit gap-2">
-          <FilterWrap hasActiveFilters={hasActiveFilters}>
-            <SalesFilterForm
-              dateRange={dateRange}
-              setDateRange={setDateRange}
-              status={status}
-              setStatus={setStatus}
-              customerId={customerId}
-              setCustomerId={setCustomerId}
-              setPage={setPage}
-              resetFilters={resetFilters}
-              isDropdown
-            />
-          </FilterWrap>
-
-          <Separator orientation="vertical" className="h-10 mx-1 block" />
-
           <div className="text-sm font-medium flex items-center bg-muted/30 px-3 rounded-lg border">
             Total:{" "}
             <span className="text-primary font-bold ml-1">
@@ -475,7 +457,7 @@ export function SalesListSection({
                           <Button
                             size="icon"
                             variant="ghost"
-                            onClick={() => openReceipt(sale as SaleResponse)}
+                            onClick={() => openReceipt(sale as SaleServiceResponse)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -668,7 +650,7 @@ export function SalesListSection({
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => openReceipt(sale as SaleResponse)}
+                          onClick={() => openReceipt(sale as SaleServiceResponse)}
                           className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs"
                         >
                           <Eye className="mr-1 h-3.5 w-3.5" />
@@ -735,7 +717,10 @@ export function SalesListSection({
           </DialogHeader>
           <div className="px-4 pb-4 overflow-y-auto flex-grow custom-scrollbar">
             {selectedSale && (
-              <SaleReceipt ref={receiptRef} sale={selectedSale} />
+              <SaleReceipt
+                ref={receiptRef}
+                sale={selectedSale as unknown as SaleUiResponse}
+              />
             )}
           </div>
           <DialogFooter className="px-4 pb-4 pt-2 flex justify-end gap-2 flex-shrink-0 border-t">

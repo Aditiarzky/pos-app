@@ -4,14 +4,12 @@ import { type ReactNode, Suspense, useMemo, useState } from "react";
 import {
   ArchiveRestore,
   FolderTree,
-  LayoutGrid,
   Loader2,
   MoreHorizontal,
   Package2,
   Pencil,
   Plus,
   SearchX,
-  Table2,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -72,6 +70,7 @@ import { useDeleteUnit } from "@/hooks/units/use-delete-unit";
 import { useRestoreUnit } from "@/hooks/units/use-restore-unit";
 import { useForceDeleteUnit } from "@/hooks/units/use-force-delete-unit";
 import { AccessDenied } from "@/components/access-denied";
+import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 
 type ManagedItem = CategoryResponse | UnitResponse;
 
@@ -319,22 +318,7 @@ function EntitySection({
             placeholder={`Cari ${entityLabel.toLowerCase()}...`}
           />
           <div className="flex items-center gap-2">
-            <Button
-              variant={viewMode === "table" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("table")}
-              title="Tampilan Tabel"
-            >
-              <Table2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "card" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("card")}
-              title="Tampilan Kartu"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
+            <ViewModeSwitch value={viewMode} onChange={setViewMode} />
             <Button
               variant="destructive"
               onClick={() => {

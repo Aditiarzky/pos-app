@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppPagination } from "@/components/app-pagination";
 import { Button } from "@/components/ui/button";
-import { LayoutList, SearchX, LayoutGrid, Table2, PrinterIcon } from "lucide-react";
+import { LayoutList, SearchX, PrinterIcon } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { Badge } from "@/components/ui/badge";
 
@@ -35,6 +35,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 
 export function PurchaseListSection({
   // Optional props for direct injection
@@ -119,26 +120,7 @@ export function PurchaseListSection({
 
           <Separator orientation="vertical" className="h-10" />
 
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === "table" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("table")}
-              className={`h-10 w-10 sm:flex ${viewMode === "table" ? "bg-primary/10 text-primary border border-border hover:bg-primary/50" : "hover:bg-primary/50"}`}
-              title="Tampilan Tabel"
-            >
-              <Table2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "card" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("card")}
-              className={`h-10 w-10 sm:flex ${viewMode === "card" ? "bg-primary/10 text-primary border border-border hover:bg-primary/50" : "hover:bg-primary/50"}`}
-              title="Tampilan Kartu"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-          </div>
+          <ViewModeSwitch value={viewMode} onChange={setViewMode} />
           <Badge className="h-10 px-4 bg-primary/10 text-primary rounded-lg hidden md:flex items-center gap-2 font-medium">
             <LayoutList className="h-4 w-4" />
             Total {meta?.total || 0} Transaksi

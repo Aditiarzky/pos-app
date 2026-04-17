@@ -22,8 +22,6 @@ import {
   Trash2,
   Plus,
   LayoutList,
-  LayoutGrid,
-  Table2,
   MoreHorizontal,
   SearchX,
   Phone,
@@ -46,6 +44,7 @@ import { FilterWrap } from "@/components/filter-wrap";
 import { SupplierFilterForm } from "./_ui/supplier-filter-form";
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
+import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 
 // ============================================
 // MAIN COMPONENT
@@ -121,26 +120,7 @@ export function SupplierListSection({
           </Button>
 
           <div className="h-10 w-[1px] bg-border mx-1 hidden sm:block" />
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === "table" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("table")}
-              className="h-10 w-10 sm:flex"
-              title="Tampilan Tabel"
-            >
-              <Table2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "card" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("card")}
-              className="h-10 w-10 sm:flex"
-              title="Tampilan Kartu"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-          </div>
+          <ViewModeSwitch value={viewMode} onChange={setViewMode} />
 
           {/* Total Badge */}
           <Badge className="h-10 px-4 bg-primary/10 text-primary rounded-lg hidden md:flex items-center gap-2 font-medium">
