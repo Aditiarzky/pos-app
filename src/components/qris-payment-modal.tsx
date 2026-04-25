@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { QRCodeSVG } from "qrcode.react";
+import { QrisLogoIcon } from "@/components/icons/qris-logo";
 
 export interface QrisPaymentData {
   paymentNumber: string;
@@ -255,12 +256,18 @@ export function QrisPaymentModal({
           {status === "waiting" && data && (
             <div className="flex flex-col items-center gap-4">
               {/* QR Code */}
-              <div className="p-3 border-2 rounded-2xl bg-white shadow-sm">
-                <QRCodeSVG
-                  value={data.paymentNumber}
-                  size={200}
-                  style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                />
+              <div className="w-full max-w-[260px]">
+                <div className="p-3 border-2 rounded-2xl bg-white shadow-sm">
+                  <div className="flex items-center justify-center pb-2">
+                    <QrisLogoIcon className="h-6 w-auto text-black" title="QRIS" />
+                  </div>
+                  <div className="h-px bg-muted mb-2" />
+                  <QRCodeSVG
+                    value={data.paymentNumber}
+                    size={200}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                  />
+                </div>
               </div>
 
               {/* Timer */}

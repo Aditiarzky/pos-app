@@ -5,12 +5,11 @@ import { toast } from "sonner";
 import {
   ArchiveRestore,
   Filter,
-  LayoutGrid,
   Loader2,
   MoreHorizontal,
   SearchX,
-  Table2,
   Trash2,
+  Settings2,
 } from "lucide-react";
 
 import { useDebounce } from "@/hooks/use-debounce";
@@ -18,6 +17,7 @@ import { useTrash } from "@/hooks/trash/useTrash";
 import { useRestoreTrash } from "@/hooks/trash/useRestoreTrash";
 import { useForceDeleteTrash } from "@/hooks/trash/useForceDeleteTrash";
 import { useCleanupTrash } from "@/hooks/trash/useCleanupTrash";
+import { useTrashSettings } from "@/hooks/trash/use-trash-settings";
 import { TrashItemPayload, TrashListItem } from "@/services/trashService";
 
 import { AppPagination } from "@/components/app-pagination";
@@ -42,6 +42,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -55,6 +62,7 @@ import { formatDate } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
 import { RoleGuard } from "@/components/role-guard";
 import { AccessDenied } from "@/components/access-denied";
+import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 
 type ConfirmAction = {
   mode: "restore" | "force-delete";
@@ -64,13 +72,13 @@ type ConfirmAction = {
 function getTypeLabel(type: TrashListItem["type"]) {
   switch (type) {
     case "product":
-      return "Product";
+      return "Produk";
     case "sale":
-      return "Sale";
+      return "Penjualan";
     case "purchase":
-      return "Purchase";
+      return "Pembelian";
     case "customer":
-      return "Customer";
+      return "Pelanggan";
     default:
       return type;
   }
@@ -98,10 +106,17 @@ function TrashContent() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [searchInput, setSearchInput] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | TrashItemPayload["type"]>("all");
+  const [typeFilter, setTypeFilter] = useState<
+    "all" | TrashItemPayload["type"]
+  >("all");
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
-  const [selectedMap, setSelectedMap] = useState<Record<string, TrashItemPayload>>({});
-  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [selectedMap, setSelectedMap] = useState<
+    Record<string, TrashItemPayload>
+  >({});
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(
+    null,
+  );
+  const [isManualCleanupPending, setIsManualCleanupPending] = useState(false);
 
   const debouncedSearch = useDebounce(searchInput, 400);
 
@@ -119,40 +134,98 @@ function TrashContent() {
   const cleanupTrashMutation = useCleanupTrash();
   const { roles } = useAuth();
   const isSystemAdmin = (roles as string[]).includes("admin sistem");
+  
+  const { settings, updateInterval, isUpdating } = useTrashSettings();
+  const [tempInterval, setTempInterval] = useState<string>("");
+
+  useEffect(() => {
+    if (settings) {
+      setTempInterval(settings.cleanupIntervalMinutes.toString());
+    }
+  }, [settings]);
+
+  const handleUpdateInterval = () => {
+    const val = parseInt(tempInterval);
+    if (isNaN(val) || val < 1) {
+      toast.error("Interval minimal 1 menit");
+      return;
+    }
+    updateInterval(val, {
+      onSuccess: () => toast.success("Interval pembersihan diperbarui"),
+      onError: () => toast.error("Gagal memperbarui interval"),
+    });
+  };
 
   const rows = trashQuery.data?.data ?? [];
   const meta = trashQuery.data?.meta;
+  const hasActiveTypeFilter = typeFilter !== "all";
 
-  const selectedItems = useMemo(() => Object.values(selectedMap), [selectedMap]);
+  const selectedItems = useMemo(
+    () => Object.values(selectedMap),
+    [selectedMap],
+  );
 
   const isCurrentPageAllChecked =
     rows.length > 0 &&
     rows.every((row) => selectedMap[`${row.type}:${row.id}`] !== undefined);
 
   const isMutating = restoreMutation.isPending || forceDeleteMutation.isPending;
+  const autoCleanupKey = useMemo(
+    () => `trash:auto_cleanup:${new Date().toISOString().slice(0, 10)}`,
+    [],
+  );
 
   useEffect(() => {
-    if (!isSystemAdmin) {
+    if (!isSystemAdmin || typeof window === "undefined") {
       return;
     }
 
-    cleanupTrashMutation
-      .mutateAsync(undefined)
-      .then((res) => {
-        const deletedCount = res.data?.deletedCount || 0;
-        const skippedCount = res.data?.skippedCount || 0;
-
-        if (deletedCount > 0) {
-          toast.success(`🧹 ${deletedCount} data lama di trash berhasil dibersihkan`);
-        }
-
-        if (skippedCount > 0) {
-          toast.info(`${skippedCount} data batal dihapus karena ada dependency aktif`);
-        }
-      })
-      .catch(() => { });
+    if (window.sessionStorage.getItem(autoCleanupKey) === "1") {
+      return;
+    }
+    window.sessionStorage.setItem(autoCleanupKey, "1");
+    runCleanupExpired({ rethrow: true })
+      .catch(() => {
+        window.sessionStorage.removeItem(autoCleanupKey);
+      });
+    return;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSystemAdmin]);
+  }, [autoCleanupKey, isSystemAdmin]);
+
+  const runCleanupExpired = async (options?: {
+    showNoopToast?: boolean;
+    trackManualLoading?: boolean;
+    rethrow?: boolean;
+  }) => {
+    if (options?.trackManualLoading) {
+      setIsManualCleanupPending(true);
+    }
+
+    try {
+      const res = await cleanupTrashMutation.mutateAsync(undefined);
+      const deletedCount = res.data?.deletedCount || 0;
+      const skippedCount = res.data?.skippedCount || 0;
+
+      if (deletedCount > 0) {
+        toast.success(`${deletedCount} data lama di trash berhasil dibersihkan`);
+      } else if (options?.showNoopToast) {
+        toast.info("Tidak ada data trash yang perlu dibersihkan");
+      }
+
+      if (skippedCount > 0) {
+        toast.info(`${skippedCount} data batal dihapus karena ada dependency aktif`);
+      }
+    } catch (error) {
+      toast.error("Gagal menjalankan cleanup trash");
+      if (options?.rethrow) {
+        throw error;
+      }
+    } finally {
+      if (options?.trackManualLoading) {
+        setIsManualCleanupPending(false);
+      }
+    }
+  };
 
   const toggleOne = (row: TrashListItem, checked: boolean) => {
     const key = `${row.type}:${row.id}`;
@@ -189,7 +262,10 @@ function TrashContent() {
     });
   };
 
-  const openSingleAction = (mode: ConfirmAction["mode"], row: TrashListItem) => {
+  const openSingleAction = (
+    mode: ConfirmAction["mode"],
+    row: TrashListItem,
+  ) => {
     setConfirmAction({
       mode,
       items: [{ id: row.id, type: row.type }],
@@ -271,9 +347,18 @@ function TrashContent() {
           <div className="flex gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline">
+                <Button
+                  variant="outline"
+                  className="relative h-10 rounded-xl border-border/70 bg-background shadow-sm hover:border-primary/40 hover:bg-primary/5"
+                >
                   <Filter className="h-4 w-4 mr-0 sm:mr-2" />
                   <p className="hidden sm:block">Filter</p>
+                  {hasActiveTypeFilter && (
+                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-primary/35"></span>
+                      <span className="relative inline-flex h-3 w-3 rounded-full bg-primary ring-2 ring-background"></span>
+                    </span>
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -281,41 +366,67 @@ function TrashContent() {
                   Semua Tipe
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTypeFilter("product")}>
-                  Product
+                  Produk
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTypeFilter("sale")}>
-                  Sale
+                  Penjualan
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTypeFilter("purchase")}>
-                  Purchase
+                  Pembelian
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTypeFilter("customer")}>
-                  Customer
+                  Pelanggan
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
             <div className="h-10 w-[1px] bg-border mx-1 hidden sm:block" />
-            <div className="flex gap-2">
-              <Button
-                variant={viewMode === "table" ? "default" : "outline"}
-                size="icon"
-                onClick={() => setViewMode("table")}
-                className="sm:flex"
-                title="Tampilan Tabel"
-              >
-                <Table2 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "card" ? "default" : "outline"}
-                size="icon"
-                onClick={() => setViewMode("card")}
-                className="sm:flex"
-                title="Tampilan Kartu"
-              >
-                <LayoutGrid className="h-4 w-4" />
-              </Button>
-            </div>
+            <ViewModeSwitch value={viewMode} onChange={setViewMode} />
+
+            {isSystemAdmin && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" className="rounded-xl">
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 p-4">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium leading-none">Pengaturan Cleanup</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Atur seberapa sering sistem mengecek data expired.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="interval">Interval Pengecekan (Menit)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="interval"
+                          type="number"
+                          value={tempInterval}
+                          onChange={(e) => setTempInterval(e.target.value)}
+                          className="h-9"
+                          min={1}
+                        />
+                        <Button 
+                          size="sm" 
+                          onClick={handleUpdateInterval}
+                          disabled={isUpdating}
+                        >
+                          {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : "Simpan"}
+                        </Button>
+                      </div>
+                      {settings?.lastCleanupAt && (
+                        <p className="text-[10px] text-muted-foreground mt-2">
+                          Terakhir dijalankan: {formatDate(settings.lastCleanupAt)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
 
             <Button
               variant="outline"
@@ -325,6 +436,25 @@ function TrashContent() {
               <ArchiveRestore className="h-4 w-4 mr-0 sm:mr-2" />
               <p className="hidden sm:block">Restore Selected</p>
             </Button>
+            {isSystemAdmin && (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  runCleanupExpired({
+                    showNoopToast: true,
+                    trackManualLoading: true,
+                  })
+                }
+                disabled={isManualCleanupPending || isMutating}
+              >
+                {isManualCleanupPending ? (
+                  <Loader2 className="h-4 w-4 mr-0 sm:mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-0 sm:mr-2" />
+                )}
+                <p className="hidden sm:block">Cleanup Expired</p>
+              </Button>
+            )}
             {isSystemAdmin && (
               <Button
                 variant="destructive"
@@ -341,7 +471,7 @@ function TrashContent() {
         <div className="text-sm text-muted-foreground">
           {selectedItems.length > 0
             ? `${selectedItems.length} data dipilih`
-            : `Total ${meta?.total || 0} data di trash${typeFilter !== "all" ? ` (${getTypeLabel(typeFilter)})` : ""}`}
+            : `Total ${trashQuery.data?.meta?.total || 0} data di trash${typeFilter !== "all" ? ` (${getTypeLabel(typeFilter)})` : ""}`}
         </div>
 
         {trashQuery.isLoading ? (
@@ -351,15 +481,26 @@ function TrashContent() {
                 <TableHeader className="bg-muted/20 border-t border-b border-border/50">
                   <TableRow className="border-none">
                     <TableHead className="w-12 text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide" />
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Nama / ID</TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tipe</TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tanggal Dihapus</TableHead>
-                    <TableHead className="w-20 text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Aksi</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Nama / ID
+                    </TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Tipe
+                    </TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Tanggal Dihapus
+                    </TableHead>
+                    <TableHead className="w-20 text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Aksi
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <TableRow key={i} className="border-b border-border/30 last:border-none">
+                    <TableRow
+                      key={i}
+                      className="border-b border-border/30 last:border-none"
+                    >
                       <TableCell className="px-2 sm:px-4 py-2">
                         <Skeleton className="h-4 w-4" />
                       </TableCell>
@@ -383,7 +524,10 @@ function TrashContent() {
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton key={i} className="h-[170px] sm:h-[200px] rounded-xl" />
+                <Skeleton
+                  key={i}
+                  className="h-[170px] sm:h-[200px] rounded-xl"
+                />
               ))}
             </div>
           )
@@ -410,7 +554,8 @@ function TrashContent() {
               Tempat sampah kosong
             </h3>
             <p className="text-sm max-w-xs mx-auto">
-              Belum ada data terhapus, atau tidak ada yang cocok dengan pencarian.
+              Belum ada data terhapus, atau tidak ada yang cocok dengan
+              pencarian.
             </p>
           </Card>
         ) : viewMode === "table" ? (
@@ -427,18 +572,31 @@ function TrashContent() {
                         }
                       />
                     </TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Nama / ID</TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tipe</TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tanggal Dihapus</TableHead>
-                    <TableHead className="w-20 text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Aksi</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Nama / ID
+                    </TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Tipe
+                    </TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Tanggal Dihapus
+                    </TableHead>
+                    <TableHead className="w-20 text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Aksi
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.map((row) => (
-                    <TableRow key={`${row.type}:${row.id}`} className="hover:bg-muted/50 transition-colors border-b border-border/30 last:border-none">
+                    <TableRow
+                      key={`${row.type}:${row.id}`}
+                      className="hover:bg-muted/50 transition-colors border-b border-border/30 last:border-none"
+                    >
                       <TableCell className="px-2 sm:px-4 py-2">
                         <Checkbox
-                          checked={selectedMap[`${row.type}:${row.id}`] !== undefined}
+                          checked={
+                            selectedMap[`${row.type}:${row.id}`] !== undefined
+                          }
                           onCheckedChange={(checked) =>
                             toggleOne(row, Boolean(checked))
                           }
@@ -451,7 +609,9 @@ function TrashContent() {
                         </div>
                       </TableCell>
                       <TableCell className="px-2 sm:px-4 py-2">
-                        <Badge variant="secondary">{getTypeLabel(row.type)}</Badge>
+                        <Badge variant="secondary">
+                          {getTypeLabel(row.type)}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 text-muted-foreground">
                         {row.deleted_at ? formatDate(row.deleted_at) : "-"}
@@ -459,7 +619,11 @@ function TrashContent() {
                       <TableCell className="text-right px-2 sm:px-4 py-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -468,15 +632,17 @@ function TrashContent() {
                               onClick={() => openSingleAction("restore", row)}
                             >
                               <ArchiveRestore className="h-4 w-4 mr-2" />
-                              Restore
+                              Pulihkan
                             </DropdownMenuItem>
                             {isSystemAdmin && (
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
-                                onClick={() => openSingleAction("force-delete", row)}
+                                onClick={() =>
+                                  openSingleAction("force-delete", row)
+                                }
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Delete Permanently
+                                Hapus Permanen
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -497,14 +663,18 @@ function TrashContent() {
               >
                 <div className="relative h-20 sm:h-24 overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-2.5 sm:p-4 flex items-start justify-between">
                   <div className="min-w-0">
-                    <div className="font-semibold text-xs sm:text-sm truncate">{row.name}</div>
+                    <div className="font-semibold text-xs sm:text-sm truncate">
+                      {row.name}
+                    </div>
                     <div className="text-[10px] sm:text-xs text-muted-foreground">
                       {row.type.toUpperCase()} #{row.id}
                     </div>
                   </div>
                   <Checkbox
                     checked={selectedMap[`${row.type}:${row.id}`] !== undefined}
-                    onCheckedChange={(checked) => toggleOne(row, Boolean(checked))}
+                    onCheckedChange={(checked) =>
+                      toggleOne(row, Boolean(checked))
+                    }
                   />
                 </div>
 
@@ -520,7 +690,11 @@ function TrashContent() {
                 <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 flex justify-end mt-auto">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 sm:h-8 sm:w-8"
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -529,7 +703,7 @@ function TrashContent() {
                         onClick={() => openSingleAction("restore", row)}
                       >
                         <ArchiveRestore className="h-4 w-4 mr-2" />
-                        Restore
+                        Pulihkan
                       </DropdownMenuItem>
                       {isSystemAdmin && (
                         <DropdownMenuItem
@@ -537,7 +711,7 @@ function TrashContent() {
                           onClick={() => openSingleAction("force-delete", row)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Permanently
+                          Hapus Permanen
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
@@ -598,12 +772,12 @@ function TrashContent() {
               ) : confirmAction?.mode === "restore" ? (
                 <>
                   <ArchiveRestore className="h-4 w-4 mr-2" />
-                  Restore
+                  Pulihkan
                 </>
               ) : (
                 <>
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Permanently
+                  Hapus Permanen
                 </>
               )}
             </AlertDialogAction>
@@ -616,10 +790,7 @@ function TrashContent() {
 
 export default function TrashPage() {
   return (
-    <RoleGuard
-      allowedRoles={["admin sistem"]}
-      fallback={<AccessDenied />}
-    >
+    <RoleGuard allowedRoles={["admin sistem"]} fallback={<AccessDenied />}>
       <TrashContent />
     </RoleGuard>
   );

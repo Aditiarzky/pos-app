@@ -30,11 +30,9 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
-  LayoutGrid,
   Loader2,
   MoreHorizontal,
   Pencil,
-  Table2,
   Trash,
   User,
 } from "lucide-react";
@@ -52,6 +50,7 @@ import { FilterWrap } from "@/components/filter-wrap";
 import { UserFilterForm } from "./ui/user-filter-form";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 
 interface UserListSectionProps {
   onEdit: (user: UserResponse) => void;
@@ -175,26 +174,7 @@ export function UserListSection({ onEdit }: UserListSectionProps) {
           </FilterWrap>
 
           <div className="h-10 w-[1px] bg-border mx-1 hidden sm:block" />
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === "table" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("table")}
-              className="h-10 w-10 sm:flex"
-              title="Tampilan Tabel"
-            >
-              <Table2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "card" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("card")}
-              className="h-10 w-10 sm:flex"
-              title="Tampilan Kartu"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-          </div>
+          <ViewModeSwitch value={viewMode} onChange={setViewMode} />
         </div>
       </div>
 

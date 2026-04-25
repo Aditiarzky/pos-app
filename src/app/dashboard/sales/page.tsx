@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -8,14 +8,12 @@ import {
   ShoppingCart,
   Loader2,
   Undo2,
-  LayoutGrid,
-  Table2,
   TrendingUp,
   TrendingDown,
   CircleDollarSign,
   Wallet,
 } from "lucide-react";
-import { useQueryState } from "@/hooks/use-query-state";
+import { useQueryState, useQueryStates } from "@/hooks/use-query-state";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { CardBg } from "@/assets/card-background/card-bg";
 import { TransactionForm } from "./_components/_forms/transaction-form";
@@ -25,11 +23,15 @@ import { DebtListSection } from "./_components/_sections/debt-list-section";
 import { ReturnForm } from "./_components/_forms/return-form";
 import { cn } from "@/lib/utils";
 import { SearchInput } from "@/components/ui/search-input";
-import { Button } from "@/components/ui/button";
 import { useSaleList } from "@/hooks/sales/use-sale";
 import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
 import { RoleGuard } from "@/components/role-guard";
 import { AccessDenied } from "@/components/access-denied";
+import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
+import { FilterWrap } from "@/components/filter-wrap";
+import { SalesFilterForm } from "./_components/_ui/sales-filter-form";
+import { DebtFilterForm } from "./_components/_ui/debt-filter-form";
+import { Separator } from "@/components/ui/separator";
 
 // ============================================
 // HELPERS
@@ -70,14 +72,47 @@ const GrowthIndicator = ({ value }: { value: number }) => {
 function SalesContent() {
   // Tab state (synced dengan URL)
   const [tab, setTab] = useQueryState<string>("tab", "cashier");
-  const [cashierMode, setCashierMode] = useState<"sales" | "return">("sales");
+  const [cashierMode, setCashierMode] = useQueryState<"sales" | "return">(
+    "mode",
+    "sales",
+  );
 
-  // Shared Filter States for History
-  const [viewMode, setViewMode] = useState<"table" | "card">("table");
-  const [searchInput, setSearchInput] = useState("");
+  // Shared UI/Debt States using useQueryStates
+  const [uiStates, setUiStates] = useQueryStates({
+    view: "table" as "table" | "card",
+    filter: "active" as "active" | "unpaid" | "partial",
+    customerId: 0,
+  });
 
-  // Fetch Analytics Data
+  const viewMode = uiStates.view;
+  const debtStatusFilter = uiStates.filter;
+  const debtCustomerId = uiStates.customerId > 0 ? uiStates.customerId : undefined;
+
+  const setViewMode = (v: "table" | "card") => setUiStates({ view: v });
+  const setDebtStatusFilter = (f: "active" | "unpaid" | "partial") => setUiStates({ filter: f });
+  const setDebtCustomerId = (id: number | undefined) => setUiStates({ customerId: id ?? 0 });
+
+  // Fetch Analytics Data (Static hook for top cards)
   const { analytics: salesAnalytics } = useSaleList({ initialLimit: 1 });
+
+  // Sales history list (syncWithUrl: true enables internal URL-responsive useQueryState for "q")
+  const saleList = useSaleList({ syncWithUrl: true });
+
+  const hasActiveSalesAdvancedFilters =
+    !!saleList.dateRange.startDate ||
+    !!saleList.dateRange.endDate ||
+    !!saleList.status ||
+    !!saleList.customerId;
+
+  const hasActiveDebtAdvancedFilters =
+    debtStatusFilter !== "active" || !!debtCustomerId;
+
+  const hasActiveAdvancedFilters =
+    hasActiveSalesAdvancedFilters || hasActiveDebtAdvancedFilters || !!saleList.searchInput;
+
+  const resetDebtFilters = () => {
+    setUiStates({ filter: "active", customerId: 0 });
+  };
 
   return (
     <>
@@ -312,33 +347,69 @@ function SalesContent() {
             className="animate-in fade-in duration-300 space-y-8"
           >
             {/* GLOBAL FILTER & TOGGLE BAR */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <SearchInput
-                placeholder="Cari No. Invoice / Customer..."
-                value={searchInput}
-                onChange={setSearchInput}
-              />
+            <div className="flex flex-col sm:flex-row gap-3 pt-4 items-stretch">
+              <div className="flex flex-1 gap-2">
+                <SearchInput
+                  placeholder="Cari No. Invoice..."
+                  value={saleList.searchInput}
+                  onChange={saleList.setSearchInput}
+                />
 
-              <div className="flex gap-2">
-                <Button
-                  variant={viewMode === "table" ? "default" : "outline"}
-                  size="icon"
-                  onClick={() => setViewMode("table")}
-                >
-                  <Table2 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "card" ? "default" : "outline"}
-                  size="icon"
-                  onClick={() => setViewMode("card")}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
+                <FilterWrap hasActiveFilters={hasActiveAdvancedFilters}>
+                  <div className="space-y-3">
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Riwayat Penjualan
+                    </div>
+                    <SalesFilterForm
+                      dateRange={saleList.dateRange}
+                      setDateRange={saleList.setDateRange}
+                      status={saleList.status}
+                      setStatus={saleList.setStatus}
+                      customerId={saleList.customerId}
+                      setCustomerId={saleList.setCustomerId}
+                      setPage={saleList.setPage}
+                      resetFilters={saleList.resetFilters}
+                      isDropdown
+                    />
+
+                    <Separator />
+
+                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Piutang
+                    </div>
+                    <DebtFilterForm
+                      status={debtStatusFilter}
+                      setStatus={setDebtStatusFilter}
+                      customerId={debtCustomerId}
+                      setCustomerId={setDebtCustomerId}
+                      resetFilters={resetDebtFilters}
+                      isDropdown
+                    />
+                  </div>
+                </FilterWrap>
               </div>
+
+              <ViewModeSwitch value={viewMode} onChange={setViewMode} />
             </div>
 
-            <DebtListSection viewMode={viewMode} search={searchInput} />
-            <SalesListSection viewMode={viewMode} searchInput={searchInput} />
+            <DebtListSection
+              viewMode={viewMode}
+              search={saleList.searchInput}
+              statusFilter={debtStatusFilter}
+              customerId={debtCustomerId}
+            />
+            <SalesListSection
+              viewMode={viewMode}
+              searchInput={saleList.searchInput}
+              sales={saleList.sales}
+              isLoading={saleList.isLoading}
+              meta={saleList.meta}
+              page={saleList.page}
+              setPage={saleList.setPage}
+              limit={saleList.limit}
+              setLimit={saleList.setLimit}
+              refetch={saleList.refetch}
+            />
           </TabsContent>
 
           <TabsContent

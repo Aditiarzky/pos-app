@@ -22,8 +22,6 @@ import {
   SearchX,
   Calendar,
   StickyNote,
-  LayoutGrid,
-  Table2,
   CheckCircle2,
   XCircle,
 } from "lucide-react";
@@ -40,6 +38,7 @@ import { id } from "date-fns/locale";
 import { FilterWrap } from "@/components/filter-wrap";
 import { OperationalCostFilterForm } from "../../_ui/operational-cost-filter-form";
 import { AppPagination } from "@/components/app-pagination";
+import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 
 type ViewMode = "table" | "card";
 
@@ -91,33 +90,7 @@ export function OperationalCostsSection({ hook }: Props) {
             />
           </FilterWrap>
 
-          {/* View toggle */}
-          <div className="flex rounded-lg border overflow-hidden h-9">
-            <button
-              onClick={() => setViewMode("table")}
-              className={cn(
-                "px-2.5 transition-colors",
-                viewMode === "table"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-background text-muted-foreground hover:bg-muted",
-              )}
-              title="Tampilan Tabel"
-            >
-              <Table2 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("card")}
-              className={cn(
-                "px-2.5 transition-colors",
-                viewMode === "card"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-background text-muted-foreground hover:bg-muted",
-              )}
-              title="Tampilan Kartu"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </button>
-          </div>
+          <ViewModeSwitch value={viewMode} onChange={setViewMode} />
         </div>
       </div>
 

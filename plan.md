@@ -1,37 +1,99 @@
-# Rencana Implementasi - Overhaul UX Form Produk (Satuan Jual)
+# Rencana Refactor UI - Konsistensi Komponen Dasar
 
-Berdasarkan keluhan yang ada, banyak pengguna awam yang bingung dengan istilah "Variant" dan sistem hitung konversi ke satuan terkecil. Kita akan melakukan perombakan UI/UX pada form produk agar lebih ramah pengguna.
+Dokumen ini berisi rencana untuk merapikan dan menyatukan tampilan UI yang saat ini belum konsisten, terutama pada komponen dasar seperti tombol filter, switch mode card/tabel, tombol tab, dan elemen kecil lain yang sering dipakai ulang.
 
-## Rencana Perubahan (Proposed Changes)
+## Tujuan
 
-### 1. Perubahan Istilah (Terminology)
-Istilah "Variant" akan diganti sepenuhnya karena sering disalahartikan sebagai "rasa" atau "warna".
-- **Tab Variants** ➔ **Satuan & Harga**
-- **Nama Variant** ➔ Dihilangkan dari input manual secara visual. Nama akan **otomatis mengambil nama Satuan** (misal: jika pilih satuan "Dus", namanya otomatis "Dus"). Kita bisa menyediakannya sebagai opsi lanjutan (Advanced Option) jika butuh nama unik "Pack Isi 10".
-- **Tambah Variant** ➔ **Tambah Satuan Jual**
+- Menyamakan gaya visual dan perilaku interaksi antar komponen UI dasar.
+- Mengurangi variasi style ad-hoc per halaman/fitur.
+- Meningkatkan keterbacaan, hirarki visual, dan kualitas estetika tanpa mengubah identitas produk.
+- Menyiapkan fondasi design system ringan agar pengembangan fitur berikutnya lebih cepat dan konsisten.
 
-### 2. Auto-Generate Satuan Terkecil
-- Saat user mengisi **Satuan Terkecil** di Tab "Informasi", Tab "Satuan & Harga" akan otomatis memiliki satu baris pertama yang terkunci khusus untuk Satuan Terkecil tersebut.
-- Baris pertama ini nilai konversinya otomatis `1` dan tidak bisa diubah.
-- **Toggle "Dijual / Tidak Dijual"**: Karena terkadang satuan terkecil (contoh: Pcs) hanya untuk stok gudang dan tidak diecer/dijual. Akan disediakan *toggle* (saklar). Jika dimatikan, input harga akan non-aktif, dan saat disubmit, sistem mengabaikan satuan ini dari daftar jualan (`product_variants`), namun tetap menjadikannya acuan stok utama di database (`products`).
+## Masalah yang Ditemukan
 
-### 3. Logika Konversi Berantai (Chained Conversion)
-- Saat ini user harus menghitung manual: 1 Dus = berapa Pcs.
-- **UX Baru**: Input konversi akan berubah menjadi format bertingkat yang memilih satuan sebelumnya.
-- **Contoh Flow**:
-  1. *Satuan Pertama*: Pcs (Otomatis 1)
-  2. *Satuan Ke-2*: User pilih "Pack". Input konversi: **1 Pack = [ X ] Pcs**.
-  3. *Satuan Ke-3*: User pilih "Dus". Input konversi: **1 Dus = [ X ] Pilih Satuan Acuan: [Pack, Pcs]**.
-  - Jika user menginput `1 Dus = 10 Pack` (sedangkan 1 Pack = 12 Pcs), maka di belakang layar (State/Form), sistem kita akan **otomatis** mengalikan (10 × 12). Hasilnya `120` akan dimasukkan ke `conversionToBase`. User tidak perlu memakai kalkulator!
-  - UI akan selalu mengarahkan pengguna agar menginput dari kemasan terkecil (Pcs) -> sedang (Pack) -> terbesar (Dus).
+- Tombol filter berbeda-beda dari sisi ukuran, radius, warna, icon spacing, dan state aktif.
+- Switch view card/tabel tidak punya pola yang sama antar halaman (position, icon style, active state, hover/focus).
+- Tombol tab memiliki style berbeda (border, background, typography, spacing), sehingga UX terasa tidak seragam.
+- Komponen kecil (badge, chip, inline action button, empty state action, small dropdown trigger) belum mengikuti satu token/style yang sama.
+- State penting (hover, focus, disabled, loading) belum konsisten di semua komponen.
 
-### 4. Perbaikan Layout Kartu Satuan
-- Pemilihan satuan, rasio konversi bertingkat, dan harga jual akan ditata letaknya agar alurnya mengalir secara kronologis: "Gunakan Satuan Ini" ➔ "Berapa Isinya?" ➔ "Berapa Harganya?".
-- Menghapuskan istilah `conversionToBase` di level UI, ganti menjadi "Isi per [Satuan]".
+## Scope Refactor
 
-## Next Steps
-Rencana ini akan langsung diimplementasikan pada:
-- `src/app/dashboard/products/_components/product-form/product-form-modal.tsx`
-- `src/app/dashboard/products/_components/product-form/tabs/variants-tab.tsx`
-- `src/app/dashboard/products/_components/variant-card.tsx`
-- Hook terkait form handling (`use-product-form.ts`).
+### 1. Standarisasi Foundation (Design Tokens)
+
+- Definisikan token warna, radius, shadow, border, spacing, dan typography yang jadi acuan bersama.
+- Tetapkan skala ukuran komponen (`sm`, `md`, `lg`) dan tinggi komponen standar.
+- Pastikan token mendukung aksesibilitas kontras untuk teks dan elemen interaktif.
+
+### 2. Standardisasi Komponen Prioritas
+
+- `FilterButton` / `FilterGroup`
+- `ViewSwitch` (Card <-> Table)
+- `Tabs` / `TabButton`
+- `IconButton` kecil untuk aksi sekunder
+- `Badge` / `Chip` status ringkas
+- `DropdownTrigger` kecil yang sering dipakai di toolbar/list
+
+### 3. Penyatuan State Interaksi
+
+- Definisikan state baku: `default`, `hover`, `active`, `focus-visible`, `disabled`, `loading`.
+- Terapkan pola focus ring yang konsisten di semua kontrol interaktif.
+- Samakan transisi ringan agar UI terasa rapi dan responsif.
+
+### 4. Polishing Visual
+
+- Rapikan alignment, spasi horizontal/vertikal, dan ritme layout pada area toolbar/list/header section.
+- Tingkatkan visual clarity (warna aktif, indikator state, pemisahan prioritas aksi).
+- Perindah tampilan secara subtle (bukan redesign total), tetap selaras gaya produk saat ini.
+
+## Strategi Implementasi
+
+1. Audit komponen dan mapping area pemakaian.
+2. Bentuk standar final (token + varian komponen) di layer UI reusable.
+3. Refactor bertahap per komponen prioritas.
+4. Terapkan ke halaman-halaman utama dengan traffic tinggi terlebih dahulu.
+5. Bersihkan style lama/duplikasi class setelah migrasi aman.
+
+## Urutan Eksekusi
+
+1. Audit dan inventaris style saat ini.
+2. Buat/rapikan token global dan utility class varian komponen.
+3. Refactor `FilterButton` dan `ViewSwitch`.
+4. Refactor `Tabs/TabButton`.
+5. Refactor komponen kecil (badge/chip/icon button/dropdown trigger).
+6. Integrasi ke halaman target dan validasi visual.
+7. Cleanup kode style lama.
+
+## Kriteria Selesai (Definition of Done)
+
+- Komponen prioritas menggunakan style yang konsisten lintas halaman.
+- Tidak ada lagi style inline/ad-hoc untuk pola komponen yang sama.
+- State interaksi utama tersedia dan seragam.
+- Tidak ada regresi fungsi pada filter, tab navigation, dan switch view.
+- Visual terlihat lebih rapi dan modern tanpa mengganggu alur kerja pengguna.
+
+## Validasi & QA
+
+- Uji visual desktop + mobile untuk halaman yang terdampak.
+- Uji keyboard navigation (`Tab`, `Enter`, `Space`, `Esc`) untuk komponen interaktif.
+- Uji kontras teks dan focus state pada tema yang aktif.
+- Bandingkan sebelum/sesudah pada skenario: filtering, ganti mode tampilan, pindah tab, aksi kecil di toolbar.
+
+## Risiko & Mitigasi
+
+- Risiko: perbedaan style lama tersebar di banyak file.
+  - Mitigasi: migrasi bertahap + fallback class sementara.
+- Risiko: perubahan visual memicu mismatch ekspektasi tim.
+  - Mitigasi: tetapkan contoh standar per komponen sebagai referensi tunggal sebelum rollout luas.
+- Risiko: regresi interaksi komponen.
+  - Mitigasi: checklist QA perilaku + verifikasi manual untuk flow utama.
+
+## Target Area Implementasi
+
+- Komponen reusable di folder UI/shared components.
+- Halaman dashboard/listing yang memakai filter, tabs, dan view switch.
+- Area toolbar dan panel ringkas yang banyak memakai komponen kecil.
+
+## Hasil Akhir yang Diharapkan
+
+UI dasar menjadi konsisten, lebih enak dipakai, dan terlihat lebih polished. Tim juga punya fondasi komponen yang jelas untuk pengembangan fitur berikutnya tanpa mengulang ketidakkonsistenan style.

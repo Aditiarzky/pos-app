@@ -5,6 +5,7 @@ import { handleApiError } from "@/lib/api-utils";
 import { formatMeta, parsePagination } from "@/lib/query-helper";
 import { customers, products, purchaseOrders, sales } from "@/drizzle/schema";
 import { TrashEntityType } from "./_lib/trash-utils";
+import { runTrashCleanup, shouldRunAutoCleanupDB } from "./_lib/cleanup-logic";
 
 type TrashRow = {
   id: number;
@@ -15,6 +16,13 @@ type TrashRow = {
 
 export async function GET(request: NextRequest) {
   try {
+    // Auto cleanup trigger (throttled via DB)
+    if (await shouldRunAutoCleanupDB()) {
+      runTrashCleanup().catch((err) =>
+        console.error("Auto cleanup error in Trash GET:", err),
+      );
+    }
+
     const params = parsePagination(request);
     const typeFilter = request.nextUrl.searchParams.get("type") as
       | TrashEntityType

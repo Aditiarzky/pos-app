@@ -26,7 +26,7 @@ import {
 } from "@/lib/timezone";
 import { processDebtPayment } from "../debts/_lib/debt-service";
 import { SaleStatusEnumType } from "@/drizzle/type";
-import { createPakasirQris, cancelPakasirTransaction } from "@/lib/pakasir";
+import { createPakasirQris } from "@/lib/pakasir";
 
 // GET all sales with search and filters
 export async function GET(request: NextRequest) {
@@ -376,7 +376,10 @@ export async function POST(request: NextRequest) {
 
         await tx
           .update(products)
-          .set({ stock: sql`${products.stock} - ${qtyInBaseUnit.toFixed(3)}` })
+          .set({
+            stock: sql`${products.stock} - ${qtyInBaseUnit.toFixed(3)}`,
+            updatedAt: new Date()
+          })
           .where(eq(products.id, item.productId));
 
         await tx.insert(saleItems).values({
@@ -563,7 +566,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // ✅ Panggil Pakasir QRIS setelah sale berhasil dibuat
     if (paymentMethod === "qris") {
       const qrisAmount = result.netTotal; // amount setelah dikurangi balance/voucher
 

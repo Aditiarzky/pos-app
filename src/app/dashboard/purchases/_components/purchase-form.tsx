@@ -53,7 +53,7 @@ export function PurchaseForm({
     const updateMutation = useUpdatePurchase();
 
     // Suppliers data
-    const { data: suppliersResult } = useSuppliers();
+    const { data: suppliersResult } = useSuppliers({ limit: 100 });
     const suppliers = suppliersResult?.data ?? [];
 
     // Purchase form hook

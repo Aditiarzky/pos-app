@@ -17,23 +17,20 @@ import { Debt } from "@/services/debtService";
 import { DebtPaymentDialog } from "../debt-payment-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle } from "lucide-react";
-import { FilterWrap } from "@/components/filter-wrap";
-import { DebtFilterForm } from "../_ui/debt-filter-form";
 
 interface DebtListSectionProps {
   viewMode?: "table" | "card";
   search?: string;
+  statusFilter: "active" | "unpaid" | "partial";
+  customerId?: number;
 }
 
 export function DebtListSection({
   viewMode = "table",
   search = "",
+  statusFilter,
+  customerId,
 }: DebtListSectionProps) {
-  const [statusFilter, setStatusFilter] = useState<"active" | "unpaid" | "partial">(
-    "active",
-  );
-  const [customerId, setCustomerId] = useState<number | undefined>();
-
   const { debts, isLoading } = useDebts({
     status: statusFilter,
     customerId,
@@ -67,13 +64,6 @@ export function DebtListSection({
 
   const activeDebts = debts || [];
 
-  const hasActiveFilters = statusFilter !== "active" || !!customerId;
-
-  const resetFilters = () => {
-    setStatusFilter("active");
-    setCustomerId(undefined);
-  };
-
   const totalDebt = activeDebts.reduce(
     (acc, curr) => acc + Number(curr.remainingAmount),
     0,
@@ -87,16 +77,6 @@ export function DebtListSection({
           Piutang Belum Lunas
         </h3>
         <div className="flex items-center gap-2 md:justify-end justify-between w-full">
-          <FilterWrap hasActiveFilters={hasActiveFilters}>
-            <DebtFilterForm
-              status={statusFilter}
-              setStatus={setStatusFilter}
-              customerId={customerId}
-              setCustomerId={setCustomerId}
-              resetFilters={resetFilters}
-              isDropdown
-            />
-          </FilterWrap>
           <div className="text-sm font-medium">
             Total Piutang:{" "}
             <span className="text-destructive font-bold">

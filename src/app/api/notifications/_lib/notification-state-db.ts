@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 
 export type NotificationStateMap = Map<
   string,
-  { readAt: Date | null; dismissedAt: Date | null }
+  { readAt: Date | null; dismissedAt: Date | null; createdAt: Date }
 >;
 
 export const getNotificationStateMap = async (
@@ -20,6 +20,7 @@ export const getNotificationStateMap = async (
       notificationId: notificationStates.notificationId,
       readAt: notificationStates.readAt,
       dismissedAt: notificationStates.dismissedAt,
+      createdAt: notificationStates.createdAt,
     })
     .from(notificationStates)
     .where(
@@ -35,6 +36,7 @@ export const getNotificationStateMap = async (
       {
         readAt: row.readAt,
         dismissedAt: row.dismissedAt,
+        createdAt: row.createdAt,
       },
     ]),
   );

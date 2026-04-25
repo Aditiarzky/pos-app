@@ -12,17 +12,17 @@ import {
 } from "@/components/ui/table";
 import { AppPagination } from "@/components/app-pagination";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { LayoutGrid, Loader2, SearchX, Table2 } from "lucide-react";
+import { Loader2, SearchX } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { SearchInput } from "@/components/ui/search-input";
 import { formatCompactNumber } from "@/lib/format";
 import { MutationEnumType } from "@/drizzle/type";
 import { FilterWrap } from "@/components/filter-wrap";
 import { MutationFilterForm } from "../ui/mutation-filter-form";
+import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 
 type ViewMode = "table" | "card";
 
@@ -139,26 +139,7 @@ export const StockMutationsSection = () => {
           </FilterWrap>
 
           <div className="h-10 w-[1px] bg-border mx-1 hidden sm:block" />
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === "table" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("table")}
-              className="h-10 w-10 sm:flex"
-              title="Tampilan Tabel"
-            >
-              <Table2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "card" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("card")}
-              className="h-10 w-10 sm:flex"
-              title="Tampilan Kartu"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-          </div>
+          <ViewModeSwitch value={viewMode} onChange={setViewMode} />
         </div>
       </div>
 

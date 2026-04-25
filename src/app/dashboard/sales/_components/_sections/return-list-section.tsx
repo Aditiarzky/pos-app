@@ -13,8 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AppPagination } from "@/components/app-pagination";
 import { Button } from "@/components/ui/button";
 import {
-  LayoutGrid,
-  Table2,
   Trash2,
   Eye,
   PrinterIcon,
@@ -61,6 +59,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 
 export function ReturnListSection() {
   const {
@@ -175,22 +174,7 @@ export function ReturnListSection() {
 
           <Separator orientation="vertical" className="h-10 mx-1" />
 
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === "table" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("table")}
-            >
-              <Table2 className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "card" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("card")}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-          </div>
+          <ViewModeSwitch value={viewMode} onChange={setViewMode} />
         </div>
       </div>
 

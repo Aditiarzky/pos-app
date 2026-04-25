@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, desc, eq, gte, isNull, not, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, isNull, not, or, sql } from "drizzle-orm";
 import {
   customers,
+  debts,
   products,
   purchaseOrders,
   saleItems,
@@ -14,47 +15,62 @@ import {
   getTrashCleanupEvents,
 } from "./_lib/notification-store";
 import { getNotificationStateMap } from "./_lib/notification-state-db";
+import {
+  applyNotificationState,
+  buildExpiredTrashId,
+  buildLowStockId,
+  deduplicateRestockSignals,
+  mapRestockSeverity,
+  NotificationAction,
+  NotificationSeverity,
+  NotificationType,
+  PRIORITY_BY_SEVERITY,
+  resolveStableTrashCreatedAt,
+} from "./_lib/notification-logic";
+import { runTrashCleanup, shouldRunAutoCleanupDB, getTrashSettings } from "../trash/_lib/cleanup-logic";
 
-type NotificationSeverity = "info" | "warning" | "critical";
-type NotificationCategory = "system" | "stock" | "trash";
-type NotificationType = "low_stock" | "restock" | "trash_cleanup";
+type NotificationCategory = "system" | "stock" | "trash" | "finance" | "payment";
 
 type NotificationItem = {
   id: string;
+  key: string;
+  groupKey: string;
+  priority: number;
   type: NotificationType;
   category: NotificationCategory;
   severity: NotificationSeverity;
   message: string;
   createdAt: string;
+  isRead: boolean;
   read: boolean;
+  action?: {
+    label: string;
+    href?: string;
+    intent?: NotificationAction["intent"];
+  };
   metadata?: Record<string, string | number | null>;
 };
 
 const LOW_STOCK_FACTOR = 1.2;
 const MAX_LOW_STOCK_ITEMS = 20;
 const MAX_RESTOCK_ITEMS_PER_PERIOD = 8;
+const RESTOCK_TARGET_DAYS = 14;
 
 const toIsoDate = (value: Date | string | null | undefined): string => {
-  if (!value) {
-    return new Date().toISOString();
+  if (!value) return new Date().toISOString();
+  if (value instanceof Date) return value.toISOString();
+  let dateStr: string = value;
+  if (!dateStr.includes("Z") && !dateStr.includes("+") && !/-\d{2}:\d{2}$/.test(dateStr)) {
+    dateStr = dateStr.replace(" ", "T") + "Z";
   }
-
-  const date = value instanceof Date ? value : new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return new Date().toISOString();
-  }
-
-  return date.toISOString();
+  const date = new Date(dateStr);
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 };
 
-const normalizeLimit = (value: string | null, fallback: number) => {
+const normalizeLimit = (value: string | null, fallback: number): number => {
   if (!value) return fallback;
-
   const parsed = Number(value);
-  if (Number.isNaN(parsed) || parsed <= 0) return fallback;
-
-  return Math.min(parsed, 200);
+  return (Number.isNaN(parsed) || parsed <= 0) ? fallback : Math.min(parsed, 200);
 };
 
 async function getLowStockNotifications(): Promise<NotificationItem[]> {
@@ -62,270 +78,243 @@ async function getLowStockNotifications(): Promise<NotificationItem[]> {
     .select({
       productId: products.id,
       productName: products.name,
+      sku: products.sku,
       stock: products.stock,
       minStock: products.minStock,
       updatedAt: products.updatedAt,
     })
     .from(products)
-    .where(
-      and(
-        eq(products.isActive, true),
-        isNull(products.deletedAt),
-        sql`${products.minStock} > 0`,
-        sql`${products.stock} <= ${products.minStock} * ${LOW_STOCK_FACTOR}`,
-      ),
-    )
+    .where(and(eq(products.isActive, true), isNull(products.deletedAt), sql`${products.minStock} > 0`, sql`${products.stock} <= ${products.minStock} * ${LOW_STOCK_FACTOR}`))
     .orderBy(sql`${products.stock} / nullif(${products.minStock}, 0) asc`)
     .limit(MAX_LOW_STOCK_ITEMS);
 
-  return rows.map((row) => {
-    const currentStock = Number(row.stock || 0);
-    const minStock = Number(row.minStock || 0);
-
+  return rows.map((row): NotificationItem => {
+    const severity: NotificationSeverity = Number(row.stock || 0) <= Number(row.minStock || 0) ? "critical" : "warning";
     return {
-      id: `low_stock:${row.productId}`,
+      id: buildLowStockId(row.productId, new Date()),
+      key: `LOW_STOCK:${row.productId}`,
+      groupKey: `LOW_STOCK:${row.productId}`,
+      priority: PRIORITY_BY_SEVERITY[severity],
       type: "low_stock",
       category: "stock",
-      severity: currentStock <= minStock ? "critical" : "warning",
+      severity,
       createdAt: toIsoDate(row.updatedAt),
+      isRead: false,
       read: false,
-      message: `Stok produk "${row.productName}" hampir habis (${currentStock} / min ${minStock})`,
-      metadata: {
-        productId: row.productId,
-        productName: row.productName,
-        variant: "Semua varian",
-        currentStock,
-        minStock,
-      },
+      message: `Stok produk "${row.productName}" hampir habis (${row.stock} / min ${row.minStock})`,
+      action: { label: "Cek produk", href: `/dashboard/products?q=${encodeURIComponent(row.sku || "")}`, intent: "restock" },
+      metadata: { productId: row.productId, productName: row.productName, sku: row.sku, currentStock: Number(row.stock), minStock: Number(row.minStock) },
     };
   });
 }
 
-async function getRestockNotifications(periodDays: 7 | 30): Promise<NotificationItem[]> {
-  const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
+type RestockSignal = {
+  productId: number;
+  productName: string;
+  sku: string;
+  remainingStock: number;
+  periodDays: 7 | 30;
+  qtySold: number;
+  avgDailySales: number;
+  estimatedDaysLeft: number | null;
+  recommendedRestockQty: number;
+  lastSaleAt: string;
+  urgencyScore: number;
+};
 
-  const rows = await db
-    .select({
-      productId: products.id,
-      productName: products.name,
-      remainingStock: products.stock,
-      qtySold: sql<string>`coalesce(sum(${saleItems.qty} * ${saleItems.unitFactorAtSale}), 0)`,
-      lastSaleAt: sql<string>`max(${sales.createdAt})`,
-    })
-    .from(saleItems)
-    .innerJoin(sales, eq(sales.id, saleItems.saleId))
-    .innerJoin(products, eq(products.id, saleItems.productId))
-    .where(
-      and(
-        gte(sales.createdAt, startDate),
-        not(eq(sales.status, "cancelled")),
-        not(eq(sales.status, "refunded")),
-        not(sales.isArchived),
-        eq(products.isActive, true),
-        isNull(products.deletedAt),
-      ),
-    )
-    .groupBy(products.id, products.name, products.stock)
-    .orderBy(desc(sql`sum(${saleItems.qty} * ${saleItems.unitFactorAtSale})`))
-    .limit(MAX_RESTOCK_ITEMS_PER_PERIOD);
+async function getRestockNotifications(): Promise<NotificationItem[]> {
+  const periods: Array<7 | 30> = [7, 30];
+  const perPeriodSignals = await Promise.all(periods.map(async (periodDays: 7 | 30) => {
+    const startDate = new Date(Date.now() - periodDays * 24 * 60 * 60 * 1000);
+    const rows = await db
+      .select({
+        productId: products.id,
+        productName: products.name,
+        sku: products.sku,
+        remainingStock: products.stock,
+        qtySold: sql<string>`coalesce(sum(${saleItems.qty} * ${saleItems.unitFactorAtSale}), 0)`,
+        lastSaleAt: sql<string>`max(${sales.createdAt})`,
+      })
+      .from(saleItems)
+      .innerJoin(sales, eq(sales.id, saleItems.saleId))
+      .innerJoin(products, eq(products.id, saleItems.productId))
+      .where(and(gte(sales.createdAt, startDate), not(eq(sales.status, "cancelled")), not(eq(sales.status, "refunded")), not(sales.isArchived), eq(products.isActive, true), isNull(products.deletedAt)))
+      .groupBy(products.id, products.name, products.stock, products.sku)
+      .orderBy(desc(sql`sum(${saleItems.qty} * ${saleItems.unitFactorAtSale})`))
+      .limit(MAX_RESTOCK_ITEMS_PER_PERIOD);
 
-  const periodLabel = periodDays === 7 ? "minggu ini" : "bulan ini";
-
-  return rows
-    .map((row): NotificationItem | null => { // Explicitly define the return type of the map callback
+    return rows.map((row): RestockSignal | null => {
       const qtySold = Number(row.qtySold || 0);
       const remainingStock = Number(row.remainingStock || 0);
-
       if (qtySold <= 0) return null;
-
       const avgDailySales = qtySold / periodDays;
-      const estimatedDaysLeft =
-        avgDailySales > 0 ? Number((remainingStock / avgDailySales).toFixed(1)) : null;
+      const estimatedDaysLeft = avgDailySales > 0 ? Number((remainingStock / avgDailySales).toFixed(1)) : null;
+      const targetStock = Math.ceil(avgDailySales * RESTOCK_TARGET_DAYS);
+      const recommendedRestockQty = Math.max(targetStock - remainingStock, 0);
+      const urgencyScore = estimatedDaysLeft === null ? 0 : Number((1000 / Math.max(estimatedDaysLeft, 0.5)).toFixed(2));
+      return { productId: row.productId, productName: row.productName, sku: row.sku || "", remainingStock, periodDays, qtySold, avgDailySales, estimatedDaysLeft, recommendedRestockQty, lastSaleAt: toIsoDate(row.lastSaleAt), urgencyScore };
+    }).filter((item: RestockSignal | null): item is RestockSignal => item !== null);
+  }));
 
-      const notification: NotificationItem = { // Explicitly type the notification object
-        id: `restock:${periodDays}:${row.productId}`,
-        type: "restock",
-        category: "stock",
-        severity:
-          estimatedDaysLeft !== null && estimatedDaysLeft <= Math.ceil(periodDays / 2)
-            ? "warning"
-            : "info",
-        read: false,
-        createdAt: toIsoDate(row.lastSaleAt),
-        message: `Produk "${row.productName}" perlu restock ${periodLabel}`,
-        metadata: {
-          productId: row.productId,
-          productName: row.productName,
-          periodDays,
-          qtySold,
-          remainingStock,
-          estimatedDaysLeft,
-        },
-      };
-      return notification;
-    })
-    .filter((item): item is NotificationItem => item !== null); // This type guard correctly filters out nulls
+  const deduplicatedSignals = deduplicateRestockSignals(perPeriodSignals.flat());
+  return deduplicatedSignals.map((signal: RestockSignal): NotificationItem => {
+    const severity = mapRestockSeverity(signal.estimatedDaysLeft);
+    return {
+      id: `restock:${signal.productId}`,
+      key: `RESTOCK_RECOMMENDATION:${signal.productId}`,
+      groupKey: `RESTOCK_RECOMMENDATION:${signal.productId}`,
+      priority: PRIORITY_BY_SEVERITY[severity],
+      type: "restock",
+      category: "stock",
+      severity,
+      read: false,
+      isRead: false,
+      createdAt: signal.lastSaleAt,
+      message: `Produk "${signal.productName}" perlu restock (${signal.periodDays === 7 ? "7 hari" : "30 hari"}). Saran restock ±${signal.recommendedRestockQty}.`,
+      action: { label: "Cek produk", href: `/dashboard/products?q=${encodeURIComponent(signal.sku)}`, intent: "restock" },
+      metadata: { productId: signal.productId, productName: signal.productName, sku: signal.sku, periodDays: signal.periodDays, qtySold: signal.qtySold, remainingStock: signal.remainingStock, estimatedDaysLeft: signal.estimatedDaysLeft, recommendedRestockQty: signal.recommendedRestockQty },
+    };
+  });
 }
 
-async function getExpiredTrashCount(cutoffDate: Date) {
-  const [productCount, saleCount, purchaseCount, customerCount] = await Promise.all([
-    db
-      .select({ total: sql<number>`count(*)` })
-      .from(products)
-      .where(
-        sql`(${products.deletedAt} is not null or ${products.isActive} = false) and coalesce(${products.deletedAt}, ${products.updatedAt}) <= ${cutoffDate}`,
-      ),
-    db
-      .select({ total: sql<number>`count(*)` })
-      .from(sales)
-      .where(
-        sql`(${sales.deletedAt} is not null or ${sales.isArchived} = true) and coalesce(${sales.deletedAt}, ${sales.updatedAt}) <= ${cutoffDate}`,
-      ),
-    db
-      .select({ total: sql<number>`count(*)` })
-      .from(purchaseOrders)
-      .where(
-        sql`(${purchaseOrders.deletedAt} is not null or ${purchaseOrders.isArchived} = true) and coalesce(${purchaseOrders.deletedAt}, ${purchaseOrders.updatedAt}) <= ${cutoffDate}`,
-      ),
-    db
-      .select({ total: sql<number>`count(*)` })
-      .from(customers)
-      .where(
-        sql`(${customers.deletedAt} is not null or ${customers.isActive} = false) and coalesce(${customers.deletedAt}, ${customers.updatedAt}) <= ${cutoffDate}`,
-      ),
+type SummaryRow = { total: number; oldestAt: string | null };
+
+async function getExpiredTrashSummary(cutoffDate: Date): Promise<{ count: number; oldestAt: string }> {
+  const [pRows, sRows, poRows, cRows] = await Promise.all([
+    db.select({ total: sql<number>`count(*)`, oldestAt: sql<string>`min(coalesce(${products.deletedAt}, ${products.updatedAt}))` }).from(products).where(sql`(${products.deletedAt} is not null or ${products.isActive} = false) and coalesce(${products.deletedAt}, ${products.updatedAt}) <= ${cutoffDate}`),
+    db.select({ total: sql<number>`count(*)`, oldestAt: sql<string>`min(coalesce(${sales.deletedAt}, ${sales.updatedAt}))` }).from(sales).where(sql`(${sales.deletedAt} is not null or ${sales.isArchived} = true) and coalesce(${sales.deletedAt}, ${sales.updatedAt}) <= ${cutoffDate}`),
+    db.select({ total: sql<number>`count(*)`, oldestAt: sql<string>`min(coalesce(${purchaseOrders.deletedAt}, ${purchaseOrders.updatedAt}))` }).from(purchaseOrders).where(sql`(${purchaseOrders.deletedAt} is not null or ${purchaseOrders.isArchived} = true) and coalesce(${purchaseOrders.deletedAt}, ${purchaseOrders.updatedAt}) <= ${cutoffDate}`),
+    db.select({ total: sql<number>`count(*)`, oldestAt: sql<string>`min(coalesce(${customers.deletedAt}, ${customers.updatedAt}))` }).from(customers).where(sql`(${customers.deletedAt} is not null or ${customers.isActive} = false) and coalesce(${customers.deletedAt}, ${customers.updatedAt}) <= ${cutoffDate}`),
   ]);
-
-  return (
-    Number(productCount[0]?.total || 0) +
-    Number(saleCount[0]?.total || 0) +
-    Number(purchaseCount[0]?.total || 0) +
-    Number(customerCount[0]?.total || 0)
-  );
+  
+  const all: SummaryRow[] = [
+    { total: Number(pRows[0]?.total || 0), oldestAt: pRows[0]?.oldestAt || null },
+    { total: Number(sRows[0]?.total || 0), oldestAt: sRows[0]?.oldestAt || null },
+    { total: Number(poRows[0]?.total || 0), oldestAt: poRows[0]?.oldestAt || null },
+    { total: Number(cRows[0]?.total || 0), oldestAt: cRows[0]?.oldestAt || null },
+  ];
+  
+  const count = all.reduce((sum: number, r: SummaryRow): number => sum + r.total, 0);
+  const oldestAt = all.map((r: SummaryRow): string | null => r.oldestAt).filter((v: string | null): v is string => Boolean(v)).sort((a: string, b: string): number => new Date(a).getTime() - new Date(b).getTime())[0];
+  
+  return { count, oldestAt: resolveStableTrashCreatedAt(oldestAt || undefined, cutoffDate) };
 }
 
-const applyNotificationState = (
-  item: Omit<NotificationItem, "read">,
-  stateMap: Map<string, { readAt: Date | null; dismissedAt: Date | null }>,
-): NotificationItem | null => {
-  const state = stateMap.get(item.id);
+async function getDebtNotifications(): Promise<NotificationItem[]> {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const rows = await db
+    .select({ 
+      debtId: debts.id, 
+      customerId: debts.customerId, 
+      customerName: customers.name, 
+      remainingAmount: debts.remainingAmount, 
+      updatedAt: debts.updatedAt 
+    })
+    .from(debts)
+    .innerJoin(customers, eq(customers.id, debts.customerId))
+    .where(and(eq(debts.isActive, true), or(eq(debts.status, "unpaid"), eq(debts.status, "partial")), sql`${debts.remainingAmount} > 0`, sql`${debts.updatedAt} <= ${sevenDaysAgo}`))
+    .orderBy(desc(debts.remainingAmount))
+    .limit(10);
 
-  const notificationTime = new Date(item.createdAt).getTime();
-  const readTime = state?.readAt ? new Date(state.readAt).getTime() : 0;
-  const dismissedTime = state?.dismissedAt
-    ? new Date(state.dismissedAt).getTime()
-    : 0;
+  return rows.map((row): NotificationItem => ({
+    id: `debt_overdue:${row.debtId}`, 
+    key: `DEBT_OVERDUE:${row.debtId}`, 
+    groupKey: "DEBT_ALERTS", 
+    priority: PRIORITY_BY_SEVERITY.warning, 
+    type: "debt_overdue", 
+    category: "finance", 
+    severity: "warning", 
+    createdAt: toIsoDate(row.updatedAt), 
+    isRead: false, 
+    read: false,
+    message: `Piutang "${row.customerName}" sebesar Rp${Number(row.remainingAmount).toLocaleString("id-ID")} belum ada angsuran selama 7 hari.`,
+    action: { 
+      label: "Tagih piutang", 
+      href: `/dashboard/sales?tab=history-sales&customerId=${row.customerId}`, 
+      intent: "view" 
+    },
+    metadata: { debtId: row.debtId, customerId: row.customerId, customerName: row.customerName, amount: Number(row.remainingAmount) },
+  }));
+}
 
-  // Low-stock entries are derived from the current product state, not stored
-  // as immutable events. If the product leaves low-stock and later re-enters it,
-  // the notification should appear again even if an older occurrence was cleared.
-  const isDismissed =
-    Boolean(state?.dismissedAt) &&
-    (item.type !== "low_stock" || dismissedTime >= notificationTime);
-
-  if (isDismissed) {
-    return null;
-  }
-
-  // For low-stock, treat newer occurrences as unread again.
-  // This lets a product become unread when it re-enters low-stock state
-  // after being previously read.
-  const isRead =
-    item.type === "low_stock"
-      ? Boolean(state?.readAt) && readTime >= notificationTime
-      : Boolean(state?.readAt);
-
-  return {
-    ...item,
-    read: isRead,
-  };
-};
+async function getQrisPendingNotifications(): Promise<NotificationItem[]> {
+  const now = new Date();
+  const rows = await db.select({ id: sales.id, invoiceNumber: sales.invoiceNumber, totalPrice: sales.totalPrice, qrisExpiredAt: sales.qrisExpiredAt, createdAt: sales.createdAt }).from(sales).where(and(eq(sales.paymentMethod, "qris"), eq(sales.status, "pending_payment"), isNotNull(sales.qrisExpiredAt), gte(sales.qrisExpiredAt, now))).orderBy(sales.qrisExpiredAt).limit(5);
+  return rows.map((row): NotificationItem => ({
+    id: `qris_pending:${row.id}`, key: `QRIS_PENDING:${row.id}`, groupKey: "PAYMENT_ALERTS", priority: PRIORITY_BY_SEVERITY.warning, type: "qris_pending", category: "payment", severity: "warning", createdAt: toIsoDate(row.createdAt), isRead: false, read: false,
+    message: `QRIS ${row.invoiceNumber} (Rp${Number(row.totalPrice).toLocaleString("id-ID")}) menunggu pembayaran.`,
+    action: { 
+      label: "Cek status", 
+      href: `/dashboard/sales?tab=history-sales&q=${encodeURIComponent(row.invoiceNumber || "")}`, 
+      intent: "view" 
+    },
+    metadata: { saleId: row.id, invoiceNumber: row.invoiceNumber, expiredAt: toIsoDate(row.qrisExpiredAt) },
+  }));
+}
 
 export async function GET(request: NextRequest) {
   try {
     const session = await verifySession();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: "Not authenticated" },
-        { status: 401 },
-      );
+    if (!session) return NextResponse.json({ success: false, error: "Not authenticated" }, { status: 401 });
+
+    if (await shouldRunAutoCleanupDB()) {
+      runTrashCleanup().catch((err: unknown): void => console.error("Auto cleanup error:", err));
     }
 
-    const limit = normalizeLimit(request.nextUrl.searchParams.get("limit"), 50);
+    const limit: number = normalizeLimit(request.nextUrl.searchParams.get("limit"), 50);
     const cutoffDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
-    const [lowStock, weeklyRestock, monthlyRestock, expiredTrashCount] =
-      await Promise.all([
-        getLowStockNotifications(),
-        getRestockNotifications(7),
-        getRestockNotifications(30),
-        getExpiredTrashCount(cutoffDate),
-      ]);
+    const [lowStock, restockRecs, expiredTrashSummary, settings, debtAlerts, qrisAlerts] = await Promise.all([
+      getLowStockNotifications(), getRestockNotifications(), getExpiredTrashSummary(cutoffDate), getTrashSettings(), getDebtNotifications(), getQrisPendingNotifications(),
+    ]);
 
-    const cleanupEventNotifications = getTrashCleanupEvents(20).map((event) => ({
-      id: event.id,
-      type: "trash_cleanup" as const,
-      category: "trash" as const,
-      severity: "info" as const,
-      message: `${event.deletedCount} data lama di trash berhasil dibersihkan`,
-      createdAt: event.createdAt,
-      metadata: {
-        deletedCount: event.deletedCount,
-        skippedCount: event.skippedCount,
-      },
-    }));
+    const cleanupEvents = getTrashCleanupEvents(20);
+    const cleanupEventNotifications: NotificationItem[] = cleanupEvents
+      .filter((e): boolean => Number(e.deletedCount || 0) > 0)
+      .map((e): NotificationItem => ({
+        id: e.id, key: e.id.toUpperCase(), groupKey: "TRASH_CLEANUP:EVENTS", priority: PRIORITY_BY_SEVERITY.info, type: "trash_cleanup", category: "trash", severity: "info",
+        message: `${e.deletedCount} data lama di trash berhasil dibersihkan`, createdAt: e.createdAt, isRead: false, read: false,
+        action: { label: "Buka trash", href: "/dashboard/trash", intent: "cleanup" },
+        metadata: { deletedCount: e.deletedCount, skippedCount: e.skippedCount },
+      }));
 
-    const expiredTrashNotification =
-      expiredTrashCount > 0
-        ? [
-          {
-            id: "trash_cleanup:expired_items",
-            type: "trash_cleanup" as const,
-            category: "trash" as const,
-            severity: "warning" as const,
-            message: `${expiredTrashCount} data di trash sudah lebih dari 30 hari dan perlu dibersihkan`,
-            createdAt: new Date().toISOString(),
-            metadata: {
-              expiredCount: expiredTrashCount,
-            },
-          },
-        ]
-        : [];
+    const expiredTrashNotification: NotificationItem[] = expiredTrashSummary.count > 0 ? [{
+      id: buildExpiredTrashId(expiredTrashSummary.count, expiredTrashSummary.oldestAt),
+      key: "TRASH_CLEANUP:EXPIRED_ITEMS", groupKey: "TRASH_CLEANUP:EXPIRED_ITEMS", priority: PRIORITY_BY_SEVERITY.warning, type: "trash_cleanup", category: "trash", severity: "warning",
+      message: `${expiredTrashSummary.count} data di trash sudah > 30 hari dan perlu dibersihkan`,
+      createdAt: toIsoDate(settings.lastCleanupAt || new Date()), isRead: false, read: false,
+      action: { label: "Bersihkan trash", href: "/dashboard/trash", intent: "cleanup" },
+      metadata: { expiredCount: expiredTrashSummary.count },
+    }] : [];
 
-    const allRawNotifications = [
-      ...lowStock,
-      ...weeklyRestock,
-      ...monthlyRestock,
-      ...expiredTrashNotification,
-      ...cleanupEventNotifications,
-    ];
+    const allRaw: NotificationItem[] = [...lowStock, ...restockRecs, ...expiredTrashNotification, ...cleanupEventNotifications, ...debtAlerts, ...qrisAlerts];
+    
+    const userRoles = session.roles as string[];
+    const isSystemAdmin = userRoles.includes("admin sistem");
+    const isAdminToko = userRoles.includes("admin toko");
 
-    const stateMap = await getNotificationStateMap(
-      session.userId,
-      allRawNotifications.map((item) => item.id),
-    );
+    const filteredRaw = allRaw.filter((item: NotificationItem): boolean => {
+      if (isSystemAdmin) return true;
+      if (isAdminToko) return (item.category === "stock" || item.category === "finance" || item.category === "payment");
+      return false;
+    });
 
-    const allNotifications = allRawNotifications
-      .map((item) => applyNotificationState(item, stateMap))
-      .filter((item): item is NotificationItem => item !== null)
-      .sort((a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
+    const uniqueRaw = Array.from(new Map(filteredRaw.map((i: NotificationItem): [string, NotificationItem] => [i.id, i])).values());
+    const stateMap = await getNotificationStateMap(session.userId, uniqueRaw.map((i: NotificationItem): string => i.id));
 
-    const notifications = allNotifications.slice(0, limit);
+    const processed = uniqueRaw
+      .map((item: NotificationItem) => applyNotificationState(item, stateMap))
+      .filter((item): item is (NotificationItem & { isRead: boolean; read: boolean }) => item !== null)
+      .sort((a, b): number => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return NextResponse.json({
       success: true,
       data: {
-        lowStock,
-        restockRecommendations: [...weeklyRestock, ...monthlyRestock],
-        trashCleanupInfo: {
-          expiredCount: expiredTrashCount,
-        },
-        notifications,
-        unreadCount: notifications.filter((item) => !item.read).length,
+        items: processed.slice(0, limit),
+        unreadCount: processed.filter((i): boolean => !i.isRead).length,
       },
     });
-  } catch (error) {
-    return handleApiError(error);
+  } catch (err: unknown) {
+    return handleApiError(err);
   }
 }

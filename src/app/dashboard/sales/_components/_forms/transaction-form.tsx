@@ -11,7 +11,7 @@ import { useCreateSale } from "@/hooks/sales/use-sale";
 import { Card } from "@/components/ui/card";
 import { CustomerSelect } from "@/components/ui/customer-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Loader2, Search, QrCode, Ticket, Banknote, ScanLine, ShoppingCart } from "lucide-react";
+import { Loader2, Search, QrCode, Ticket, Banknote } from "lucide-react";
 import { useProductSearch } from "@/hooks/use-product-search";
 import { useSaleForm } from "../../_hooks/use-sale-form";
 import { TransactionCartItems } from "../transaction-cart-items";
@@ -23,6 +23,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { SaleSuccessModal } from "../_ui/sale-success-modal";
 import { StockWarningModal } from "../_ui/stock-warning-modal";
 import { QrisPaymentModal } from "@/components/qris-payment-modal";
+import { QrisLogoIcon } from "@/components/icons/qris-logo";
 
 interface TransactionFormProps {
   onSuccess?: () => void;
@@ -144,7 +145,6 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
 
   return (
     <>
-      {/* ✅ FIX: semua modal dipindah ke LUAR <form> agar tidak terbungkus form */}
 
       {/* Barcode Scanner */}
       <Dialog open={isScannerOpen} onOpenChange={closeScanner}>
@@ -362,7 +362,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                   "p-1.5 rounded-lg transition-colors",
                   paymentMethod === "qris" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                 )}>
-                  <ScanLine className="h-5 w-5" />
+                  <QrisLogoIcon className="h-5 w-9" title="QRIS" />
                 </div>
                 <span className="text-xs font-bold uppercase tracking-wide">QRIS</span>
               </button>
@@ -497,7 +497,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
               {isQris && (
                 <div className="p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800 text-sm space-y-1">
                   <p className="font-semibold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
-                    <ScanLine className="h-4 w-4" />
+                    <QrisLogoIcon className="h-4 w-7" title="QRIS" />
                     Pembayaran via QRIS
                   </p>
                   <p className="text-xs text-blue-600/80 dark:text-blue-400/80">
@@ -509,7 +509,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
 
               {/* ✅ FIX: type="button" + onClick manual, bukan type="submit" */}
               {/* Ini mencegah form HTML submit yang bisa diblokir Zod validation */}
-               {/* ACTION BUTTON (Desktop) */}
+              {/* ACTION BUTTON (Desktop) */}
               <div className="hidden lg:block pt-4">
                 <Button
                   size="lg"

@@ -22,6 +22,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { StockOpnamePrintTable } from "../stock-opname-print-table";
 import { ProductFilterForm } from "../ui/product-filter-form";
 import { FilterWrap } from "@/components/filter-wrap";
+import { useQueryState, useQueryStates } from "@/hooks/use-query-state";
 
 interface ProductListSectionProps {
   onEdit: (id: number) => void;
@@ -35,18 +36,33 @@ export function ProductListSection({
   const { roles } = useAuth();
   const isSystemAdmin = (roles as string[]).includes("admin sistem");
 
-  const [searchInput, setSearchInput] = useState("");
-  const debouncedSearch = useDebounce(searchInput, 500);
+  const [searchInput, setSearchInput] = useQueryState<string>("q", "", { 
+    debounce: 500,
+    syncWithUrl: false 
+  });
 
-  const [categoryFilter, setCategoryFilter] = useState("all");
-  const [stockFilter, setStockFilter] = useState<"all" | "low" | "normal">(
-    "all",
-  );
-  const [orderBy, setOrderBy] = useState("createdAt");
-  const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const [filters, setFilters] = useQueryStates({
+    category: "all",
+    filter: "all",
+    sort: "createdAt",
+    order: "desc",
+    page: 1,
+    limit: 12,
+  });
 
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(12);
+  const categoryFilter = filters.category as string;
+  const stockFilter = filters.filter as "all" | "low" | "normal";
+  const orderBy = filters.sort as string;
+  const order = filters.order as "asc" | "desc";
+  const page = filters.page as number;
+  const limit = filters.limit as number;
+
+  const setCategoryFilter = (v: string) => setFilters({ category: v, page: 1 });
+  const setStockFilter = (v: "all" | "low" | "normal") => setFilters({ filter: v, page: 1 });
+  const setOrderBy = (v: string) => setFilters({ sort: v, page: 1 });
+  const setOrder = (v: "asc" | "desc") => setFilters({ order: v, page: 1 });
+  const setPage = (p: number) => setFilters({ page: p });
+  const setLimit = (l: number) => setFilters({ limit: l, page: 1 });
 
   const [isPrinting, setIsPrinting] = useState(false);
 
@@ -55,10 +71,6 @@ export function ProductListSection({
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, categoryFilter, stockFilter, orderBy, order]);
 
   const deleteMutation = useDeleteProduct();
   const { data: categoriesResult } = useCategories();
@@ -88,7 +100,7 @@ export function ProductListSection({
   const { data: allProductsData, isLoading: isAllProductsLoading } =
     useProducts({
       params: {
-        search: debouncedSearch,
+        search: searchInput,
         page,
         limit,
         categoryId: categoryFilter !== "all" ? categoryFilter : undefined,
@@ -101,7 +113,7 @@ export function ProductListSection({
   // Fetches ALL products for printing when isPrinting is true
   const { data: printData, isFetching: isFetchingPrint } = useProducts({
     params: {
-      search: debouncedSearch,
+      search: searchInput,
       categoryId: categoryFilter !== "all" ? categoryFilter : undefined,
       lowStockOnly: stockFilter === "low" ? true : undefined,
       orderBy,
@@ -246,7 +258,7 @@ export function ProductListSection({
 
       {/* PERLU RESTOK SECTION */}
       {lowStockProducts.length > 0 &&
-        !debouncedSearch &&
+        !searchInput &&
         categoryFilter === "all" &&
         stockFilter === "all" && (
           <section className="space-y-4">
@@ -349,7 +361,7 @@ export function ProductListSection({
         createPortal(
           <StockOpnamePrintTable
             data={printData?.data || []}
-            searchTerm={debouncedSearch}
+            searchTerm={searchInput}
             printDate={new Date().toLocaleString("id-ID")}
           />,
           document.body,

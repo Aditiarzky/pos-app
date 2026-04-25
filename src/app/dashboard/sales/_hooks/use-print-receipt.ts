@@ -34,7 +34,6 @@ export function usePrintReceipt() {
         type: "image/png",
       });
 
-      // Web Share API — works on mobile (Android/iOS) with HTTPS
       if (
         typeof navigator !== "undefined" &&
         navigator.canShare &&

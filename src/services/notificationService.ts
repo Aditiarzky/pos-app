@@ -2,17 +2,27 @@ import { axiosInstance } from "@/lib/axios";
 import { ApiResponse } from "./productService";
 
 export type NotificationSeverity = "info" | "warning" | "critical";
-export type NotificationCategory = "system" | "stock" | "trash";
-export type NotificationType = "low_stock" | "restock" | "trash_cleanup";
+export type NotificationCategory = "stock" | "trash" | "system" | "finance" | "payment";
+export type NotificationType = "low_stock" | "restock" | "trash_cleanup" | "debt_overdue" | "qris_pending";
+export type NotificationActionIntent = "view" | "restock" | "cleanup";
 
 export type NotificationItem = {
   id: string;
+  key?: string;
+  groupKey?: string;
+  priority?: number;
   type: NotificationType;
   category: NotificationCategory;
   severity: NotificationSeverity;
   message: string;
   createdAt: string;
+  isRead: boolean;
   read: boolean;
+  action?: {
+    label: string;
+    href?: string;
+    intent?: NotificationActionIntent;
+  };
   metadata?: Record<string, string | number | null>;
 };
 
@@ -52,6 +62,7 @@ export type RestockRecommendation = {
 };
 
 export type NotificationsResponse = {
+  items: NotificationItem[];
   lowStock: LowStockNotification[];
   restockRecommendations: RestockRecommendation[];
   trashCleanupInfo: {
@@ -67,13 +78,22 @@ export const getNotifications = async (params?: { limit?: number }) => {
     { params },
   );
 
+  const payload = response.data.data;
+  if (payload?.items && !payload.notifications) {
+    payload.notifications = payload.items;
+  }
+
   return response.data;
 };
 
 export const markNotificationAsRead = async (id: string) => {
-  const response = await axiosInstance.post<ApiResponse<{ count: number }>>(
-    "/notifications/read",
-    { id },
+  const notificationId = id.trim();
+  if (!notificationId) {
+    throw new Error("Notification id wajib diisi");
+  }
+
+  const response = await axiosInstance.patch<ApiResponse<{ count: number }>>(
+    `/notifications/${encodeURIComponent(notificationId)}/read`,
   );
 
   return response.data;
@@ -89,9 +109,9 @@ export const markNotificationsAsRead = async (ids: string[]) => {
 };
 
 export const clearReadNotifications = async (ids?: string[]) => {
-  const response = await axiosInstance.delete<ApiResponse<{ count: number }>>(
-    "/notifications/clear",
-    { data: ids && ids.length ? { ids } : {} },
+  const response = await axiosInstance.post<ApiResponse<{ count: number }>>(
+    "/notifications/read/clear",
+    ids && ids.length ? { ids } : {},
   );
 
   return response.data;

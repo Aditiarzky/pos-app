@@ -20,17 +20,24 @@ export const FilterWrap = ({
   children: React.ReactNode;
   hasActiveFilters: boolean;
 }) => {
+  const triggerClassName =
+    "relative h-10 rounded-xl border-border/70 bg-background shadow-sm hover:border-primary/40 hover:bg-primary/5";
+
   return (
     <>
       {/* Mobile Filter Trigger */}
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="outline" className="h-10 sm:hidden relative">
+          <Button
+            variant="outline"
+            size="icon"
+            className={`${triggerClassName} sm:hidden`}
+          >
             <Filter className="h-4 w-4" />
             {hasActiveFilters && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                <span className="absolute inline-flex h-full w-full rounded-full bg-primary/35"></span>
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-primary ring-2 ring-background"></span>
               </span>
             )}
           </Button>
@@ -49,13 +56,16 @@ export const FilterWrap = ({
       {/* Desktop Filter Trigger */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="h-10 hidden sm:flex relative">
+          <Button
+            variant="outline"
+            className={`${triggerClassName} hidden sm:flex px-3`}
+          >
             <Filter className="mr-2 h-4 w-4" />
             Filter Lanjutan
             {hasActiveFilters && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                <span className="absolute inline-flex h-full w-full rounded-full bg-primary/35"></span>
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-primary ring-2 ring-background"></span>
               </span>
             )}
           </Button>

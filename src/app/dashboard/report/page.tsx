@@ -1279,10 +1279,7 @@ export function ReportContent() {
 
 export default function ReportPage() {
   return (
-    <RoleGuard
-      allowedRoles={["admin sistem"]}
-      fallback={<AccessDenied />}
-    >
+    <RoleGuard allowedRoles={["admin sistem"]} fallback={<AccessDenied />}>
       <Suspense
         fallback={
           <div className="container mx-auto p-4 flex items-center justify-center min-h-[400px]">

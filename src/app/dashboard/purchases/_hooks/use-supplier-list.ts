@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSuppliers, useDeleteSupplier } from "@/hooks/master/use-suppliers";
 import { useConfirm } from "@/contexts/ConfirmDialog";
@@ -69,6 +69,11 @@ export function useSupplierList(): UseSupplierListReturn {
   const [orderBy, setOrderBy] = useState<SuppliersQueryParams["orderBy"]>("createdAt");
   const [order, setOrder] = useState<SuppliersQueryParams["order"]>("desc");
 
+  // Reset page to 1 when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
   // Query params
   const queryParams: SuppliersQueryParams = {
     page,
@@ -79,7 +84,7 @@ export function useSupplierList(): UseSupplierListReturn {
   };
 
   // Fetch suppliers
-  const { data: suppliersResult, isLoading } = useSuppliers();
+  const { data: suppliersResult, isLoading } = useSuppliers(queryParams);
   const suppliers = suppliersResult?.data ?? [];
   const meta = suppliersResult?.meta;
 
