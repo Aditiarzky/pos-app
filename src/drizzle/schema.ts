@@ -831,3 +831,11 @@ export const notificationStates = p.pgTable(
     p.index("notification_states_user_idx").on(t.userId),
   ],
 );
+
+export const trashSettings = p.pgTable("trash_settings", {
+  id: p.serial("id").primaryKey(),
+  lastCheckAt: p.timestamp("last_check_at"), // Untuk throttling pengecekan
+  lastCleanupAt: p.timestamp("last_cleanup_at"), // Untuk UI & Notifikasi (hanya jika hapus berhasil)
+  cleanupIntervalMinutes: p.integer("cleanup_interval_minutes").default(360).notNull(),
+  updatedAt: p.timestamp("updated_at").defaultNow().$onUpdateFn(() => new Date()),
+});

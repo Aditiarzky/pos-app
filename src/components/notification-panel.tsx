@@ -1,14 +1,17 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import {
-  AlertTriangle,
   Bell,
   Check,
   Loader2,
   PackageSearch,
   Trash2,
+  TriangleAlert,
+  CreditCard,
+  HandCoins,
+  History,
 } from "lucide-react";
 import {
   Popover,
@@ -26,88 +29,109 @@ import { NotificationItem } from "@/services/notificationService";
 import { toast } from "sonner";
 
 const POPOVER_MAX_ITEMS = 8;
+const isNotificationRead = (notification: NotificationItem) =>
+  notification.isRead ?? notification.read;
+const markedOnOpenRefFallback = new Set<string>();
 
 const getNotificationIcon = (notification: NotificationItem) => {
-  if (notification.type === "low_stock") {
-    return <AlertTriangle className="h-4 w-4 text-amber-500" />;
-  }
-
-  if (notification.type === "restock") {
-    return <PackageSearch className="h-4 w-4 text-blue-500" />;
-  }
-
-  if (notification.type === "trash_cleanup") {
-    return <Trash2 className="h-4 w-4 text-emerald-500" />;
-  }
-
+  if (notification.type === "low_stock") return <TriangleAlert className="h-4 w-4 text-amber-500" />;
+  if (notification.type === "restock") return <PackageSearch className="h-4 w-4 text-blue-500" />;
+  if (notification.type === "debt_overdue") return <HandCoins className="h-4 w-4 text-rose-500" />;
+  if (notification.type === "qris_pending") return <CreditCard className="h-4 w-4 text-indigo-500" />;
+  if (notification.category === "trash") return <Trash2 className="h-4 w-4 text-emerald-500" />;
   return <Bell className="h-4 w-4 text-muted-foreground" />;
 };
 
 const getSeverityBadge = (severity: NotificationItem["severity"]) => {
   if (severity === "critical") {
-    return <Badge className="bg-destructive text-white">Critical</Badge>;
+    return <Badge className="bg-destructive text-white text-[10px] px-1.5 py-2 h-4 uppercase">Kritis</Badge>;
   }
-
   if (severity === "warning") {
-    return <Badge variant="outline">Warning</Badge>;
+    return <Badge className="bg-amber-500/15 text-amber-700 border-amber-300 text-[10px] px-1.5 py-2 h-4 uppercase">Peringatan</Badge>;
   }
+  return <Badge variant="secondary" className="text-[10px] px-1.5 py-2 h-4 uppercase">Info</Badge>;
+};
 
-  return <Badge variant="secondary">Info</Badge>;
+const getTypeLabel = (notification: NotificationItem) => {
+  switch (notification.type) {
+    case "low_stock": return "Stok Rendah";
+    case "restock": return "Restock";
+    case "debt_overdue": return "Piutang";
+    case "qris_pending": return "QRIS";
+    case "trash_cleanup": return "Trash";
+    default: return notification.category;
+  }
 };
 
 const formatTimeAgo = (createdAt: string) => {
   const date = new Date(createdAt);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
-  const minutes = Math.floor(diffMs / (1000 * 60));
+  const seconds = Math.floor(diffMs / 1000);
+  if (seconds < 10) return "Baru saja";
+  if (seconds < 60) return `${seconds} detik lalu`;
 
-  if (minutes < 1) return "Baru saja";
+  const minutes = Math.floor(diffMs / (1000 * 60));
   if (minutes < 60) return `${minutes} menit lalu`;
 
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} jam lalu`;
 
   const days = Math.floor(hours / 24);
-  return `${days} hari lalu`;
+  if (days <= 7) return `${days} hari lalu`;
+
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 };
 
 export function NotificationPanel() {
   const [isOpen, setIsOpen] = React.useState(false);
+  const markedOnOpenRef = React.useRef(markedOnOpenRefFallback);
   const notificationsQuery = useNotifications({
     params: { limit: 60 },
   });
   const markManyAsReadMutation = useMarkNotificationsAsRead();
   const clearReadMutation = useClearReadNotifications();
 
-  const notifications = notificationsQuery.data?.data?.notifications || [];
-  const unreadCount = notificationsQuery.data?.data?.unreadCount || 0;
-  const readCount = notifications.length - unreadCount;
+  const notifications = useMemo(
+    () => notificationsQuery.data?.data?.items || [],
+    [notificationsQuery.data]
+  );
 
-  const latestNotifications = notifications.slice(0, POPOVER_MAX_ITEMS);
+  const unreadCount = notificationsQuery.data?.data?.unreadCount || 0;
+  const readCount = notifications.filter((item) => isNotificationRead(item)).length;
+
+  // Panel selalu tampilkan berdasarkan waktu terbaru (createdAt)
+  const latestNotifications = useMemo(() => {
+    return [...notifications]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, POPOVER_MAX_ITEMS);
+  }, [notifications]);
 
   const handleMarkVisibleAsRead = async () => {
     const unreadIds = latestNotifications
-      .filter((notification) => !notification.read)
+      .filter((notification) => !isNotificationRead(notification))
       .map((notification) => notification.id);
 
     if (!unreadIds.length) return;
 
     try {
       await markManyAsReadMutation.mutateAsync(unreadIds);
-      toast.success(`${unreadIds.length} notifikasi ditandai telah dibaca`);
+      toast.success(`${unreadIds.length} notifikasi ditandai dibaca`);
     } catch {
-      toast.error("Gagal menandai notifikasi");
+      toast.error("Gagal memperbarui notifikasi");
     }
   };
 
   const handleClearRead = async () => {
     if (readCount === 0) return;
-
     try {
       const result = await clearReadMutation.mutateAsync(undefined);
-      toast.success(result.message || "Notifikasi yang sudah dibaca telah dibersihkan");
+      toast.success(result.message || "Riwayat notifikasi dibersihkan");
     } catch {
-      toast.error("Gagal membersihkan notifikasi");
+      toast.error("Gagal membersihkan riwayat");
     }
   };
 
@@ -115,28 +139,43 @@ export function NotificationPanel() {
     if (isOpen) {
       notificationsQuery.refetch();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+
+  }, [isOpen, notificationsQuery]);
+
+  React.useEffect(() => {
+    if (!isOpen || markManyAsReadMutation.isPending) return;
+
+    const unreadVisibleIds = latestNotifications
+      .filter((notification) => !isNotificationRead(notification))
+      .filter((notification) => !markedOnOpenRef.current.has(notification.id))
+      .map((notification) => notification.id);
+
+    if (unreadVisibleIds.length > 0) {
+      unreadVisibleIds.forEach((id) => markedOnOpenRef.current.add(id));
+      markManyAsReadMutation.mutate(unreadVisibleIds);
+    }
+
+  }, [isOpen, latestNotifications, markManyAsReadMutation, notificationsQuery.data]);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
+        <Button variant="ghost" size="icon" className="relative group hover:bg-primary/10 transition-colors rounded-full">
+          <Bell className="w-5 h-5 group-hover:text-primary transition-colors" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-destructive text-white text-[10px] font-semibold flex items-center justify-center">
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-4.5 px-1.5 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-background animate-in zoom-in">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-[360px] p-0">
-        <div className="border-b px-4 py-3 flex items-center justify-between">
+      <PopoverContent align="end" className="w-[380px] p-0 shadow-2xl rounded-2xl overflow-hidden border-primary/10">
+        <div className="bg-primary/5 border-b px-4 py-3 flex items-center justify-between gap-3">
           <div>
-            <p className="font-semibold text-sm">Notifikasi</p>
-            <p className="text-xs text-muted-foreground">
-              {unreadCount} unread dari {notifications.length} notifikasi
+            <p className="font-bold text-sm text-primary">Notifikasi</p>
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-tight">
+              {unreadCount} Belum Dibaca
             </p>
           </div>
 
@@ -144,68 +183,99 @@ export function NotificationPanel() {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-xs"
+              className="h-7 px-2 text-[10px] font-bold hover:bg-primary/10 hover:text-primary"
               onClick={handleMarkVisibleAsRead}
               disabled={markManyAsReadMutation.isPending || unreadCount === 0}
             >
               {markManyAsReadMutation.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
               ) : (
-                <Check className="h-3.5 w-3.5" />
+                <Check className="h-3 w-3 mr-1" />
               )}
-              <span className="ml-1">Mark Read</span>
+              BACA SEMUA
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-xs"
+              className="h-7 px-2 text-[10px] font-bold text-destructive hover:bg-destructive/10"
               onClick={handleClearRead}
               disabled={clearReadMutation.isPending || readCount === 0}
             >
-              {clearReadMutation.isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : null}
-              Clear Read
+              BERSIHKAN
             </Button>
           </div>
         </div>
 
-        <div className="max-h-[380px] overflow-y-auto">
+        <div className="max-h-[420px] overflow-y-auto">
           {notificationsQuery.isLoading ? (
-            <div className="p-4 text-sm text-muted-foreground">Memuat notifikasi...</div>
+            <div className="p-8 flex flex-col items-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-primary/30" />
+              <p className="text-xs text-muted-foreground">Memuat...</p>
+            </div>
           ) : notificationsQuery.isError ? (
-            <div className="p-4 text-sm text-destructive">Gagal memuat notifikasi</div>
+            <div className="p-6 text-center text-xs text-destructive bg-destructive/5">
+              Gagal memuat notifikasi.
+            </div>
           ) : latestNotifications.length === 0 ? (
-            <div className="p-6 text-sm text-center text-muted-foreground">
-              Belum ada notifikasi operasional.
+            <div className="p-12 text-center flex flex-col items-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                <Bell className="h-6 w-6 opacity-20" />
+              </div>
+              <p className="text-xs text-muted-foreground font-medium">Belum ada pemberitahuan.</p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-primary/5">
               {latestNotifications.map((notification) => (
                 <button
                   key={notification.id}
                   type="button"
-                  className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors"
+                  className={`w-full text-left px-4 py-3.5 transition-all duration-200 ${!isNotificationRead(notification)
+                    ? "bg-primary/[0.03] hover:bg-primary/[0.06]"
+                    : "hover:bg-muted/50"
+                    }`}
                   onClick={() => {
-                    if (notification.read) return;
+                    if (isNotificationRead(notification)) return;
                     markManyAsReadMutation.mutate([notification.id]);
                   }}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="mt-0.5">{getNotificationIcon(notification)}</div>
+                    <div className={`mt-1 flex-shrink-0 flex items-center justify-center rounded-full border bg-background h-8 w-8 shadow-sm ${!isNotificationRead(notification) ? 'border-primary/20' : ''}`}>
+                      {getNotificationIcon(notification)}
+                    </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        {getSeverityBadge(notification.severity)}
-                        {!notification.read && (
-                          <span className="h-2 w-2 rounded-full bg-primary" />
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          {getSeverityBadge(notification.severity)}
+                          <span className="text-[10px] font-bold text-muted-foreground uppercase truncate">
+                            {getTypeLabel(notification)}
+                          </span>
+                        </div>
+                        {!isNotificationRead(notification) && (
+                          <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                         )}
                       </div>
 
-                      <p className="text-sm mt-1 leading-snug">{notification.message}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatTimeAgo(notification.createdAt)}
+                      <p className={`text-xs leading-snug ${!isNotificationRead(notification) ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>
+                        {notification.message}
                       </p>
+
+                      <div className="flex items-center justify-between gap-2 mt-2">
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <History className="h-2.5 w-3.5" />
+                          {formatTimeAgo(notification.createdAt)}
+                        </p>
+
+                        {notification.action?.href ? (
+                          <Link
+                            href={notification.action.href}
+                            className="text-[10px] font-bold text-primary hover:underline bg-primary/10 py-0.5 px-2 rounded-md"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            LIHAT
+                          </Link>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -214,9 +284,9 @@ export function NotificationPanel() {
           )}
         </div>
 
-        <div className="border-t p-3">
-          <Button asChild variant="outline" className="w-full">
-            <Link href="/dashboard/notifications">Lihat semua notifikasi</Link>
+        <div className="border-t p-3 bg-muted/20">
+          <Button asChild variant="outline" className="w-full h-9 rounded-xl border-primary/10 text-primary font-bold text-xs hover:bg-primary/5">
+            <Link href="/dashboard/notifications">LIHAT SEMUA</Link>
           </Button>
         </div>
       </PopoverContent>

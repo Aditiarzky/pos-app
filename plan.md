@@ -1,193 +1,99 @@
-# Rencana Analisis & Improvement Sistem Notifikasi POS
+# Rencana Refactor UI - Konsistensi Komponen Dasar
 
-Dokumen ini adalah plan kerja untuk melakukan evaluasi dan peningkatan menyeluruh pada sistem notifikasi agar benar-benar berguna, actionable, jelas untuk user operasional POS, serta mudah di-maintain dan scalable.
+Dokumen ini berisi rencana untuk merapikan dan menyatukan tampilan UI yang saat ini belum konsisten, terutama pada komponen dasar seperti tombol filter, switch mode card/tabel, tombol tab, dan elemen kecil lain yang sering dipakai ulang.
 
-## Objective
-- Memastikan notifikasi benar-benar berfungsi (bukan sekadar tampil).
-- Memastikan konten notifikasi relevan terhadap keputusan operasional harian.
-- Memastikan UX notifikasi mudah dipahami dan tidak membingungkan.
-- Menjaga arsitektur tetap rapi (`API -> Service -> Hook -> UI`) dan siap dikembangkan.
+## Tujuan
 
-## Prinsip Implementasi
-- Wajib analisis sistem existing terlebih dahulu sebelum perubahan.
-- Hindari rewrite besar yang berisiko merusak fitur existing.
-- Fokus pada kejelasan informasi dan anti-spam.
-- Hindari over-engineering; pilih solusi sederhana namun robust.
+- Menyamakan gaya visual dan perilaku interaksi antar komponen UI dasar.
+- Mengurangi variasi style ad-hoc per halaman/fitur.
+- Meningkatkan keterbacaan, hirarki visual, dan kualitas estetika tanpa mengubah identitas produk.
+- Menyiapkan fondasi design system ringan agar pengembangan fitur berikutnya lebih cepat dan konsisten.
 
-## 1) Analisis Sistem Existing (Wajib Dulu)
-### A. Identifikasi Teknis
-- Telusuri bagaimana notifikasi saat ini dibuat:
-  - apakah dari backend, frontend, atau campuran.
-  - apakah real-time (websocket/pusher) atau fetch berkala/manual.
-  - dari mana sumber data notifikasi (products, sales, trash, dll).
-  - apakah notifikasi disimpan (persisted) atau hanya computed saat render/fetch.
-- Inventarisasi alur saat ini:
-  - trigger -> generator -> storage -> endpoint -> client state -> UI render.
+## Masalah yang Ditemukan
 
-### B. Evaluasi Singkat Existing
-- Catat apa yang sudah benar (misal source data akurat, komponen sudah reusable, dsb).
-- Catat apa yang belum berjalan (missing endpoint, race condition, stale data, dsb).
-- Catat gap utama dari sisi:
-  - **Logic**: aturan trigger belum lengkap, tidak ada dedup, tidak ada status read.
-  - **Performa**: query berat, fetch terlalu sering, payload tidak terstruktur.
-  - **UX**: pesan ambigu, tidak actionable, notif menumpuk/tidak pernah hilang.
+- Tombol filter berbeda-beda dari sisi ukuran, radius, warna, icon spacing, dan state aktif.
+- Switch view card/tabel tidak punya pola yang sama antar halaman (position, icon style, active state, hover/focus).
+- Tombol tab memiliki style berbeda (border, background, typography, spacing), sehingga UX terasa tidak seragam.
+- Komponen kecil (badge, chip, inline action button, empty state action, small dropdown trigger) belum mengikuti satu token/style yang sama.
+- State penting (hover, focus, disabled, loading) belum konsisten di semua komponen.
 
-### C. Deliverable Tahap Analisis
-- Ringkasan kondisi sistem lama.
-- Daftar masalah prioritas berdasarkan impact.
-- Rekomendasi perubahan bertahap (low risk -> medium risk).
+## Scope Refactor
 
-## 2) Improvement Logic Notifikasi
-### A. Jenis Notifikasi Minimum (Actionable)
-1. **Low Stock Alert**
-   - Trigger: `stock <= minStock * 1.2`
-   - Message harus menyebut produk dan angka stock saat ini.
-2. **Restock Recommendation**
-   - Berdasarkan tren penjualan 7 hari dan 30 hari.
-   - Rekomendasi kuantitas restock harus jelas (minimal estimasi).
-3. **Trash Cleanup Info**
-   - Data dengan `deleted_at > 30 hari`.
-   - Memberi info bahwa data siap dibersihkan / sudah dibersihkan.
+### 1. Standarisasi Foundation (Design Tokens)
 
-### B. Aturan Anti Duplicate & Anti Spam
-- Setiap notifikasi punya identity unik (`id` + `key` deterministik).
-- Terapkan dedup key, contoh:
-  - `LOW_STOCK:{productId}:{dateBucket}`
-  - `RESTOCK_RECO:{productId}:{period}`
-  - `TRASH_CLEANUP:{entity}:{dateBucket}`
-- Terapkan cooldown agar refresh halaman tidak memunculkan notif identik berulang.
-- Pisahkan status `isRead` vs `isArchived/cleaned` agar lifecycle jelas.
+- Definisikan token warna, radius, shadow, border, spacing, dan typography yang jadi acuan bersama.
+- Tetapkan skala ukuran komponen (`sm`, `md`, `lg`) dan tinggi komponen standar.
+- Pastikan token mendukung aksesibilitas kontras untuk teks dan elemen interaktif.
 
-## 3) Improvement Arsitektur (API -> Service -> Hook -> UI)
-### A. Backend
-- Pastikan endpoint utama tersedia: `GET /api/notifications`
-- Bentuk response wajib terstruktur:
+### 2. Standardisasi Komponen Prioritas
 
-```json
-{
-  "items": [
-    {
-      "id": "string",
-      "type": "LOW_STOCK | RESTOCK_RECOMMENDATION | TRASH_CLEANUP",
-      "message": "string",
-      "createdAt": "ISO_DATETIME",
-      "isRead": false
-    }
-  ]
-}
-```
+- `FilterButton` / `FilterGroup`
+- `ViewSwitch` (Card <-> Table)
+- `Tabs` / `TabButton`
+- `IconButton` kecil untuk aksi sekunder
+- `Badge` / `Chip` status ringkas
+- `DropdownTrigger` kecil yang sering dipakai di toolbar/list
 
-- Tambahkan endpoint jika belum ada:
-  - `PATCH /api/notifications/:id/read` (mark as read)
-  - `POST /api/notifications/read/clear` (clear read notifications)
-- Pastikan service layer menjadi satu pintu business logic notifikasi.
+### 3. Penyatuan State Interaksi
 
-### B. Frontend
-- Buat hook terpisah untuk notifikasi, contoh:
-  - `useNotifications()` untuk fetch/list state.
-  - `useMarkNotificationRead()` untuk aksi mark read.
-  - `useClearReadNotifications()` untuk clear read.
-- UI tidak boleh berisi business logic berat; hanya rendering + event handling.
+- Definisikan state baku: `default`, `hover`, `active`, `focus-visible`, `disabled`, `loading`.
+- Terapkan pola focus ring yang konsisten di semua kontrol interaktif.
+- Samakan transisi ringan agar UI terasa rapi dan responsif.
 
-## 4) Improvement UX Notifikasi
-### A. Notification Bell (Top Navbar)
-- Tampilkan badge jumlah unread.
-- Klik bell membuka popover notifikasi.
+### 4. Polishing Visual
 
-### B. Popover Behaviour
-- Tampilkan maksimal 5-8 item terbaru.
-- Setiap item menampilkan:
-  - icon sesuai type/severity
-  - pesan singkat namun jelas
-  - waktu relatif/absolut
-- Tambahkan tombol **"Lihat semua notifikasi"** menuju `/dashboard/notifications`.
+- Rapikan alignment, spasi horizontal/vertikal, dan ritme layout pada area toolbar/list/header section.
+- Tingkatkan visual clarity (warna aktif, indikator state, pemisahan prioritas aksi).
+- Perindah tampilan secara subtle (bukan redesign total), tetap selaras gaya produk saat ini.
 
-### C. Behaviour Read/Cleanup
-- Saat user membuka detail/notifikasi, tandai sebagai `read`.
-- Notifikasi `read` dapat:
-  - dihapus manual (clear read), atau
-  - auto clean berdasarkan policy yang disepakati.
+## Strategi Implementasi
 
-### D. UX Problem yang Harus Dihindari
-- Notif muncul tapi tidak jelas tindakan lanjutnya.
-- Notif terlalu sering dan terasa spam.
-- Notif tidak pernah hilang sehingga mengganggu fokus.
+1. Audit komponen dan mapping area pemakaian.
+2. Bentuk standar final (token + varian komponen) di layer UI reusable.
+3. Refactor bertahap per komponen prioritas.
+4. Terapkan ke halaman-halaman utama dengan traffic tinggi terlebih dahulu.
+5. Bersihkan style lama/duplikasi class setelah migrasi aman.
 
-## 5) Refactor UI Component
-### Target Komponen
-- `src/components/notification-panel.tsx`
+## Urutan Eksekusi
 
-### Tujuan Refactor
-- Reusable lintas halaman/layout.
-- Struktur lebih clean dan tidak terlalu kompleks.
-- Gunakan `lucide-react` untuk icon.
-- Gunakan badge untuk severity/type agar lebih cepat dipahami.
+1. Audit dan inventaris style saat ini.
+2. Buat/rapikan token global dan utility class varian komponen.
+3. Refactor `FilterButton` dan `ViewSwitch`.
+4. Refactor `Tabs/TabButton`.
+5. Refactor komponen kecil (badge/chip/icon button/dropdown trigger).
+6. Integrasi ke halaman target dan validasi visual.
+7. Cleanup kode style lama.
 
-## 6) Skenario Manual Testing (Wajib)
-### A. Low Stock
-- Setup: `stock = 5`, `minStock = 10`
-- Expected:
-  - Notifikasi low stock muncul.
-  - Pesan jelas menyebut produk dan kebutuhan restock.
-  - Tidak muncul duplikat saat refresh berulang.
+## Kriteria Selesai (Definition of Done)
 
-### B. Restock Recommendation
-- Setup: buat transaksi penjualan tinggi (simulasi 7 hari dan 30 hari).
-- Expected:
-  - Notifikasi restock recommendation muncul.
-  - Ada indikasi alasan rekomendasi (tren penjualan).
+- Komponen prioritas menggunakan style yang konsisten lintas halaman.
+- Tidak ada lagi style inline/ad-hoc untuk pola komponen yang sama.
+- State interaksi utama tersedia dan seragam.
+- Tidak ada regresi fungsi pada filter, tab navigation, dan switch view.
+- Visual terlihat lebih rapi dan modern tanpa mengganggu alur kerja pengguna.
 
-### C. Trash Cleanup
-- Setup: data dengan `deleted_at > 30 hari`.
-- Action: buka halaman trash / jalankan cleanup flow.
-- Expected:
-  - Data eligible dibersihkan sesuai policy.
-  - Notifikasi cleanup info muncul dengan konteks jelas.
+## Validasi & QA
 
-### D. Read State
-- Action: buka popover, buka salah satu notifikasi.
-- Expected:
-  - Status `isRead` berubah.
-  - Badge unread berkurang akurat.
+- Uji visual desktop + mobile untuk halaman yang terdampak.
+- Uji keyboard navigation (`Tab`, `Enter`, `Space`, `Esc`) untuk komponen interaktif.
+- Uji kontras teks dan focus state pada tema yang aktif.
+- Bandingkan sebelum/sesudah pada skenario: filtering, ganti mode tampilan, pindah tab, aksi kecil di toolbar.
 
-## 7) Unit Testing Plan (Wajib)
-### A. Backend Unit Test
-- `should return low stock notification when stock below threshold`
-- `should return restock recommendation based on 7-day and 30-day sales`
-- `should return trash cleanup notification for items older than 30 days`
-- `should not duplicate notification for same key`
-- `should mark notification as read`
-- `should clear read notifications only`
+## Risiko & Mitigasi
 
-### B. Frontend Unit Test
-- `should show unread badge count correctly`
-- `should render max items in popover correctly`
-- `should render icon, message, and time for each notification`
-- `should mark notification as read when opened`
-- `should navigate to /dashboard/notifications on "Lihat semua notifikasi"`
+- Risiko: perbedaan style lama tersebar di banyak file.
+  - Mitigasi: migrasi bertahap + fallback class sementara.
+- Risiko: perubahan visual memicu mismatch ekspektasi tim.
+  - Mitigasi: tetapkan contoh standar per komponen sebagai referensi tunggal sebelum rollout luas.
+- Risiko: regresi interaksi komponen.
+  - Mitigasi: checklist QA perilaku + verifikasi manual untuk flow utama.
 
-## 8) Output yang Diharapkan Setelah Implementasi
-- Penjelasan hasil analisis sistem lama (yang benar vs yang bermasalah).
-- Daftar perubahan yang dilakukan.
-- Alasan kenapa perubahan tersebut diperlukan (logic, performa, UX, maintainability).
-- Hasil uji skenario manual.
-- Unit testing plan lengkap dan siap dieksekusi.
+## Target Area Implementasi
 
-## Tahapan Eksekusi Ringkas
-1. Audit sistem existing dan tulis temuan.
-2. Rapikan contract API notifikasi.
-3. Implement improvement logic + dedup + anti spam.
-4. Refactor service/hook/UI sesuai arsitektur.
-5. Refactor `notification-panel.tsx` agar reusable dan clean.
-6. Jalankan validasi manual berdasarkan skenario.
-7. Siapkan unit test plan final dan dokumentasi hasil.
+- Komponen reusable di folder UI/shared components.
+- Halaman dashboard/listing yang memakai filter, tabs, dan view switch.
+- Area toolbar dan panel ringkas yang banyak memakai komponen kecil.
 
-## Definition of Done
-- Analisis existing selesai dan terdokumentasi.
-- Ketiga jenis notifikasi minimum berjalan dengan benar.
-- Tidak ada duplicate/spam notification saat refresh normal.
-- Endpoint read dan clear read tersedia dan bekerja.
-- UX bell + popover + lihat semua notifikasi berfungsi baik.
-- Komponen notifikasi reusable dan lebih mudah di-maintain.
-- Manual testing scenario tervalidasi.
-- Unit testing plan backend + frontend tersedia jelas.
+## Hasil Akhir yang Diharapkan
+
+UI dasar menjadi konsisten, lebih enak dipakai, dan terlihat lebih polished. Tim juga punya fondasi komponen yang jelas untuk pengembangan fitur berikutnya tanpa mengulang ketidakkonsistenan style.

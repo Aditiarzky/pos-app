@@ -199,6 +199,7 @@ export function useSaleForm({
           requestedQty: requestedTotalBase,
           currentStock,
           difference: requestedTotalBase - currentStock,
+          conversionToBase: conversionFactor,
         });
       }
     });
@@ -317,16 +318,10 @@ export function useSaleForm({
       const response = await createMutation.mutateAsync(payload as any);
 
       if (response.success && response.data) {
-        // ✅ Type assertion: SaleResponse tidak punya qrisData,
-        // tapi API mengembalikannya saat paymentMethod === "qris"
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rawData = response.data as any;
 
         if (paymentMethod === "qris" && rawData.qrisData) {
-          // ✅ URUTAN PENTING:
-          // 1. set qrisData DULU → modal langsung bisa render
-          // 2. baru reset form → tidak akan overwrite qrisData
-          // 3. reset paymentMethod paling akhir
           setQrisData({
             paymentNumber: rawData.qrisData.paymentNumber,
             expiredAt: rawData.qrisData.expiredAt,

@@ -42,43 +42,54 @@ export function SearchResultsDropdown({
               )}
               {product.name}
             </div>
-            {/* Variants List */}
-            {product.variants?.map((variant) => (
-              <button
-                key={variant.id}
-                type="button"
-                className="w-full text-left px-3 py-2 hover:bg-muted/50 border-l-2 border-transparent hover:border-primary transition-all flex justify-between items-center"
-                onClick={() => onSelectProduct(product, variant)}
-              >
-                <div className="flex flex-col">
-                  <span className="font-medium text-foreground">
-                    {variant.name}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground font-mono">
-                    SKU: {variant.sku}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold text-xs text-foreground">
-                    {formatCurrency(Number(variant.sellPrice))}
+            {product.variants?.map((variant) => {
+              const variantStock =
+                Number(product.stock) / Number(variant.conversionToBase);
+
+              return (
+                <button
+                  key={variant.id}
+                  type="button"
+                  className="w-full text-left px-3 py-2 hover:bg-muted/50 border-l-2 border-transparent hover:border-primary transition-all flex justify-between items-center"
+                  onClick={() => onSelectProduct(product, variant)}
+                >
+                  <div className="flex flex-col">
+                    <span className="font-medium text-foreground">
+                      {variant.name}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-mono">
+                      SKU: {variant.sku}
+                    </span>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <div className="text-[9px] text-emerald-600 font-bold">
-                      Stok: {Number(product.stock).toFixed(0)}
+                  <div className="text-right">
+                    <div className="font-semibold text-xs text-foreground">
+                      {formatCurrency(Number(variant.sellPrice))}
                     </div>
-                    {Number(product.averageCost) > 0 && (
-                      <div className="text-[8px] text-muted-foreground bg-muted px-1 rounded mt-0.5">
-                        HPP:{" "}
-                        {formatCurrency(
-                          Number(product.averageCost) *
-                          Number(variant.conversionToBase),
-                        )}
-                      </div>
-                    )}
+                    <div className="flex flex-col items-end">
+                      {variantStock < 1 ? (
+                        <div className="text-[9px] text-destructive font-bold">
+                          Stok Kurang
+                        </div>
+                      ) : (
+                        <div className="text-[9px] text-emerald-600 font-bold">
+                          Stok: {variantStock.toLocaleString("id-ID")}{" "}
+                          {variant.unit?.name || ""}
+                        </div>
+                      )}
+                      {Number(product.averageCost) > 0 && (
+                        <div className="text-[8px] text-muted-foreground bg-muted px-1 rounded mt-0.5">
+                          HPP:{" "}
+                          {formatCurrency(
+                            Number(product.averageCost) *
+                              Number(variant.conversionToBase),
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         ))
       )}

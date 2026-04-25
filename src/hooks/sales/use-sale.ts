@@ -2,10 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createSale, deleteSale } from "@/services/saleService";
 import { MutationConfig } from "@/lib/react-query";
 import { getSalesQueryOptions, saleKeys } from "./sale-query-options";
-import { useState } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useCallback, useEffect } from "react";
 import { invalidateBusinessData } from "@/lib/query-utils";
 import { getUserTimezone } from "@/lib/timezone";
+import { useQueryState, useQueryStates } from "@/hooks/use-query-state";
 
 type UseCreateSaleOptions = {
   mutationConfig?: MutationConfig<typeof createSale>;
@@ -17,33 +17,51 @@ type UseDeleteSaleOptions = {
 
 type UseSaleListOptions = {
   initialLimit?: number;
-  search?: string;
+  syncWithUrl?: boolean;
 };
 
 export const useSaleList = ({
   initialLimit = 10,
-  search: externalSearch,
+  syncWithUrl = false,
 }: UseSaleListOptions = {}) => {
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(initialLimit);
-  const [searchInput, setSearchInput] = useState("");
-  const debouncedSearch = useDebounce(externalSearch ?? searchInput, 500);
+  // Search state using useQueryState for responsiveness
+  const [searchInput, setSearchInput] = useQueryState<string>("q", "", {
+    debounce: 500,
+    syncWithUrl: syncWithUrl,
+  });
 
-  const [dateRange, setDateRange] = useState<{
-    startDate?: string;
-    endDate?: string;
-  }>({});
+  // Combine other filter states using useQueryStates
+  const [filters, setFilters] = useQueryStates({
+    page: 1,
+    limit: initialLimit,
+    status: undefined as string | undefined,
+    customerId: undefined as number | undefined,
+    startDate: undefined as string | undefined,
+    endDate: undefined as string | undefined,
+  });
 
-  const [status, setStatus] = useState<string | undefined>();
-  const [customerId, setCustomerId] = useState<number | undefined>();
+  const page = filters.page as number;
+  const limit = filters.limit as number;
+  const status = filters.status as string | undefined;
+  const customerId = filters.customerId as number | undefined;
+  const startDate = filters.startDate as string | undefined;
+  const endDate = filters.endDate as string | undefined;
+
+  const setPage = useCallback((p: number) => setFilters({ page: p }), [setFilters]);
+  const setLimit = useCallback((l: number) => setFilters({ limit: l, page: 1 }), [setFilters]);
+  const setStatus = useCallback((s: string | undefined) => setFilters({ status: s, page: 1 }), [setFilters]);
+  const setCustomerId = useCallback((c: number | undefined) => setFilters({ customerId: c, page: 1 }), [setFilters]);
+  const setDateRange = useCallback((range: { startDate?: string; endDate?: string }) => 
+    setFilters({ startDate: range.startDate, endDate: range.endDate, page: 1 }), [setFilters]);
 
   const timezone = getUserTimezone();
 
   const validParams = {
     page,
     limit,
-    search: debouncedSearch || undefined,
-    ...dateRange,
+    search: searchInput || undefined,
+    startDate,
+    endDate,
     status,
     customerId,
     timezone,
@@ -52,15 +70,18 @@ export const useSaleList = ({
   const query = useQuery(getSalesQueryOptions(validParams));
 
   const hasActiveFilters =
-    !!debouncedSearch || !!dateRange.startDate || !!status || !!customerId;
+    !!searchInput || !!startDate || !!status || !!customerId;
 
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setSearchInput("");
-    setDateRange({});
-    setStatus(undefined);
-    setCustomerId(undefined);
-    setPage(1);
-  };
+    setFilters({
+      page: 1,
+      status: undefined,
+      customerId: undefined,
+      startDate: undefined,
+      endDate: undefined,
+    });
+  }, [setSearchInput, setFilters]);
 
   return {
     sales: query.data?.data,
@@ -75,7 +96,7 @@ export const useSaleList = ({
     setLimit,
     searchInput,
     setSearchInput,
-    dateRange,
+    dateRange: { startDate, endDate },
     setDateRange,
     status,
     setStatus,

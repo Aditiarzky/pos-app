@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -13,7 +13,7 @@ import {
   CircleDollarSign,
   Wallet,
 } from "lucide-react";
-import { useQueryState } from "@/hooks/use-query-state";
+import { useQueryState, useQueryStates } from "@/hooks/use-query-state";
 import { AnimatedNumber } from "@/components/ui/animated-number";
 import { CardBg } from "@/assets/card-background/card-bg";
 import { TransactionForm } from "./_components/_forms/transaction-form";
@@ -72,21 +72,31 @@ const GrowthIndicator = ({ value }: { value: number }) => {
 function SalesContent() {
   // Tab state (synced dengan URL)
   const [tab, setTab] = useQueryState<string>("tab", "cashier");
-  const [cashierMode, setCashierMode] = useState<"sales" | "return">("sales");
+  const [cashierMode, setCashierMode] = useQueryState<"sales" | "return">(
+    "mode",
+    "sales",
+  );
 
-  // Shared Filter States for History
-  const [viewMode, setViewMode] = useState<"table" | "card">("table");
-  const [invoiceSearch, setInvoiceSearch] = useState("");
-  const [debtStatusFilter, setDebtStatusFilter] = useState<
-    "active" | "unpaid" | "partial"
-  >("active");
-  const [debtCustomerId, setDebtCustomerId] = useState<number | undefined>();
+  // Shared UI/Debt States using useQueryStates
+  const [uiStates, setUiStates] = useQueryStates({
+    view: "table" as "table" | "card",
+    filter: "active" as "active" | "unpaid" | "partial",
+    customerId: 0,
+  });
 
-  // Fetch Analytics Data
+  const viewMode = uiStates.view;
+  const debtStatusFilter = uiStates.filter;
+  const debtCustomerId = uiStates.customerId > 0 ? uiStates.customerId : undefined;
+
+  const setViewMode = (v: "table" | "card") => setUiStates({ view: v });
+  const setDebtStatusFilter = (f: "active" | "unpaid" | "partial") => setUiStates({ filter: f });
+  const setDebtCustomerId = (id: number | undefined) => setUiStates({ customerId: id ?? 0 });
+
+  // Fetch Analytics Data (Static hook for top cards)
   const { analytics: salesAnalytics } = useSaleList({ initialLimit: 1 });
 
-  // Sales history list (controlled from this page so filter UI bisa di-global-kan)
-  const saleList = useSaleList({ search: invoiceSearch });
+  // Sales history list (syncWithUrl: true enables internal URL-responsive useQueryState for "q")
+  const saleList = useSaleList({ syncWithUrl: true });
 
   const hasActiveSalesAdvancedFilters =
     !!saleList.dateRange.startDate ||
@@ -98,11 +108,10 @@ function SalesContent() {
     debtStatusFilter !== "active" || !!debtCustomerId;
 
   const hasActiveAdvancedFilters =
-    hasActiveSalesAdvancedFilters || hasActiveDebtAdvancedFilters;
+    hasActiveSalesAdvancedFilters || hasActiveDebtAdvancedFilters || !!saleList.searchInput;
 
   const resetDebtFilters = () => {
-    setDebtStatusFilter("active");
-    setDebtCustomerId(undefined);
+    setUiStates({ filter: "active", customerId: 0 });
   };
 
   return (
@@ -342,8 +351,8 @@ function SalesContent() {
               <div className="flex flex-1 gap-2">
                 <SearchInput
                   placeholder="Cari No. Invoice..."
-                  value={invoiceSearch}
-                  onChange={setInvoiceSearch}
+                  value={saleList.searchInput}
+                  onChange={saleList.setSearchInput}
                 />
 
                 <FilterWrap hasActiveFilters={hasActiveAdvancedFilters}>
@@ -385,13 +394,13 @@ function SalesContent() {
 
             <DebtListSection
               viewMode={viewMode}
-              search={invoiceSearch}
+              search={saleList.searchInput}
               statusFilter={debtStatusFilter}
               customerId={debtCustomerId}
             />
             <SalesListSection
               viewMode={viewMode}
-              searchInput={invoiceSearch}
+              searchInput={saleList.searchInput}
               sales={saleList.sales}
               isLoading={saleList.isLoading}
               meta={saleList.meta}

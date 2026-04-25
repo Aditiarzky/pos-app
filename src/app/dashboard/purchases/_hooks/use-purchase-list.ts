@@ -5,8 +5,7 @@
 
 "use client";
 
-import { useState } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useQueryState, useQueryStates } from "@/hooks/use-query-state";
 import {
   usePurchases,
   useDeletePurchase,
@@ -41,7 +40,6 @@ export interface UsePurchaseListReturn {
   // Search
   searchInput: string;
   setSearchInput: (search: string) => void;
-  debouncedSearch: string;
 
   // Sorting
   orderBy: PurchasesQueryParams["orderBy"];
@@ -71,35 +69,37 @@ export interface UsePurchaseListReturn {
 // ============================================
 
 export function usePurchaseList(): UsePurchaseListReturn {
-  // Pagination state
-  const [page, setPageInternal] = useState(1);
-  const [limit, setLimitInternal] = useState(10);
+  const [searchInput, setSearchInput] = useQueryState<string>("q", "", { 
+    debounce: 500,
+    syncWithUrl: false 
+  });
 
-  const setPage = (newPage: number) => setPageInternal(newPage);
-  const setLimit = (newLimit: number) => {
-    setLimitInternal(newLimit);
-    setPageInternal(1);
-  };
+  // Pagination & Sorting state using useQueryStates
+  const [filters, setFilters] = useQueryStates({
+    page: 1,
+    limit: 10,
+    sort: "createdAt",
+    order: "desc",
+  });
 
-  // Search state
-  const [searchInput, setSearchInputInternal] = useState("");
-  const setSearchInput = (search: string) => {
-    setSearchInputInternal(search);
-    setPageInternal(1);
-  };
-  const debouncedSearch = useDebounce(searchInput, 500);
+  const page = filters.page as number;
+  const limit = filters.limit as number;
+  const orderBy = filters.sort as PurchasesQueryParams["orderBy"];
+  const order = filters.order as PurchasesQueryParams["order"];
 
-  // Sorting state
-  const [orderBy, setOrderBy] =
-    useState<PurchasesQueryParams["orderBy"]>("createdAt");
-  const [order, setOrder] = useState<PurchasesQueryParams["order"]>("desc");
+  const setPage = (newPage: number) => setFilters({ page: newPage });
+  const setLimit = (newLimit: number) => setFilters({ limit: newLimit, page: 1 });
+  const setOrderBy = (newOrderBy: PurchasesQueryParams["orderBy"]) =>
+    setFilters({ sort: newOrderBy, page: 1 });
+  const setOrder = (newOrder: PurchasesQueryParams["order"]) =>
+    setFilters({ order: newOrder, page: 1 });
 
   // Fetch purchases
   const { data: purchasesResult, isLoading } = usePurchases({
     params: {
       page,
       limit,
-      search: debouncedSearch,
+      search: searchInput,
       orderBy,
       order,
     },
@@ -159,7 +159,6 @@ export function usePurchaseList(): UsePurchaseListReturn {
     // Search
     searchInput,
     setSearchInput,
-    debouncedSearch,
 
     // Sorting
     orderBy,

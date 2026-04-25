@@ -4,12 +4,13 @@ import {
   createSupplier,
   updateSupplier,
   deleteSupplier,
+  SupplierQueryParams,
 } from "@/services/supplierService";
 
-export const useSuppliers = () => {
+export const useSuppliers = (params?: SupplierQueryParams) => {
   return useQuery({
-    queryKey: ["suppliers"],
-    queryFn: getSuppliers,
+    queryKey: ["suppliers", params],
+    queryFn: () => getSuppliers(params),
   });
 };
 

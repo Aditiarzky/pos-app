@@ -27,6 +27,16 @@ export async function POST(request: NextRequest) {
         eq(sales.id, Number(saleId)),
         not(sales.isArchived)
       ),
+      with: {
+        user: { columns: { id: true, name: true } },
+        customer: { columns: { id: true, name: true } },
+        items: {
+          with: {
+            product: { columns: { id: true, name: true } },
+            productVariant: { columns: { id: true, name: true, sku: true } },
+          },
+        },
+      },
     });
 
     if (!existingSale) {

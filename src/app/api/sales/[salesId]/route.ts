@@ -113,6 +113,12 @@ export async function GET(
             status: true,
           },
         },
+        user: {
+          columns: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -173,7 +179,10 @@ export async function PUT(
             Number(oldItem.qty) * Number(variant.conversionToBase);
           await tx
             .update(products)
-            .set({ stock: sql`${products.stock} + ${qtyToRevert.toFixed(3)}` })
+            .set({
+              stock: sql`${products.stock} + ${qtyToRevert.toFixed(3)}`,
+              updatedAt: new Date()
+            })
             .where(eq(products.id, oldItem.productId));
         }
       }
@@ -208,7 +217,10 @@ export async function PUT(
 
         await tx
           .update(products)
-          .set({ stock: sql`${products.stock} - ${qtyInBase.toFixed(3)}` })
+          .set({
+            stock: sql`${products.stock} - ${qtyInBase.toFixed(3)}`,
+            updatedAt: new Date()
+          })
           .where(eq(products.id, item.productId));
 
         const [insertedItem] = await tx
@@ -321,7 +333,10 @@ export async function DELETE(
 
           await tx
             .update(products)
-            .set({ stock: sql`${products.stock} + ${qtyToRevert.toFixed(3)}` })
+            .set({
+              stock: sql`${products.stock} + ${qtyToRevert.toFixed(3)}`,
+              updatedAt: new Date()
+            })
             .where(eq(products.id, item.productId));
 
           await tx.insert(stockMutations).values({

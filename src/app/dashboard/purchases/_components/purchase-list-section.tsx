@@ -36,6 +36,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
+import { useQueryState } from "@/hooks/use-query-state";
 
 export function PurchaseListSection({
   // Optional props for direct injection
@@ -80,7 +81,10 @@ export function PurchaseListSection({
   const resetFilters = injectedResetFilters ?? internalData.resetFilters;
   const handleDelete = injectedOnDelete ?? internalData.handleDelete;
 
-  const [viewMode, setViewMode] = useState<"table" | "card">("table");
+  const [viewMode, setViewMode] = useQueryState<"table" | "card">(
+    "view",
+    "table",
+  );
   const [selectedPurchase, setSelectedPurchase] = useState<PurchaseResponse | null>(
     null,
   );

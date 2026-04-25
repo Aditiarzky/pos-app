@@ -1,8 +1,17 @@
-"use client";
+
 
 import { AppLayout } from "@/components/app-layout";
 import React from "react";
 import { RoleGuard } from "@/components/role-guard";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: {
+    template: '%s | Gunung Muria', // %s akan diganti oleh title dari page.tsx
+    default: 'Dashboard | Gunung Muria',
+  },
+};
+
 
 export default function DashboardLayout({
   children,

@@ -18,15 +18,15 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
   function SaleReceipt({ sale }, ref) {
     const { data: settingResult } = useGetStoreSetting();
     const setting = settingResult?.data;
-    const storeName = setting?.storeName || "TOKO ADITIARZKY";
-    const storeAddress = setting?.address || "Jl. Raya No. 123, Kota ABC";
+    const storeName = setting?.storeName || "TOKO GUNUNG MURIA GROSIR SNACK";
+    const storeAddress = setting?.address || "Sidorekso, Kudus";
     const storePhone = setting?.phone || "0812-3456-7890";
     const footerMessage = setting?.footerMessage || "Terima Kasih!";
     const receiptNote =
       setting?.receiptNote ||
-      "Barang yang sudah dibeli tidak dapat ditukar/dikembalikan.";
+      "Bawa nota ini untuk pengembalian barang.";
 
-    const fontSans = "'Helvetica Neue', Helvetica, Arial, sans-serif";
+    const fontSans = "'Courier New', Courier, monospace";
 
     const flexBetween: React.CSSProperties = {
       display: "flex",

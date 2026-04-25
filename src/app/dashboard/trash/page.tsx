@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
   SearchX,
   Trash2,
+  Settings2,
 } from "lucide-react";
 
 import { useDebounce } from "@/hooks/use-debounce";
@@ -16,6 +17,7 @@ import { useTrash } from "@/hooks/trash/useTrash";
 import { useRestoreTrash } from "@/hooks/trash/useRestoreTrash";
 import { useForceDeleteTrash } from "@/hooks/trash/useForceDeleteTrash";
 import { useCleanupTrash } from "@/hooks/trash/useCleanupTrash";
+import { useTrashSettings } from "@/hooks/trash/use-trash-settings";
 import { TrashItemPayload, TrashListItem } from "@/services/trashService";
 
 import { AppPagination } from "@/components/app-pagination";
@@ -40,6 +42,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -63,13 +72,13 @@ type ConfirmAction = {
 function getTypeLabel(type: TrashListItem["type"]) {
   switch (type) {
     case "product":
-      return "Product";
+      return "Produk";
     case "sale":
-      return "Sale";
+      return "Penjualan";
     case "purchase":
-      return "Purchase";
+      return "Pembelian";
     case "customer":
-      return "Customer";
+      return "Pelanggan";
     default:
       return type;
   }
@@ -107,6 +116,7 @@ function TrashContent() {
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(
     null,
   );
+  const [isManualCleanupPending, setIsManualCleanupPending] = useState(false);
 
   const debouncedSearch = useDebounce(searchInput, 400);
 
@@ -124,6 +134,27 @@ function TrashContent() {
   const cleanupTrashMutation = useCleanupTrash();
   const { roles } = useAuth();
   const isSystemAdmin = (roles as string[]).includes("admin sistem");
+  
+  const { settings, updateInterval, isUpdating } = useTrashSettings();
+  const [tempInterval, setTempInterval] = useState<string>("");
+
+  useEffect(() => {
+    if (settings) {
+      setTempInterval(settings.cleanupIntervalMinutes.toString());
+    }
+  }, [settings]);
+
+  const handleUpdateInterval = () => {
+    const val = parseInt(tempInterval);
+    if (isNaN(val) || val < 1) {
+      toast.error("Interval minimal 1 menit");
+      return;
+    }
+    updateInterval(val, {
+      onSuccess: () => toast.success("Interval pembersihan diperbarui"),
+      onError: () => toast.error("Gagal memperbarui interval"),
+    });
+  };
 
   const rows = trashQuery.data?.data ?? [];
   const meta = trashQuery.data?.meta;
@@ -139,33 +170,62 @@ function TrashContent() {
     rows.every((row) => selectedMap[`${row.type}:${row.id}`] !== undefined);
 
   const isMutating = restoreMutation.isPending || forceDeleteMutation.isPending;
+  const autoCleanupKey = useMemo(
+    () => `trash:auto_cleanup:${new Date().toISOString().slice(0, 10)}`,
+    [],
+  );
 
   useEffect(() => {
-    if (!isSystemAdmin) {
+    if (!isSystemAdmin || typeof window === "undefined") {
       return;
     }
 
-    cleanupTrashMutation
-      .mutateAsync(undefined)
-      .then((res) => {
-        const deletedCount = res.data?.deletedCount || 0;
-        const skippedCount = res.data?.skippedCount || 0;
-
-        if (deletedCount > 0) {
-          toast.success(
-            `🧹 ${deletedCount} data lama di trash berhasil dibersihkan`,
-          );
-        }
-
-        if (skippedCount > 0) {
-          toast.info(
-            `${skippedCount} data batal dihapus karena ada dependency aktif`,
-          );
-        }
-      })
-      .catch(() => {});
+    if (window.sessionStorage.getItem(autoCleanupKey) === "1") {
+      return;
+    }
+    window.sessionStorage.setItem(autoCleanupKey, "1");
+    runCleanupExpired({ rethrow: true })
+      .catch(() => {
+        window.sessionStorage.removeItem(autoCleanupKey);
+      });
+    return;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSystemAdmin]);
+  }, [autoCleanupKey, isSystemAdmin]);
+
+  const runCleanupExpired = async (options?: {
+    showNoopToast?: boolean;
+    trackManualLoading?: boolean;
+    rethrow?: boolean;
+  }) => {
+    if (options?.trackManualLoading) {
+      setIsManualCleanupPending(true);
+    }
+
+    try {
+      const res = await cleanupTrashMutation.mutateAsync(undefined);
+      const deletedCount = res.data?.deletedCount || 0;
+      const skippedCount = res.data?.skippedCount || 0;
+
+      if (deletedCount > 0) {
+        toast.success(`${deletedCount} data lama di trash berhasil dibersihkan`);
+      } else if (options?.showNoopToast) {
+        toast.info("Tidak ada data trash yang perlu dibersihkan");
+      }
+
+      if (skippedCount > 0) {
+        toast.info(`${skippedCount} data batal dihapus karena ada dependency aktif`);
+      }
+    } catch (error) {
+      toast.error("Gagal menjalankan cleanup trash");
+      if (options?.rethrow) {
+        throw error;
+      }
+    } finally {
+      if (options?.trackManualLoading) {
+        setIsManualCleanupPending(false);
+      }
+    }
+  };
 
   const toggleOne = (row: TrashListItem, checked: boolean) => {
     const key = `${row.type}:${row.id}`;
@@ -306,22 +366,67 @@ function TrashContent() {
                   Semua Tipe
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTypeFilter("product")}>
-                  Product
+                  Produk
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTypeFilter("sale")}>
-                  Sale
+                  Penjualan
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTypeFilter("purchase")}>
-                  Purchase
+                  Pembelian
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTypeFilter("customer")}>
-                  Customer
+                  Pelanggan
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
             <div className="h-10 w-[1px] bg-border mx-1 hidden sm:block" />
             <ViewModeSwitch value={viewMode} onChange={setViewMode} />
+
+            {isSystemAdmin && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon" className="rounded-xl">
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 p-4">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium leading-none">Pengaturan Cleanup</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Atur seberapa sering sistem mengecek data expired.
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="interval">Interval Pengecekan (Menit)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="interval"
+                          type="number"
+                          value={tempInterval}
+                          onChange={(e) => setTempInterval(e.target.value)}
+                          className="h-9"
+                          min={1}
+                        />
+                        <Button 
+                          size="sm" 
+                          onClick={handleUpdateInterval}
+                          disabled={isUpdating}
+                        >
+                          {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : "Simpan"}
+                        </Button>
+                      </div>
+                      {settings?.lastCleanupAt && (
+                        <p className="text-[10px] text-muted-foreground mt-2">
+                          Terakhir dijalankan: {formatDate(settings.lastCleanupAt)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
 
             <Button
               variant="outline"
@@ -331,6 +436,25 @@ function TrashContent() {
               <ArchiveRestore className="h-4 w-4 mr-0 sm:mr-2" />
               <p className="hidden sm:block">Restore Selected</p>
             </Button>
+            {isSystemAdmin && (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  runCleanupExpired({
+                    showNoopToast: true,
+                    trackManualLoading: true,
+                  })
+                }
+                disabled={isManualCleanupPending || isMutating}
+              >
+                {isManualCleanupPending ? (
+                  <Loader2 className="h-4 w-4 mr-0 sm:mr-2 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-0 sm:mr-2" />
+                )}
+                <p className="hidden sm:block">Cleanup Expired</p>
+              </Button>
+            )}
             {isSystemAdmin && (
               <Button
                 variant="destructive"
@@ -347,7 +471,7 @@ function TrashContent() {
         <div className="text-sm text-muted-foreground">
           {selectedItems.length > 0
             ? `${selectedItems.length} data dipilih`
-            : `Total ${meta?.total || 0} data di trash${typeFilter !== "all" ? ` (${getTypeLabel(typeFilter)})` : ""}`}
+            : `Total ${trashQuery.data?.meta?.total || 0} data di trash${typeFilter !== "all" ? ` (${getTypeLabel(typeFilter)})` : ""}`}
         </div>
 
         {trashQuery.isLoading ? (
@@ -508,7 +632,7 @@ function TrashContent() {
                               onClick={() => openSingleAction("restore", row)}
                             >
                               <ArchiveRestore className="h-4 w-4 mr-2" />
-                              Restore
+                              Pulihkan
                             </DropdownMenuItem>
                             {isSystemAdmin && (
                               <DropdownMenuItem
@@ -518,7 +642,7 @@ function TrashContent() {
                                 }
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Delete Permanently
+                                Hapus Permanen
                               </DropdownMenuItem>
                             )}
                           </DropdownMenuContent>
@@ -579,7 +703,7 @@ function TrashContent() {
                         onClick={() => openSingleAction("restore", row)}
                       >
                         <ArchiveRestore className="h-4 w-4 mr-2" />
-                        Restore
+                        Pulihkan
                       </DropdownMenuItem>
                       {isSystemAdmin && (
                         <DropdownMenuItem
@@ -587,7 +711,7 @@ function TrashContent() {
                           onClick={() => openSingleAction("force-delete", row)}
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Permanently
+                          Hapus Permanen
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>
@@ -648,12 +772,12 @@ function TrashContent() {
               ) : confirmAction?.mode === "restore" ? (
                 <>
                   <ArchiveRestore className="h-4 w-4 mr-2" />
-                  Restore
+                  Pulihkan
                 </>
               ) : (
                 <>
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Permanently
+                  Hapus Permanen
                 </>
               )}
             </AlertDialogAction>

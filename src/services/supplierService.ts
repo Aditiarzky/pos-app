@@ -15,10 +15,18 @@ export type SupplierResponse = {
   deletedAt: string | null;
 };
 
-export const getSuppliers = async (): Promise<
-  ApiResponse<SupplierResponse[]>
-> => {
-  const response = await axiosInstance.get("/master/suppliers");
+export interface SupplierQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  orderBy?: string;
+  order?: "asc" | "desc";
+}
+
+export const getSuppliers = async (
+  params?: SupplierQueryParams,
+): Promise<ApiResponse<SupplierResponse[]>> => {
+  const response = await axiosInstance.get("/master/suppliers", { params });
   return response.data;
 };
 

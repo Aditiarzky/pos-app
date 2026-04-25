@@ -28,6 +28,7 @@ export interface InsufficientStockItem {
   requestedQty: number;
   currentStock: number;
   difference: number;
+  conversionToBase: number;
 }
 
 interface StockWarningModalProps {
@@ -85,13 +86,13 @@ export function StockWarningModal({
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-semibold">
-                      {item.currentStock}
+                      {item.currentStock / item.conversionToBase}
                     </TableCell>
                     <TableCell className="text-right font-semibold text-primary">
-                      {item.requestedQty}
+                      {item.requestedQty / item.conversionToBase}
                     </TableCell>
                     <TableCell className="text-right font-bold text-destructive">
-                      {item.difference}
+                      {item.difference / item.conversionToBase}
                     </TableCell>
                   </TableRow>
                 ))}

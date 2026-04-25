@@ -145,7 +145,6 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
 
   return (
     <>
-      {/* ✅ FIX: semua modal dipindah ke LUAR <form> agar tidak terbungkus form */}
 
       {/* Barcode Scanner */}
       <Dialog open={isScannerOpen} onOpenChange={closeScanner}>
@@ -510,7 +509,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
 
               {/* ✅ FIX: type="button" + onClick manual, bukan type="submit" */}
               {/* Ini mencegah form HTML submit yang bisa diblokir Zod validation */}
-               {/* ACTION BUTTON (Desktop) */}
+              {/* ACTION BUTTON (Desktop) */}
               <div className="hidden lg:block pt-4">
                 <Button
                   size="lg"

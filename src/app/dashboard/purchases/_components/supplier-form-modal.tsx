@@ -33,7 +33,7 @@ export function SupplierFormModal({
   supplierId,
 }: SupplierFormModalProps) {
   const isEdit = !!supplierId;
-  const { data: suppliersResult } = useSuppliers();
+  const { data: suppliersResult } = useSuppliers({ limit: 100 });
   const createMutation = useCreateSupplier();
   const updateMutation = useUpdateSupplier();
 
