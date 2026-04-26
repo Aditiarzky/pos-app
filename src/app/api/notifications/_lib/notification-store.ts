@@ -34,9 +34,6 @@ const getStore = (): NotificationStateStore => {
 export const shouldRunAutoCleanup = () => {
   const store = getStore();
   const now = Date.now();
-  // The 'getStore' function ensures that 'lastCleanupRun' is always initialized
-  // to a number (0) if the store was not yet created. Therefore, it will not
-  // be undefined at this point, and we can use a non-null assertion.
   if (now - store.lastCleanupRun! >= AUTO_CLEANUP_INTERVAL_MS) {
     store.lastCleanupRun = now;
     return true;
