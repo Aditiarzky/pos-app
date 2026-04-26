@@ -2,16 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { SearchX, Printer } from "lucide-react";
+import { SearchX, Printer, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { useProducts } from "@/hooks/products/use-products";
 import { useCategories } from "@/hooks/master/use-categories";
 import { useDeleteProduct } from "@/hooks/products/use-delete-product";
-import { useDebounce } from "@/hooks/use-debounce";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 
@@ -23,6 +27,7 @@ import { StockOpnamePrintTable } from "../stock-opname-print-table";
 import { ProductFilterForm } from "../ui/product-filter-form";
 import { FilterWrap } from "@/components/filter-wrap";
 import { useQueryState, useQueryStates } from "@/hooks/use-query-state";
+import BarcodeScannerCamera from "@/components/barcode-scanner-camera";
 
 interface ProductListSectionProps {
   onEdit: (id: number) => void;
@@ -65,6 +70,7 @@ export function ProductListSection({
   const setLimit = (l: number) => setFilters({ limit: l, page: 1 });
 
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
 
   const [mounted, setMounted] = useState(false);
 
@@ -214,6 +220,16 @@ export function ProductListSection({
     orderBy !== "createdAt" ||
     order !== "desc";
 
+  const handleScanSuccess = (barcode: string) => {
+    const trimmedBarcode = barcode.trim();
+    if (!trimmedBarcode) return;
+
+    setSearchInput(trimmedBarcode);
+    setPage(1);
+    setIsScannerOpen(false);
+    toast.success("Barcode berhasil dipindai");
+  };
+
   return (
     <div className="space-y-8">
       {/* Search & Advanced Filters */}
@@ -223,6 +239,18 @@ export function ProductListSection({
             placeholder="Cari nama produk atau SKU..."
             value={searchInput}
             onChange={setSearchInput}
+            rightAction={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full hover:bg-background/50"
+                onClick={() => setIsScannerOpen(true)}
+                aria-label="Buka scanner barcode produk"
+              >
+                <QrCode className="h-4 w-4" />
+              </Button>
+            }
           />
         </div>
 
@@ -366,6 +394,16 @@ export function ProductListSection({
           />,
           document.body,
         )}
+
+      <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+        <DialogTitle hidden>Scan barcode produk</DialogTitle>
+        <DialogContent className="p-0 border-none max-w-lg max-h-[90vh]">
+          <BarcodeScannerCamera
+            onScanSuccess={handleScanSuccess}
+            onClose={() => setIsScannerOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

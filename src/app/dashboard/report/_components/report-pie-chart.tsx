@@ -18,6 +18,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { formatCurrency } from "@/lib/format";
+import { BUSINESS_TERMS } from "@/lib/business-terms";
 
 interface ReportPieChartProps {
   data: {
@@ -39,8 +40,8 @@ const DISTINCT_COLORS = [
 
 export function ReportPieChart({
   data,
-  title = "Revenue by Product",
-  description = "Top products contribution",
+  title = `${BUSINESS_TERMS.revenueShort} per Produk`,
+  description = "Kontribusi produk teratas",
 }: ReportPieChartProps) {
   const chartData = React.useMemo(() => {
     return data.map((item, index) => ({
@@ -57,7 +58,7 @@ export function ReportPieChart({
   const chartConfig = React.useMemo(() => {
     const config: ChartConfig = {
       revenue: {
-        label: "Revenue",
+        label: BUSINESS_TERMS.revenueShort,
       },
     };
     data.forEach((item, index) => {
@@ -131,7 +132,7 @@ export function ReportPieChart({
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground text-[10px] font-medium"
                         >
-                          Kontribusi Omset
+                          Kontribusi {BUSINESS_TERMS.revenueShort}
                         </tspan>
                       </text>
                     );

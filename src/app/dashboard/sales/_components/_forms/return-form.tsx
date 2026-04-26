@@ -437,11 +437,11 @@ export function ReturnForm() {
                   <span className="font-bold text-sm">
                     {compensationType === "exchange"
                       ? netRefundAmount >= 0
-                        ? "Sisa Kembali"
+                        ? "Sisa Refund"
                         : "Kekurangan"
                       : compensationType === "credit_note"
                         ? "Saldo Ditambahkan"
-                        : "Refund Tunai"}
+                        : "Sisa Refund"}
                   </span>
                   <span
                     className={cn(

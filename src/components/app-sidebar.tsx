@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import LogoNav from "@/assets/logo-nav/logo-nav";
 import { Separator } from "./ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   IconLayout,
   IconCalculator,
@@ -145,7 +146,7 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
     <>
       <div
         className={cn(
-          "fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border transition-transform duration-300 z-40",
+          "fixed left-0 top-0 h-dvh bg-sidebar border-r border-sidebar-border transition-transform duration-300 z-40 flex flex-col",
           isOpen
             ? "translate-x-0 w-64 md:relative"
             : "-translate-x-full -left-10 w-64",
@@ -171,62 +172,64 @@ export function AppSidebar({ isOpen, onToggle }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-4">
-          {navGroups.map((group) => {
-            const visibleItems = filterItems(group.items);
-            if (visibleItems.length === 0) return null;
+        <ScrollArea className="flex-1 min-h-0 [mask-image:linear-gradient(to_bottom,transparent_0,black_18px,black_calc(100%-18px),transparent_100%)] [&_[data-slot=scroll-area-scrollbar]]:w-3 [&_[data-slot=scroll-area-thumb]]:bg-primary/30 [&_[data-slot=scroll-area-thumb]]:hover:bg-primary/55">
+          <nav className="p-4 space-y-4 pb-6">
+            {navGroups.map((group) => {
+              const visibleItems = filterItems(group.items);
+              if (visibleItems.length === 0) return null;
 
-            return (
-              <div key={group.label}>
-                {/* Group label */}
-                <p className="px-4 mb-1 text-[10px] font-semibold tracking-widest uppercase text-sidebar-foreground/40 select-none">
-                  {group.label}
-                </p>
+              return (
+                <div key={group.label}>
+                  {/* Group label */}
+                  <p className="px-4 mb-1 text-[10px] font-semibold tracking-widest uppercase text-sidebar-foreground/40 select-none">
+                    {group.label}
+                  </p>
 
-                {visibleItems.map((item) => {
-                  const isActive = pathname === item.href;
+                  {visibleItems.map((item) => {
+                    const isActive = pathname === item.href;
 
-                  return (
-                    <Link key={item.href} href={item.href}>
-                      <button
-                        onClick={() => {
-                          if (window.innerWidth < 768) onToggle();
-                        }}
-                        className={cn(
-                          "group relative w-full flex items-center my-0.5 gap-3 px-4 py-2 cursor-pointer rounded-lg transition-all duration-200",
-                          isActive
-                            ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
-                            : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                        )}
-                      >
-                        {/* Active left indicator bar */}
-                        {isActive && (
-                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary-foreground/50" />
-                        )}
-
-                        {/* Icon */}
-                        <span
+                    return (
+                      <Link key={item.href} href={item.href}>
+                        <button
+                          onClick={() => {
+                            if (window.innerWidth < 768) onToggle();
+                          }}
                           className={cn(
-                            "transition-transform duration-200 group-hover:scale-110",
+                            "group relative w-full flex items-center my-0.5 gap-3 px-4 py-2 cursor-pointer rounded-lg transition-all duration-200",
                             isActive
-                              ? "text-primary-foreground"
-                              : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground",
+                              ? "bg-primary text-primary-foreground shadow-sm shadow-primary/25"
+                              : "text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                           )}
                         >
-                          {item.icon}
-                        </span>
+                          {/* Active left indicator bar */}
+                          {isActive && (
+                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-primary-foreground/50" />
+                          )}
 
-                        <span className="text-sm font-medium">
-                          {item.label}
-                        </span>
-                      </button>
-                    </Link>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </nav>
+                          {/* Icon */}
+                          <span
+                            className={cn(
+                              "transition-transform duration-200 group-hover:scale-110",
+                              isActive
+                                ? "text-primary-foreground"
+                                : "text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground",
+                            )}
+                          >
+                            {item.icon}
+                          </span>
+
+                          <span className="text-sm font-medium">
+                            {item.label}
+                          </span>
+                        </button>
+                      </Link>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </nav>
+        </ScrollArea>
       </div>
 
       {/* Overlay for mobile */}

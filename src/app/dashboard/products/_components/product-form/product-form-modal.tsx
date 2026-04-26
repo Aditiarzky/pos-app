@@ -132,18 +132,30 @@ export function ProductFormModal({
         <form onSubmit={handleFormSubmit} className="space-y-6">
           {/* Controlled Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger type="button" value="basic" className="relative">
+            <TabsList className="grid w-full grid-cols-3 bg-background">
+              <TabsTrigger
+                type="button"
+                value="basic"
+                className="relative data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
+              >
                 Informasi
                 <ErrorIndicator show={hasBasicError} />
               </TabsTrigger>
 
-              <TabsTrigger type="button" value="variants" className="relative">
+              <TabsTrigger
+                type="button"
+                value="variants"
+                className="relative data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
+              >
                 Satuan & Harga
                 <ErrorIndicator show={hasVariantError} />
               </TabsTrigger>
 
-              <TabsTrigger type="button" value="barcodes" className="relative">
+              <TabsTrigger
+                type="button"
+                value="barcodes"
+                className="relative data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
+              >
                 Barcodes
                 <ErrorIndicator show={hasBarcodeError} />
               </TabsTrigger>

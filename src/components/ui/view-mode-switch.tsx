@@ -20,7 +20,7 @@ export function ViewModeSwitch({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1 rounded-xl border border-border/70 bg-muted/30 p-1 shadow-sm",
+        "inline-flex items-center gap-1 rounded-app-lg border border-border/70 bg-muted/30 p-1 shadow-sm",
         className,
       )}
     >
@@ -29,7 +29,7 @@ export function ViewModeSwitch({
         variant={value === "table" ? "default" : "ghost"}
         size="icon-sm"
         className={cn(
-          "rounded-lg",
+          "rounded-app-md",
           value !== "table" &&
             "text-muted-foreground hover:bg-background hover:text-foreground",
         )}
@@ -44,7 +44,7 @@ export function ViewModeSwitch({
         variant={value === "card" ? "default" : "ghost"}
         size="icon-sm"
         className={cn(
-          "rounded-lg",
+          "rounded-app-md",
           value !== "card" &&
             "text-muted-foreground hover:bg-background hover:text-foreground",
         )}

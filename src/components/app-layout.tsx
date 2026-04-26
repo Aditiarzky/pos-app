@@ -45,13 +45,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex h-screen transition-all duration-300 animate-out dark:bg-background/80">
-      <div className="w-full absolute -z-10 h-full">
+    <div className="relative flex h-dvh min-h-0 overflow-hidden transition-all duration-300 animate-out dark:bg-background/80">
+      <div className="pointer-events-none absolute inset-0 -z-10">
         <DashedBackground />
       </div>
       <AppSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
 
-      <div className="flex-1 flex flex-col md:ml-0">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:ml-0">
         <TopNavbar
           user={user}
           onLogout={logout}
@@ -61,7 +61,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
         <main
           onScroll={handleScroll}
-          className="flex-1 pt-16 pb-16 md:pb-0 overflow-y-auto"
+          className="flex-1 min-h-0 overflow-y-auto pt-16 pb-16 md:pb-0"
         >
           {children}
         </main>
@@ -73,7 +73,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
 const DashedBackground = () => {
   return (
-    <div className="min-h-screen w-full relative">
+    <div className="relative h-full w-full">
       {/* Dashed Center Fade Grid */}
       <div
         className="absolute inset-0 z-0"
