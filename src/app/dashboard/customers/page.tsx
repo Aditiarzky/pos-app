@@ -143,7 +143,7 @@ function CustomersContent() {
     <>
       <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 sm:px-6 justify-between w-full items-center gap-4 pb-16">
         <div className="flex items-center gap-4">
-          <div className="h-12 w-1.5 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
+          <div className="h-12 w-1.5 bg-primary rounded-app-pill shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
           <div className="flex flex-col">
             <h1 className="text-3xl text-primary font-bold tracking-tight">
               Pelanggan
@@ -156,7 +156,7 @@ function CustomersContent() {
         <div>
           <Button
             onClick={handleAdd}
-            className="bg-gradient-to-br from-primary to-green-600 dark:to-green-400 hover:brightness-90 rounded-xl"
+            className="bg-gradient-to-br from-primary to-green-600 dark:to-green-400 hover:brightness-90 rounded-app-lg"
           >
             <Plus className="mr-0 sm:mr-2 h-4 w-4" />
             <p className="hidden sm:block">Tambah Pelanggan</p>

@@ -17,6 +17,10 @@ import {
   Eye,
   PrinterIcon,
   ListIcon,
+  QrCode,
+  Banknote,
+  RefreshCcw,
+  CreditCard,
 } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +64,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
+import BarcodeScannerCamera from "@/components/barcode-scanner-camera";
 
 export function ReturnListSection() {
   const {
@@ -86,6 +91,7 @@ export function ReturnListSection() {
   const [selectedReturn, setSelectedReturn] =
     useState<CustomerReturnResponse | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const { receiptRef, handlePrint } = usePrintReceipt();
 
   const deleteMutation = useDeleteCustomerReturn();
@@ -105,14 +111,74 @@ export function ReturnListSection() {
     setIsReceiptOpen(true);
   };
 
+  const handleScanSuccess = (barcode: string) => {
+    const trimmedBarcode = barcode.trim();
+    if (!trimmedBarcode) return;
+
+    setSearchInput(trimmedBarcode);
+    setPage(1);
+    setIsScannerOpen(false);
+    toast.success("Barcode berhasil dipindai");
+  };
+
   const getCompensationName = (type: string) => {
     return type.replace("_", " ").toUpperCase();
+  };
+
+  const getCompensationBadgeMeta = (type: string) => {
+    if (type === "refund") {
+      return {
+        className: "bg-rose-500/10 text-rose-700 border-rose-200",
+        icon: <Banknote className="h-3 w-3" />,
+      };
+    }
+    if (type === "exchange") {
+      return {
+        className: "bg-blue-500/10 text-blue-700 border-blue-200",
+        icon: <RefreshCcw className="h-3 w-3" />,
+      };
+    }
+    if (type === "credit_note") {
+      return {
+        className: "bg-violet-500/10 text-violet-700 border-violet-200",
+        icon: <CreditCard className="h-3 w-3" />,
+      };
+    }
+    return {
+      className: "",
+      icon: null,
+    };
   };
 
   const totalExchangeValue = selectedReturn?.exchangeItems?.reduce(
     (acc, item) => acc + item.qty * (Number(item.priceAtExchange) || 0),
     0,
   );
+
+  const fallbackInvoiceNumber = (() => {
+    if (!selectedReturn) return "";
+
+    const salesRelation = selectedReturn.sales as unknown;
+
+    if (Array.isArray(salesRelation) && salesRelation.length > 0) {
+      return salesRelation[0]?.invoiceNumber || "";
+    }
+
+    if (
+      salesRelation &&
+      typeof salesRelation === "object" &&
+      "invoiceNumber" in salesRelation
+    ) {
+      return (salesRelation as { invoiceNumber?: string }).invoiceNumber || "";
+    }
+
+    const saleLike = selectedReturn as unknown as {
+      sale?: { invoiceNumber?: string };
+      invoiceNumber?: string;
+    };
+
+    return saleLike.sale?.invoiceNumber || saleLike.invoiceNumber || "";
+  })();
 
   const returnDataResult = selectedReturn
     ? ({
@@ -121,7 +187,10 @@ export function ReturnListSection() {
       returnNumber: selectedReturn.returnNumber || "",
       netRefundAmount: Number(selectedReturn.totalRefund),
       message: "Nota Retur",
-      saleData: selectedReturn.sales?.[0] || {},
+      saleData: {
+        ...(selectedReturn.sales?.[0] || {}),
+        invoiceNumber: selectedReturn.sales?.[0]?.invoiceNumber || fallbackInvoiceNumber || "-",
+      },
       returnItems: (selectedReturn.items || []).map((item) => ({
         productId: item.productId,
         variantId: item.variantId,
@@ -154,6 +223,18 @@ export function ReturnListSection() {
             placeholder="Cari No. Retur / No. Invoice..."
             value={searchInput}
             onChange={setSearchInput}
+            rightAction={
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full hover:bg-background/50"
+                onClick={() => setIsScannerOpen(true)}
+                aria-label="Buka scanner barcode riwayat retur"
+              >
+                <QrCode className="h-4 w-4" />
+              </Button>
+            }
           />
         </div>
 
@@ -204,7 +285,7 @@ export function ReturnListSection() {
                   <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Customer</TableHead>
                   <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Items</TableHead>
                   <TableHead className="text-center text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tipe</TableHead>
-                  <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Total Refund</TableHead>
+                  <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Sisa Refund</TableHead>
                   <TableHead className="text-right w-24 text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
@@ -261,7 +342,11 @@ export function ReturnListSection() {
                         </Popover>
                       </TableCell>
                       <TableCell className="text-center px-2 sm:px-4 py-2">
-                        <Badge variant="outline">
+                        <Badge
+                          variant="outline"
+                          className={`gap-1.5 ${getCompensationBadgeMeta(ret.compensationType).className}`}
+                        >
+                          {getCompensationBadgeMeta(ret.compensationType).icon}
                           {getCompensationName(ret.compensationType)}
                         </Badge>
                       </TableCell>
@@ -332,7 +417,13 @@ export function ReturnListSection() {
                         {formatDate(ret.createdAt || new Date())}
                       </div>
                     </div>
-                    <Badge variant="outline">{getCompensationName(ret.compensationType)}</Badge>
+                    <Badge
+                      variant="outline"
+                      className={`gap-1.5 ${getCompensationBadgeMeta(ret.compensationType).className}`}
+                    >
+                      {getCompensationBadgeMeta(ret.compensationType).icon}
+                      {getCompensationName(ret.compensationType)}
+                    </Badge>
                   </div>
                 </div>
 
@@ -340,7 +431,7 @@ export function ReturnListSection() {
                   <div className="flex justify-between items-start border-b pb-4 border-dashed">
                     <div>
                       <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
-                        Total Refund
+                        Sisa Refund
                       </span>
                       <div className="text-sm sm:text-2xl font-black text-primary tracking-tight">
                         {formatCurrency(Number(ret.totalRefund))}
@@ -462,6 +553,16 @@ export function ReturnListSection() {
               <PrinterIcon className="w-4 h-auto" /> Cetak Nota
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+        <DialogTitle hidden>Scan barcode riwayat retur</DialogTitle>
+        <DialogContent className="p-0 border-none max-w-lg max-h-[90vh]">
+          <BarcodeScannerCamera
+            onScanSuccess={handleScanSuccess}
+            onClose={() => setIsScannerOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

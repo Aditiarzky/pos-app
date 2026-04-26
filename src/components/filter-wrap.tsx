@@ -21,7 +21,7 @@ export const FilterWrap = ({
   hasActiveFilters: boolean;
 }) => {
   const triggerClassName =
-    "relative h-10 rounded-xl border-border/70 bg-background shadow-sm hover:border-primary/40 hover:bg-primary/5";
+    "relative h-10 rounded-app-lg border-border/70 bg-background shadow-sm hover:border-primary/40 hover:bg-primary/5";
 
   return (
     <>
@@ -44,7 +44,7 @@ export const FilterWrap = ({
         </SheetTrigger>
         <SheetContent
           side="bottom"
-          className="px-4 py-6 sm:hidden rounded-t-[20px]"
+          className="px-4 py-6 sm:hidden rounded-t-4xl"
         >
           <SheetHeader className="mb-4">
             <SheetTitle>Filter Lanjutan</SheetTitle>

@@ -18,7 +18,6 @@ import {
   Eye,
   Phone,
   MapPin,
-  Filter,
 } from "lucide-react";
 import { useCustomers, useDeleteCustomer } from "@/hooks/master/use-customers";
 import { useMemo, useState } from "react";
@@ -44,14 +43,11 @@ import {
 } from "@/components/ui/sheet";
 import { CustomerDetailSection } from "./customer-detail-section";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Separator } from "@/components/ui/separator";
+  Separator,
+} from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
+import { FilterWrap } from "@/components/filter-wrap";
 
 interface CustomerListSectionProps {
   searchInput: string;
@@ -93,6 +89,13 @@ export function CustomerListSection({
     setIsDetailOpen(true);
   };
 
+  const handleBalanceFilterChange = (
+    value: "all" | "has_debt" | "no_debt" | "has_balance",
+  ) => {
+    setBalanceFilter(value);
+    setPage(1);
+  };
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const customers = data?.data ?? [];
   const filteredCustomers = useMemo(() => {
@@ -118,37 +121,38 @@ export function CustomerListSection({
         </p>
 
         <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="relative h-10 rounded-xl border-border/70 bg-background shadow-sm hover:border-primary/40 hover:bg-primary/5"
+          <FilterWrap hasActiveFilters={balanceFilter !== "all"}>
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => handleBalanceFilterChange("all")}
+                className={`w-full flex items-center justify-center rounded-md border px-3 py-1.5 text-xs cursor-pointer hover:bg-muted ${balanceFilter === "all" ? "bg-muted" : "bg-muted/50"}`}
               >
-                <Filter className="h-4 w-4" />
-                {balanceFilter !== "all" ? (
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-primary/35"></span>
-                    <span className="relative inline-flex h-3 w-3 rounded-full bg-primary ring-2 ring-background"></span>
-                  </span>
-                ) : null}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setBalanceFilter("all")}>
                 Semua
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setBalanceFilter("has_debt")}>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBalanceFilterChange("has_debt")}
+                className={`w-full flex items-center justify-center rounded-md border px-3 py-1.5 text-xs cursor-pointer hover:bg-muted ${balanceFilter === "has_debt" ? "bg-muted" : "bg-muted/50"}`}
+              >
                 Ada Hutang
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setBalanceFilter("no_debt")}>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBalanceFilterChange("no_debt")}
+                className={`w-full flex items-center justify-center rounded-md border px-3 py-1.5 text-xs cursor-pointer hover:bg-muted ${balanceFilter === "no_debt" ? "bg-muted" : "bg-muted/50"}`}
+              >
                 Tidak Berhutang
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setBalanceFilter("has_balance")}>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBalanceFilterChange("has_balance")}
+                className={`w-full flex items-center justify-center rounded-md border px-3 py-1.5 text-xs cursor-pointer hover:bg-muted ${balanceFilter === "has_balance" ? "bg-muted" : "bg-muted/50"}`}
+              >
                 Ada Saldo
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </button>
+            </div>
+          </FilterWrap>
 
           <ViewModeSwitch value={viewMode} onChange={setViewMode} />
         </div>
@@ -451,12 +455,12 @@ export function CustomerListSection({
 
       {/* Detail Sheet */}
       <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <SheetContent className="sm:max-w-[620px] w-full p-0">
-          <SheetHeader className="sm:p-6 p-4 border-b">
+        <SheetContent className="sm:max-w-[620px] w-full p-0 flex h-dvh flex-col overflow-hidden">
+          <SheetHeader className="sm:p-6 p-4 border-b shrink-0">
             <SheetTitle>Detail Pelanggan</SheetTitle>
           </SheetHeader>
-          <ScrollArea className="max-h-dvh">
-            <div className="sm:p-6 p-2">
+          <ScrollArea className="flex-1 min-h-0 [mask-image:linear-gradient(to_bottom,transparent_0,black_16px,black_calc(100%-16px),transparent_100%)] [&_[data-slot=scroll-area-scrollbar]]:w-3 [&_[data-slot=scroll-area-thumb]]:bg-primary/35 [&_[data-slot=scroll-area-thumb]]:hover:bg-primary/55">
+            <div className="sm:p-6 p-2 pb-8">
               {selectedCustomerId && (
                 <CustomerDetailSection customerId={selectedCustomerId} />
               )}

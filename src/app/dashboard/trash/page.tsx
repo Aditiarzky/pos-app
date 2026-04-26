@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   ArchiveRestore,
-  Filter,
   Loader2,
   MoreHorizontal,
   SearchX,
@@ -63,6 +62,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { RoleGuard } from "@/components/role-guard";
 import { AccessDenied } from "@/components/access-denied";
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
+import { FilterWrap } from "@/components/filter-wrap";
 
 type ConfirmAction = {
   mode: "restore" | "force-delete";
@@ -345,40 +345,60 @@ function TrashContent() {
           />
 
           <div className="flex gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="relative h-10 rounded-xl border-border/70 bg-background shadow-sm hover:border-primary/40 hover:bg-primary/5"
+            <FilterWrap hasActiveFilters={hasActiveTypeFilter}>
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypeFilter("all");
+                    setPage(1);
+                  }}
+                  className={`w-full flex items-center justify-center rounded-md border px-3 py-1.5 text-xs cursor-pointer hover:bg-muted ${typeFilter === "all" ? "bg-muted" : "bg-muted/50"}`}
                 >
-                  <Filter className="h-4 w-4 mr-0 sm:mr-2" />
-                  <p className="hidden sm:block">Filter</p>
-                  {hasActiveTypeFilter && (
-                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                      <span className="absolute inline-flex h-full w-full rounded-full bg-primary/35"></span>
-                      <span className="relative inline-flex h-3 w-3 rounded-full bg-primary ring-2 ring-background"></span>
-                    </span>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setTypeFilter("all")}>
                   Semua Tipe
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTypeFilter("product")}>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypeFilter("product");
+                    setPage(1);
+                  }}
+                  className={`w-full flex items-center justify-center rounded-md border px-3 py-1.5 text-xs cursor-pointer hover:bg-muted ${typeFilter === "product" ? "bg-muted" : "bg-muted/50"}`}
+                >
                   Produk
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTypeFilter("sale")}>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypeFilter("sale");
+                    setPage(1);
+                  }}
+                  className={`w-full flex items-center justify-center rounded-md border px-3 py-1.5 text-xs cursor-pointer hover:bg-muted ${typeFilter === "sale" ? "bg-muted" : "bg-muted/50"}`}
+                >
                   Penjualan
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTypeFilter("purchase")}>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypeFilter("purchase");
+                    setPage(1);
+                  }}
+                  className={`w-full flex items-center justify-center rounded-md border px-3 py-1.5 text-xs cursor-pointer hover:bg-muted ${typeFilter === "purchase" ? "bg-muted" : "bg-muted/50"}`}
+                >
                   Pembelian
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTypeFilter("customer")}>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypeFilter("customer");
+                    setPage(1);
+                  }}
+                  className={`w-full flex items-center justify-center rounded-md border px-3 py-1.5 text-xs cursor-pointer hover:bg-muted ${typeFilter === "customer" ? "bg-muted" : "bg-muted/50"}`}
+                >
                   Pelanggan
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </button>
+              </div>
+            </FilterWrap>
 
             <div className="h-10 w-[1px] bg-border mx-1 hidden sm:block" />
             <ViewModeSwitch value={viewMode} onChange={setViewMode} />

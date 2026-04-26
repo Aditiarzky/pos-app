@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useCustomerDetail } from "@/hooks/master/use-customers";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   User,
   Phone,
@@ -15,6 +17,7 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   Calendar,
+  HandCoins,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { CustomerBalanceMutation } from "@/services/customerService";
@@ -28,6 +31,8 @@ export function CustomerDetailSection({
 }: CustomerDetailSectionProps) {
   const { data, isLoading } = useCustomerDetail({ id: customerId });
   const customer = data?.data;
+  const debtHistoryHref = `/dashboard/sales?tab=history-sales&customerId=${customerId}`;
+  const hasDebt = Number(customer?.totalDebt ?? 0) > 0;
 
   if (isLoading) {
     return (
@@ -51,7 +56,7 @@ export function CustomerDetailSection({
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 ">
       {/* Basic Info Card */}
       <Card className="border-none bg-primary/0 p-2 shadow-none group overflow-hidden ">
         <CardContent className="px-0">
@@ -152,6 +157,31 @@ export function CustomerDetailSection({
           </CardContent>
         </Card>
       </div>
+
+      {hasDebt && (
+        <Card className="shadow-none p-0 border-amber-500/20 bg-amber-500/5">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-semibold text-amber-700 flex items-center gap-2">
+                  <HandCoins className="h-4 w-4" />
+                  Detail Hutang Pelanggan
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Buka riwayat penjualan khusus pelanggan ini untuk cek transaksi hutang.
+                </p>
+              </div>
+
+              <Button asChild variant="outline" className="w-full sm:w-auto border-amber-500/30 text-amber-700 hover:bg-amber-500/10">
+                <Link href={debtHistoryHref}>
+                  Lihat Detail Hutang
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Separator />
 

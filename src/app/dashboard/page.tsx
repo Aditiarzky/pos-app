@@ -15,6 +15,11 @@ import { fillDailyGaps } from "@/lib/chart-utils";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
+  buildLowStockAlertHref,
+  buildUnpaidDebtAlertHref,
+} from "@/lib/business-alert-routes";
+import { BUSINESS_TERMS } from "@/lib/business-terms";
+import {
   AlertCircle,
   ArrowRight,
   CircleDollarSign,
@@ -47,7 +52,7 @@ const GrowthBadge = ({ value }: { value: number }) => {
   return (
     <div
       className={cn(
-        "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+        "flex items-center gap-0.5 px-1.5 py-0.5 rounded-app-pill text-[10px] font-bold",
         isPositive
           ? "bg-emerald-500/10 text-emerald-600"
           : "bg-rose-500/10 text-rose-600",
@@ -143,7 +148,7 @@ export default function DashboardPage() {
   const kpiData = summary
     ? [
         {
-          title: "Omset Bulan Ini",
+          title: `${BUSINESS_TERMS.revenueShort} Bulan Ini`,
           value: summary.totalSalesMonth,
           growth: calculateGrowth(
             summary.totalSalesMonth,
@@ -153,7 +158,7 @@ export default function DashboardPage() {
           color: "primary" as const,
         },
         {
-          title: "Laba Kotor Bulan Ini",
+          title: `${BUSINESS_TERMS.grossProfit} Bulan Ini`,
           value: summary.totalProfitMonth,
           growth: calculateGrowth(
             summary.totalProfitMonth,
@@ -174,7 +179,7 @@ export default function DashboardPage() {
           asNumber: true,
         },
         {
-          title: "Total Piutang Aktif",
+          title: `Total ${BUSINESS_TERMS.receivables} Aktif`,
           value: summary.totalActiveDebt,
           growth: calculateGrowth(
             summary.totalActiveDebt,
@@ -194,7 +199,7 @@ export default function DashboardPage() {
       <div className="container mx-auto space-y-4">
         <header className="sticky top-6 mx-auto container z-10 flex flex-row px-4 sm:px-6 justify-between w-full items-center gap-4 pb-16">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-1.5 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
+            <div className="h-12 w-1.5 bg-primary rounded-app-pill shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
             <div className="flex flex-col">
               <h1 className="text-3xl text-primary font-bold tracking-tight">
                 Beranda
@@ -246,12 +251,12 @@ export default function DashboardPage() {
                 data={filledSalesTrend}
                 config={{
                   totalSales: {
-                    label: "Omset",
+                    label: BUSINESS_TERMS.revenueShort,
                     color: "var(--chart-1)",
                   },
                 }}
-                title="Tren Omset 30 Hari Terakhir"
-                description="Omset Harian"
+                title={`Tren ${BUSINESS_TERMS.revenueShort} 30 Hari Terakhir`}
+                description={`${BUSINESS_TERMS.revenueShort} Harian`}
                 showTimeRange={false}
               />
             </div>
@@ -292,8 +297,8 @@ export default function DashboardPage() {
                           {visibleLowStock.map((product) => (
                             <li key={product.productId}>
                               <Link
-                                href="/dashboard/products"
-                                className="flex gap-2 rounded-lg border p-2.5 text-xs hover:bg-muted/30 transition-colors"
+                                href={buildLowStockAlertHref(product)}
+                                className="flex gap-2 rounded-app-lg border p-2.5 text-xs hover:bg-muted/30 transition-colors"
                               >
                                 <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border bg-muted">
                                   <Image
@@ -375,8 +380,8 @@ export default function DashboardPage() {
                           {visibleDebts.map((debt) => (
                             <li key={debt.debtId}>
                               <Link
-                                href="/dashboard/sales?tab=history-sales"
-                                className="block rounded-lg border p-2.5 text-xs hover:bg-muted/30 transition-colors"
+                                href={buildUnpaidDebtAlertHref(debt)}
+                                className="block rounded-app-lg border p-2.5 text-xs hover:bg-muted/30 transition-colors"
                               >
                                 {/* Baris 1: nama pelanggan + umur hutang */}
                                 <div className="flex items-center justify-between gap-2">

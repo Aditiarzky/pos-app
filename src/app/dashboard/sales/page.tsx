@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   History,
   ShoppingCart,
@@ -12,6 +13,7 @@ import {
   TrendingDown,
   CircleDollarSign,
   Wallet,
+  QrCode,
 } from "lucide-react";
 import { useQueryState, useQueryStates } from "@/hooks/use-query-state";
 import { AnimatedNumber } from "@/components/ui/animated-number";
@@ -32,6 +34,14 @@ import { FilterWrap } from "@/components/filter-wrap";
 import { SalesFilterForm } from "./_components/_ui/sales-filter-form";
 import { DebtFilterForm } from "./_components/_ui/debt-filter-form";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import BarcodeScannerCamera from "@/components/barcode-scanner-camera";
+import { toast } from "sonner";
+import { BUSINESS_TERMS } from "@/lib/business-terms";
 
 // ============================================
 // HELPERS
@@ -49,7 +59,7 @@ const GrowthIndicator = ({ value }: { value: number }) => {
   return (
     <div
       className={cn(
-        "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
+        "flex items-center gap-0.5 px-1.5 py-0.5 rounded-app-pill text-[10px] font-bold",
         isPositive
           ? "bg-emerald-500/10 text-emerald-600"
           : "bg-rose-500/10 text-rose-600",
@@ -70,6 +80,8 @@ const GrowthIndicator = ({ value }: { value: number }) => {
 // ============================================
 
 function SalesContent() {
+  const [isSalesScannerOpen, setIsSalesScannerOpen] = useState(false);
+
   // Tab state (synced dengan URL)
   const [tab, setTab] = useQueryState<string>("tab", "cashier");
   const [cashierMode, setCashierMode] = useQueryState<"sales" | "return">(
@@ -114,12 +126,22 @@ function SalesContent() {
     setUiStates({ filter: "active", customerId: 0 });
   };
 
+  const handleSalesHistoryScanSuccess = (barcode: string) => {
+    const trimmedBarcode = barcode.trim();
+    if (!trimmedBarcode) return;
+
+    saleList.setSearchInput(trimmedBarcode);
+    saleList.setPage(1);
+    setIsSalesScannerOpen(false);
+    toast.success("Barcode berhasil dipindai");
+  };
+
   return (
     <>
       {/* Header Section */}
       <header className="sticky top-6 mx-auto container z-10 flex flex-row px-6 justify-between w-full items-center gap-4 pb-16">
         <div className="flex items-center gap-4">
-          <div className="h-12 w-1.5 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
+          <div className="h-12 w-1.5 bg-primary rounded-app-pill shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
           <div className="flex flex-col">
             <h1 className="text-3xl text-primary font-bold tracking-tight">
               Kasir & Penjualan
@@ -170,12 +192,12 @@ function SalesContent() {
               </CardContent>
             </Card>
 
-            {/* Net Revenue */}
+            {/* Gross Profit (mapped from netRevenue field) */}
             <Card className="relative overflow-hidden border-none shadow-md">
               <CardBg />
               <CardHeader className="pb-2 z-10">
                 <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
-                  Net Revenue
+                  {BUSINESS_TERMS.grossProfit}
                   <div className="p-2 bg-emerald-500/10 rounded-lg">
                     <CircleDollarSign className="h-4 w-4 text-emerald-600" />
                   </div>
@@ -191,7 +213,7 @@ function SalesContent() {
                       />
                     </div>
                     <p className="text-[10px] text-muted-foreground mt-1 font-medium">
-                      Profit hari ini
+                      Laba kotor hari ini
                     </p>
                   </div>
                   <GrowthIndicator
@@ -278,24 +300,24 @@ function SalesContent() {
 
         {/* Tabs */}
         <Tabs value={tab} onValueChange={setTab} className="gap-4">
-          <TabsList className="bg-muted/50 p-1 rounded-2xl w-full sm:w-fit justify-start h-auto gap-1 overflow-x-auto flex-nowrap scrollbar-hide">
+          <TabsList className="bg-background w-full sm:w-fit justify-start h-auto gap-1 overflow-x-auto flex-nowrap scrollbar-hide">
             <TabsTrigger
               value="cashier"
-              className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-xl px-3 sm:px-6 py-2.5 font-bold transition-all whitespace-nowrap text-xs sm:text-sm"
+              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer whitespace-nowrap text-xs sm:text-sm"
             >
               <ShoppingCart className="mr-2 h-4 w-4 shrink-0" />
               Menu Kasir
             </TabsTrigger>
             <TabsTrigger
               value="history-sales"
-              className="data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-xl px-3 sm:px-6 py-2.5 font-bold transition-all whitespace-nowrap text-xs sm:text-sm"
+              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer whitespace-nowrap text-xs sm:text-sm"
             >
               <History className="mr-2 h-4 w-4 shrink-0" />
               Riwayat
             </TabsTrigger>
             <TabsTrigger
               value="history-returns"
-              className="data-[state=active]:bg-background data-[state=active]:text-destructive data-[state=active]:shadow-sm rounded-xl px-3 sm:px-6 py-2.5 font-bold transition-all whitespace-nowrap text-xs sm:text-sm"
+              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer whitespace-nowrap text-xs sm:text-sm"
             >
               <Undo2 className="mr-2 h-4 w-4 shrink-0" />
               Retur
@@ -308,11 +330,11 @@ function SalesContent() {
           >
             {/* Cashier Mode Switcher */}
             <div className="flex justify-center mb-6">
-              <div className="bg-muted p-1 rounded-full flex gap-1">
+              <div className="bg-muted p-1 rounded-app-pill flex gap-1">
                 <button
                   onClick={() => setCashierMode("sales")}
                   className={cn(
-                    "px-6 py-2 rounded-full text-sm font-bold transition-all",
+                    "px-6 py-2 rounded-app-pill text-sm font-bold transition-all",
                     cashierMode === "sales"
                       ? "bg-background shadow-sm text-primary"
                       : "text-muted-foreground hover:text-foreground",
@@ -323,7 +345,7 @@ function SalesContent() {
                 <button
                   onClick={() => setCashierMode("return")}
                   className={cn(
-                    "px-6 py-2 rounded-full text-sm font-bold transition-all",
+                    "px-6 py-2 rounded-app-pill text-sm font-bold transition-all",
                     cashierMode === "return"
                       ? "bg-background shadow-sm text-destructive"
                       : "text-muted-foreground hover:text-foreground",
@@ -353,6 +375,18 @@ function SalesContent() {
                   placeholder="Cari No. Invoice..."
                   value={saleList.searchInput}
                   onChange={saleList.setSearchInput}
+                  rightAction={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-app-pill hover:bg-background/50"
+                      onClick={() => setIsSalesScannerOpen(true)}
+                      aria-label="Buka scanner barcode riwayat penjualan"
+                    >
+                      <QrCode className="h-4 w-4" />
+                    </Button>
+                  }
                 />
 
                 <FilterWrap hasActiveFilters={hasActiveAdvancedFilters}>
@@ -419,6 +453,16 @@ function SalesContent() {
             <ReturnListSection />
           </TabsContent>
         </Tabs>
+
+        <Dialog open={isSalesScannerOpen} onOpenChange={setIsSalesScannerOpen}>
+          <DialogTitle hidden>Scan barcode riwayat penjualan</DialogTitle>
+          <DialogContent className="p-0 border-none max-w-lg max-h-[90vh]">
+            <BarcodeScannerCamera
+              onScanSuccess={handleSalesHistoryScanSuccess}
+              onClose={() => setIsSalesScannerOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </main>
     </>
   );
