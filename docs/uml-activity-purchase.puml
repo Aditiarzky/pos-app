@@ -1,0 +1,23 @@
+@startuml
+|Admin Toko|
+start
+:Buka menu kelola pembelian;
+:Pilih supplier dan daftar produk pembelian;
+:Input jumlah (qty) dan harga beli;
+:Konfirmasi transaksi pembelian;
+
+|Sistem POS|
+:Validasi ketersediaan produk dan kelengkapan data;
+if (Data Valid?) then (Ya)
+  :Catat rincian transaksi pembelian;
+  :Lakukan pembaruan jumlah stok inventaris;
+  :Lakukan penyesuaian perhitungan biaya rata-rata (HPP);
+  :Simpan transaksi pembelian ke penyimpanan;
+  |Admin Toko|
+  :Terima bukti transaksi berhasil;
+else (Tidak)
+  |Sistem POS|
+  :Tampilkan pesan data tidak lengkap atau salah;
+endif
+stop
+@enduml

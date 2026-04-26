@@ -1,0 +1,41 @@
+@startuml
+|Admin Sistem|
+start
+:Buka menu kelola sampah sistem (Trash);
+:Pilih tindakan (Pemulihan Data atau Pembersihan);
+
+if (Tindakan?) then (Pulihkan Data Terhapus)
+  :Pilih berkas untuk dipulihkan;
+  |Sistem POS|
+  :Verifikasi keutuhan relasi antar data;
+  if (Data Utuh?) then (Ya)
+    :Batalkan status penghapusan data;
+    :Kembalikan ke antarmuka utama;
+    |Admin Sistem|
+    :Terima notifikasi keberhasilan;
+  else (Tidak)
+    |Sistem POS|
+    :Tolak pemulihan akibat cacat relasional;
+    |Admin Sistem|
+    :Terima rincian penolakan;
+  endif
+
+else (Pembersihan Permanen)
+  |Admin Sistem|
+  :Instruksikan eksekusi pembersihan riwayat sampah lama;
+  |Sistem POS|
+  :Filter kriteria data yang kadaluarsa secara logika sistem;
+  if (Ada Kandidat?) then (Ya)
+    :Hapus modul data fisik secara permanen;
+    :Catat jejak audit pemusnahan file;
+    |Admin Sistem|
+    :Terima laporan ringkasan berkas terhapus;
+  else (Tidak)
+    |Sistem POS|
+    :Hentikan prosedur secara kondusif;
+    |Admin Sistem|
+    :Dapat informasi sistem trash telah bersih;
+  endif
+endif
+stop
+@enduml

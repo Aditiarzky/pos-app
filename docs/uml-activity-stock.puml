@@ -1,0 +1,26 @@
+@startuml
+|Admin Toko|
+start
+:Buka menu kelola stok dan visibilitasnya;
+:Minta penyajian daftar stok semua produk aktif;
+|Sistem POS|
+:Sajikan laporan sisa inventaris secara kronologis;
+|Admin Toko|
+:Tinjau dan seleksi produk yang butuh penyesuaian (Audit);
+:Pilih tindakan Penyesuaian Stok (Adjust Stock);
+:Masukan total riil di lapangan (fisik) dan alasannya;
+
+|Sistem POS|
+:Lakukan komparasi kalkulasi sistem dengan fisik;
+if (Ditemukan Selisih?) then (Ya)
+  :Rekam jenis selisih (Kurang / Lebih);
+  :Normalisasi data sistem dengan masukan audit;
+  :Simpan jurnal mutasi stok masuk/keluar khusus;
+  |Admin Toko|
+  :Laporan penyesuaian stok berhasil disimpan;
+else (Tidak)
+  |Sistem POS|
+  :Batalkan form pencatatan mutasi karena sinkron;
+endif
+stop
+@enduml

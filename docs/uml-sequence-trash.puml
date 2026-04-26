@@ -1,0 +1,27 @@
+@startuml
+actor "Admin Sistem" as Admin
+participant "Sistem POS" as App
+database "Penyimpanan Data" as DB
+
+== Pemeriksaan Penyimpanan Arsip Terbuang (Trash) ==
+Admin -> App: Akses penjelajahan panel riwayat keranjang sampah data
+App -> DB: Eksekusi penyortiran seluruh jejak arsip penghapusan non-permanen
+DB --> App: Pengumpulan kompilasi metadata file terkait
+App --> Admin: Tampilkan presentasi tabel antarmuka pembersihan Trash
+
+== Tindakan Pemulihan Arsip (Restore) ==
+Admin -> App: Seleksi berkas target khusus untuk diaktifkan kembali
+App -> App: Penilaian validitas prasyarat referensi berantai
+alt Kondisi Lingkungan Data Utuh
+  App -> DB: Singkirkan flag pembekuan dan hidupkan akses data ke sistem fungsional kembali
+  App --> Admin: Penyerahan hasil pemulihan operasional dengan sukses
+else Ketergantungan Struktur Terkompromi
+  App --> Admin: Menolak instruksi serta memunculkan log error kecacatan relasional
+end
+
+== Pelaksanaan Musnah Permanen (Cleanup) ==
+Admin -> App: Terbitkan mandat pembersihan sampah basi yang menghabiskan memori sistem
+App -> DB: Lakukan penyapuan parameter tanggal penghapusan arsip yang jauh melampaui umur kadaluarsa absolut
+App -> DB: Eliminasi fisik memori tabel atas data teridentifikasi secara hakiki
+App --> Admin: Menyerahkan laporan audit keberhasilan sanitasi pangkalan data
+@enduml

@@ -1,0 +1,21 @@
+@startuml
+actor "Admin Toko" as Admin
+participant "Sistem POS" as App
+database "Penyimpanan Data" as DB
+
+== Pembuatan Lembar Pembelian ==
+Admin -> App: Masukkan rincian pesanan dari supplier
+App -> App: Validasi kewajaran jumlah dan total beban tagihan
+App -> DB: Catat transaksi pembelian baru
+App -> DB: Lakukan penambahan stok ke inventaris (Gudang)
+App -> DB: Lakukan pembaruan perhitungan Modal Pokok (HPP)
+App --> Admin: Tampilkan pesanan pembelian berhasil disimpan
+
+== Pembatalan Pembelian ==
+Admin -> App: Minta pembatalan/pengarsipan nota pembelian
+App -> DB: Cari referensi nota pembelian lama dalam sistem
+App -> DB: Kurangi stok produk sejumlah yang telah ditambahkan
+App -> DB: Normalisasikan perhitungan Modal Pokok ke kondisi awal
+App -> DB: Tandai formulir pembelian sebagai tercabut
+App --> Admin: Tampilkan informasi pembelian berhasil dibatalkan
+@enduml

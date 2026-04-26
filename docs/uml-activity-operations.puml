@@ -1,0 +1,16 @@
+@startuml
+|Admin Sistem|
+start
+:Akses modul manajemen operasi harian dan pelaporan;
+:Pilih jenis pelaporan (Penjualan / Stok Tersedia / Aktivitas Pembelian);
+:Sesuaikan parameter tanggal rentang pencarian;
+
+|Sistem POS|
+:Saring pangkalan data untuk agregasi jumlah sesuai konteks filter waktu;
+:Kalkulasi kompilasi angka penjualan, perolehan kas dan total ongkos logistik;
+:Susun formasi tabulasi serta grafik laporan akhir;
+|Admin Sistem|
+:Menerima hasil cetak layar visual representasi performa kedai;
+:Jadikan referensi pengambilan keputusan (Download);
+stop
+@enduml

@@ -1,0 +1,18 @@
+@startuml
+|Admin Toko / Sistem|
+start
+:Mulai memantau informasi lewat panel bel notifikasi utama;
+|Sistem POS|
+:Ekstrak informasi dinamis (stok rendah, sampah penuh, piutang kedaluwarsa);
+:Bentuk kerangka daftar pemberitahuan secara sekuensial;
+|Admin Toko / Sistem|
+:Saring informasi kritis terkait operasional;
+:Pilih notifikasi yang telah dibaca atau diselesaikan;
+
+|Sistem POS|
+:Tandai item tersebut menjadi riwayat masa lampau;
+:Sembunyikan dari lencana pandangan pertama (badges);
+|Admin Toko / Sistem|
+:Terima area pandang daftar yang kembali bersih;
+stop
+@enduml

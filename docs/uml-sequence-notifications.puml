@@ -1,0 +1,17 @@
+@startuml
+actor "Admin / User" as Admin
+participant "Sistem POS" as App
+database "Penyimpanan Data" as DB
+
+== Proses Cek Pemberitahuan ==
+Admin -> App: Buka menu pemberitahuan (Notifikasi)
+App -> DB: Permintaan riwayat peringatan (stok menipis, hutang jatuh tempo)
+DB --> App: Serahkan hasil pengumpulan data
+App -> App: Evaluasi tingkat urgensi peringatan
+App --> Admin: Tampilkan daftar pemberitahuan
+
+== Penyelesaian Pemberitahuan ==
+Admin -> App: Tandai telah dibaca / diselesaikan
+App -> DB: Perbarui status pemberitahuan
+App --> Admin: Sembunyikan pesan pemberitahuan dari layar prioritas
+@enduml

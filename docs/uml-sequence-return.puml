@@ -1,0 +1,32 @@
+@startuml
+actor "Admin Toko" as Admin
+participant "Sistem POS" as App
+database "Penyimpanan Data" as DB
+
+== Pengajuan Retur Pelanggan ==
+Admin -> App: Buat pengajuan pengembalian barang atas dasar klaim pelanggan
+App -> DB: Cocokkan referensi faktur penjualan awal
+DB --> App: Referensi faktur penjualan ditemukan valid
+App -> App: Verifikasi kalkulasi batas kelayakan retur barang
+App -> App: Tentukan metode kompensasi (Uang Tunai / Tukar Barang / Potong Saldo)
+
+alt Kompensasi Pengisian Saldo
+  App -> DB: Tambahkan nilai kredit ke dompet akun pelanggan bersangkutan
+else Kompensasi Uang Tunai
+  App -> App: Keluarkan perintah tagihan uang direfund secara langsung
+else Kompensasi Tukar Barang Fisik
+  App -> DB: Kurangkan jumlah produk pengganti dari manajemen inventaris
+  App -> App: Lakukan perhitungan selisih ketetapan nilai harga komponen lama dan baru
+end
+
+App -> DB: Kembalikan volume barang retur ke persediaan stok utama (Bila Layak)
+App -> DB: Rekam jejak riwayat formulir retur
+App --> Admin: Tampilkan cetak layar bukti penyelesaian solusi retur
+
+== Pembatalan Transaksi Retur ==
+Admin -> App: Lakukan permintaan pembatalan skema retur yang tidak valid
+App -> DB: Panggil ulang proses pembalikan perpindahan stok inventaris
+App -> DB: Tarik kembali surplus saldo nilai pelanggan
+App -> DB: Bekukan catatan retur menjadi tidak diakui
+App --> Admin: Konfirmasi bahwasannya operasi retur telah sukses dibatalkan
+@enduml

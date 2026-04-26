@@ -1,0 +1,30 @@
+@startuml
+|Admin Toko|
+start
+:Buka menu retur pelanggan;
+:Pilih faktur penjualan dan produk yang diretur;
+:Pilih metode kompensasi (Tukar, Uang Kembali, Saldo);
+:Konfirmasi pengajuan retur;
+
+|Sistem POS|
+:Validasi riwayat penjualan dan batas retur;
+if (Data Sesuai?) then (Ya)
+  :Proses pembaruan stok inventaris (Opsi retur ke stok);
+  if (Kompensasi?) then (Uang Kembali / Refund)
+    :Catat perintah pengembalian uang;
+  else if (Tambah Saldo Pelanggan)
+    :Perbarui saldo akun pelanggan;
+  else (Tukar Barang / Exchange)
+    :Catat pengurangan stok barang pengganti;
+    :Kalkulasi selisih harga barang;
+  endif
+  :Simpan catatan retur pelanggan;
+  |Admin Toko|
+  :Terima bukti dan instruksi penyelesaian retur;
+else (Tidak)
+  |Sistem POS|
+  :Tampilkan notifikasi penolakan validasi;
+endif
+
+stop
+@enduml

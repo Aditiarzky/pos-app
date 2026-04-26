@@ -1,0 +1,19 @@
+@startuml
+actor "Admin Toko" as Admin
+participant "Sistem POS" as App
+database "Penyimpanan Data" as DB
+
+== Angsuran Tunggakan Berjangka ==
+Admin -> App: Inisiasi skema pelunasan utang sebagian
+App -> DB: Cek kembali berkas piutang awal pembeli terpilih
+App -> App: Tandingkan setoran kas masuk atas limit jatuh tempo bayar
+
+alt Telah Melampaui Status Tanggungan Akhir
+  App -> DB: Lunaskan seluruh nominal di tabel piutang
+else Hanya Berkisar Setoran Tetap Sebagian
+  App -> DB: Turunkan saldo debit dan jaga status arsip aktif
+end
+
+App -> DB: Arsipkan rincian pelunasan di jurnal riwayat transaksi setoran
+App --> Admin: Bukti kas masuk dicetak sebagai referensi silang
+@enduml

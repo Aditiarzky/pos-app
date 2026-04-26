@@ -1,0 +1,44 @@
+@startuml
+|Admin Toko|
+start
+:Buka menu kelola produk;
+:Pilih aksi (Tambah, Ubah, Hapus);
+
+if (Aksi?) then (Tambah Produk)
+  :Input rincian produk baru;
+  |Sistem POS|
+  :Validasi kelengkapan data;
+  if (Data Lengkap?) then (Ya)
+    :Simpan data produk ke penyimpanan;
+    |Admin Toko|
+    :Terima pesan produk berhasil ditambah;
+  else (Tidak)
+    |Sistem POS|
+    :Tampilkan pesan error validasi;
+  endif
+
+else (Ubah Produk)
+  |Admin Toko|
+  :Ubah rincian data produk;
+  |Sistem POS|
+  :Validasi data perubahan;
+  if (Data Valid?) then (Ya)
+    :Perbarui data produk di penyimpanan;
+    |Admin Toko|
+    :Terima pesan produk berhasil diubah;
+  else (Tidak)
+    |Sistem POS|
+    :Tampilkan pesan error;
+  endif
+
+else (Hapus Produk)
+  |Admin Toko|
+  :Pilih produk yang akan dihapus;
+  |Sistem POS|
+  :Pindahkan data produk ke sistem rekam jejak (Trash);
+  |Admin Toko|
+  :Terima pesan produk dihapus;
+endif
+
+stop
+@enduml

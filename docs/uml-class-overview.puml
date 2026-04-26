@@ -1,0 +1,87 @@
+@startuml
+hide methods
+skinparam classAttributeIconSize 0
+
+class Pengguna {
+  Nama
+  Akses Kredensial
+}
+
+class Kategori {
+  Nama Kategori
+}
+
+class Produk {
+  Nomor Seri Produk
+  Penamaan Item
+  Ambang Batas Stok Minimal
+  Biaya Perolehan Rata-Rata
+}
+
+class VarianProduk {
+  Spesifikasi Varian
+  Nilai Konversi Dasar
+  Harga Penawaran
+}
+
+class Supplier {
+  Identitas Rekanan Bisnis
+  Alamat Kontak
+}
+
+class Pelanggan {
+  Identitasi Konsumen
+  Akses Narahubung
+  Total Saldo Dompet
+}
+
+class Pembelian {
+  Nomor Lembar Penagihan
+  Kalkulasi Total Biaya
+  Asuransi Status Dokumen
+}
+
+class TransaksiPenjualan {
+  Faktur Bukti Jual
+  Total Tagihan Publik
+  Nominal Pemenuhan Pembayaran
+  Skema Pendanaan (Metode)
+}
+
+class RiwayatHutang {
+  Proporsi Kewajiban Belum Terbayar
+  Batas Pertanggungjawaban
+}
+
+class ReturPelanggan {
+  Registrasi Komplain Konsumen
+  Pemilihan Alokasi Kompensasi
+}
+
+class NotifikasiSistem {
+  Pokok Pesan Berita
+  Indikator Telah Terbaca
+}
+
+' Relational Mapping Models
+Pengguna "1" -- "*" TransaksiPenjualan : Melaksanakan >
+Pengguna "1" -- "*" Pembelian : Mensahkan >
+
+Kategori "1" -- "*" Produk : Mewadahi <
+Produk "1" -- "*" VarianProduk : Dipilah berdasarkan >
+
+Supplier "1" -- "*" Pembelian : Menyediakan bagi >
+Pembelian "1" -- "*" Produk : Mendata perolehan >
+
+Pelanggan "1" -- "*" TransaksiPenjualan : Melakukan pembelian via >
+Pelanggan "1" -- "*" RiwayatHutang : Berhutang melalui >
+Pelanggan "1" -- "*" ReturPelanggan : Mendaftarkan asuransi retur >
+
+TransaksiPenjualan "1" -- "*" Produk : Berisi rincian barang >
+TransaksiPenjualan "1" -- "0..1" RiwayatHutang : Mengakibatkan penagihan >
+TransaksiPenjualan "1" -- "*" ReturPelanggan : Direferensikan historis pada >
+
+ReturPelanggan "1" -- "*" Produk : Mengeksekusi penarikan produk balik >
+
+Pengguna "1" -- "*" NotifikasiSistem : Menerima log penyampaian peristiwa >
+@enduml

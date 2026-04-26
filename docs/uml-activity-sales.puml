@@ -1,0 +1,31 @@
+@startuml
+|Admin Toko|
+start
+:Buka menu transaksi penjualan;
+:Pilih produk dan tentukan jumlah;
+:Pilih metode pembayaran (Tunai / QRIS / Saldo);
+
+|Sistem POS|
+:Validasi ketersediaan stok;
+if (Stok Tersedia?) then (Ya)
+  :Hitung total tagihan transaksi;
+  if (Metode Pembayaran?) then (QRIS)
+    :Tampilkan kode QRIS untuk discan;
+    |Admin Toko|
+    :Arahkan pelanggan melakukan scan QRIS;
+    |Sistem POS|
+    :Verifikasi status penerimaan dana;
+  else (Tunai / Saldo)
+    :Catat penerimaan pembayaran;
+  endif
+  :Proses pengurangan stok;
+  :Cetak faktur / struk transaksi;
+  |Admin Toko|
+  :Berikan faktur kepada pelanggan;
+else (Tidak)
+  |Sistem POS|
+  :Tampilkan pesan stok produk tidak mencukupi;
+endif
+
+stop
+@enduml
