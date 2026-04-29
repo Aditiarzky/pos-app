@@ -1,16 +1,20 @@
 @startuml
 |Admin Sistem|
 start
-:Akses modul manajemen operasi harian dan pelaporan;
-:Pilih jenis pelaporan (Penjualan / Stok Tersedia / Aktivitas Pembelian);
-:Sesuaikan parameter tanggal rentang pencarian;
+:Buka menu Laporan;
+:Pilih jenis laporan (Penjualan, Keuangan, atau Stok);
+:Tentukan rentang tanggal;
 
 |Sistem POS|
-:Saring pangkalan data untuk agregasi jumlah sesuai konteks filter waktu;
-:Kalkulasi kompilasi angka penjualan, perolehan kas dan total ongkos logistik;
-:Susun formasi tabulasi serta grafik laporan akhir;
+:Ambil data penjualan, HPP, biaya operasional, dan pajak sesuai periode;
+:Hitung laba kotor (pendapatan - HPP);
+:Hitung biaya operasional yang dinormalisasi ke periode laporan;
+:Hitung pajak (persentase omset / laba, atau nominal tetap);
+:Hitung laba bersih (laba kotor - biaya ops - pajak);
+:Tampilkan grafik dan ringkasan angka;
+
 |Admin Sistem|
-:Menerima hasil cetak layar visual representasi performa kedai;
-:Jadikan referensi pengambilan keputusan (Download);
+:Tinjau hasil laporan di dasbor;
+:Unduh laporan jika diperlukan;
 stop
 @enduml

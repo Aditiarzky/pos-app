@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useProduct } from "@/hooks/products/use-product";
 import { BasicInfoTab } from "./tabs/basic-info-tab";
@@ -22,6 +22,7 @@ import { BarcodesTab } from "./tabs/barcodes-tab";
 import { ErrorIndicator } from "@/components/ui/error-indicator";
 import { useAuth } from "@/hooks/use-auth";
 import { CategoryType, UnitType } from "@/drizzle/type";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function ProductFormModal({
   open,
@@ -122,17 +123,24 @@ export function ProductFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? "Edit Produk" : "Tambah Produk Baru"}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleFormSubmit} className="space-y-6">
+        <form
+          onSubmit={handleFormSubmit}
+          className="flex flex-1 min-h-0 flex-col gap-6 overflow-hidden"
+        >
           {/* Controlled Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 bg-background">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="flex flex-1 min-h-0 flex-col overflow-hidden"
+          >
+            <TabsList className="grid w-full shrink-0 grid-cols-3 bg-background">
               <TabsTrigger
                 type="button"
                 value="basic"
@@ -145,7 +153,7 @@ export function ProductFormModal({
               <TabsTrigger
                 type="button"
                 value="variants"
-                className="relative data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
+                className="relative text-[clamp(0.75rem,2vw,0.85rem)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
               >
                 Satuan & Harga
                 <ErrorIndicator show={hasVariantError} />
@@ -161,51 +169,49 @@ export function ProductFormModal({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="basic">
-              <BasicInfoTab
-                {...form}
-                categories={categories as unknown as CategoryType[]}
-                units={units as unknown as UnitType[]}
-                imagePreview={imagePreview}
-                uploading={uploading}
-                inputRef={
-                  inputRef as unknown as React.RefObject<HTMLInputElement>
-                }
-                uploadImage={uploadImage}
-                clearImage={() => {
-                  setImagePreview(null);
-                  form.setValue("image", undefined);
-                }}
-                errors={form.formState.errors}
-              />
-            </TabsContent>
+            <ScrollArea className="h-0 flex-1 min-h-0">
+              <div className="pb-1 pr-2">
+                <BasicInfoTab
+                  {...form}
+                  categories={categories as unknown as CategoryType[]}
+                  units={units as unknown as UnitType[]}
+                  imagePreview={imagePreview}
+                  uploading={uploading}
+                  inputRef={
+                    inputRef as unknown as React.RefObject<HTMLInputElement>
+                  }
+                  uploadImage={uploadImage}
+                  clearImage={() => {
+                    setImagePreview(null);
+                    form.setValue("image", undefined);
+                  }}
+                  errors={form.formState.errors}
+                />
 
-            <TabsContent value="variants">
-              <VariantsTab
-                {...form}
-                errors={form.formState.errors}
-                variantFields={variantFields}
-                appendVariant={appendVariant}
-                removeVariant={removeVariant}
-                averageCost={Number(productData?.data?.averageCost ?? 0)}
-                isSystemAdmin={isSystemAdmin}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                units={units as any}
-              />
-            </TabsContent>
+                <VariantsTab
+                  {...form}
+                  errors={form.formState.errors}
+                  variantFields={variantFields}
+                  appendVariant={appendVariant}
+                  removeVariant={removeVariant}
+                  averageCost={Number(productData?.data?.averageCost ?? 0)}
+                  isSystemAdmin={isSystemAdmin}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  units={units as any}
+                />
 
-            <TabsContent value="barcodes">
-              <BarcodesTab
-                {...form}
-                barcodeFields={barcodeFields}
-                appendBarcode={appendBarcode}
-                removeBarcode={removeBarcode}
-                errors={form.formState.errors}
-              />
-            </TabsContent>
+                <BarcodesTab
+                  {...form}
+                  barcodeFields={barcodeFields}
+                  appendBarcode={appendBarcode}
+                  removeBarcode={removeBarcode}
+                  errors={form.formState.errors}
+                />
+              </div>
+            </ScrollArea>
           </Tabs>
 
-          <div className="flex justify-end gap-3">
+          <div className="flex shrink-0 justify-end gap-3">
             <Button type="button" variant="outline" onClick={handleClose}>
               Batal
             </Button>

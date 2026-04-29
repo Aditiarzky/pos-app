@@ -1,27 +1,25 @@
 @startuml
 |Admin Toko|
 start
-:Buka modul pengelolaan piutang pelanggan;
-:Lihat daftar rekap histori piutang aktif;
-:Pilih faktur/pelanggan untuk proses pelunasan;
-:Tentukan nominal pembayaran cicilan/penuh;
+:Buka menu Hutang Pelanggan;
+:Lihat daftar hutang yang belum lunas;
+:Pilih pelanggan dan tentukan jumlah pembayaran;
 
 |Sistem POS|
-:Validasi nilai setoran dibanding total sisa tagihan;
-if (Sesuai Batas Kewajaran?) then (Ya)
-  :Rekam penerimaan dana pelunasan;
-  :Kurangkan saldo hutang sesuai setoran;
-  if (Saldo Piutang Sama Dengan Nol?) then (Ya)
-    :Perbarui status dokumen piutang ke kondisi lunas komplet;
-  else (Tidak)
-    :Ubah perhitungan saldo berjalan dokumen utang;
+:Validasi jumlah bayar tidak melebihi sisa hutang;
+if (Jumlah bayar valid?) then (Ya)
+  :Kurangi sisa hutang pelanggan;
+  if (Hutang lunas sepenuhnya?) then (Ya)
+    :Ubah status hutang menjadi "Lunas";
+  else (Masih ada sisa)
+    :Ubah status hutang menjadi "Lunas Sebagian";
   endif
-  :Simpan histori pelunasan parsial di repositori;
+  :Catat riwayat pembayaran hutang;
   |Admin Toko|
-  :Cetak lembar bukti terima pembayaran kredit;
+  :Cetak bukti pembayaran hutang;
 else (Tidak)
   |Sistem POS|
-  :Batalkan proses karena jumlah berlebih di luar batas;
+  :Tampilkan pesan error (jumlah melebihi sisa hutang);
 endif
 stop
 @enduml

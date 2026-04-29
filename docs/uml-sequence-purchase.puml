@@ -1,21 +1,29 @@
 @startuml
 actor "Admin Toko" as Admin
 participant "Sistem POS" as App
-database "Penyimpanan Data" as DB
+database "Database" as DB
 
-== Pembuatan Lembar Pembelian ==
-Admin -> App: Masukkan rincian pesanan dari supplier
-App -> App: Validasi kewajaran jumlah dan total beban tagihan
-App -> DB: Catat transaksi pembelian baru
-App -> DB: Lakukan penambahan stok ke inventaris (Gudang)
-App -> DB: Lakukan pembaruan perhitungan Modal Pokok (HPP)
-App --> Admin: Tampilkan pesanan pembelian berhasil disimpan
+== Membuat Pembelian Baru ==
+Admin -> App: Input supplier, produk, qty, dan harga beli
+App -> App: Cek duplikat produk dalam satu transaksi
+App -> App: Validasi data produk dan supplier
+App -> DB: Buat header PO dengan nomor otomatis
+loop Setiap item produk
+  App -> DB: Ambil data stok dan HPP produk saat ini
+  App -> App: Hitung HPP baru (rata-rata tertimbang)
+  App -> DB: Update stok dan HPP produk
+  App -> DB: Simpan detail item pembelian (termasuk HPP sebelumnya)
+  App -> DB: Catat mutasi stok masuk
+end
+App -> DB: Update total PO
+App --> Admin: Tampilkan konfirmasi pembelian berhasil
 
-== Pembatalan Pembelian ==
-Admin -> App: Minta pembatalan/pengarsipan nota pembelian
-App -> DB: Cari referensi nota pembelian lama dalam sistem
-App -> DB: Kurangi stok produk sejumlah yang telah ditambahkan
-App -> DB: Normalisasikan perhitungan Modal Pokok ke kondisi awal
-App -> DB: Tandai formulir pembelian sebagai tercabut
-App --> Admin: Tampilkan informasi pembelian berhasil dibatalkan
+== Mengedit / Membatalkan Pembelian ==
+Admin -> App: Pilih PO yang ingin diubah atau dibatalkan
+App -> DB: Ambil data PO lama beserta item-itemnya
+App -> App: Kembalikan stok dan HPP ke kondisi sebelum PO ini (pakai data costBefore)
+App -> DB: Hapus item dan mutasi stok lama
+App -> App: Terapkan ulang data baru (jika edit) atau hentikan (jika batal)
+App -> DB: Simpan perubahan
+App --> Admin: Tampilkan konfirmasi berhasil
 @enduml

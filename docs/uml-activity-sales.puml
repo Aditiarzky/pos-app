@@ -1,31 +1,65 @@
 @startuml
 |Admin Toko|
 start
-:Buka menu transaksi penjualan;
+:Buka menu Penjualan / Kasir;
+:Cari produk lewat nama atau scan barcode;
 :Pilih produk dan tentukan jumlah;
-:Pilih metode pembayaran (Tunai / QRIS / Saldo);
+:Pilih pelanggan (opsional, untuk member);
+:Pilih metode pembayaran (Tunai / QRIS / Potong Saldo);
 
 |Sistem POS|
-:Validasi ketersediaan stok;
-if (Stok Tersedia?) then (Ya)
-  :Hitung total tagihan transaksi;
+:Cek apakah ada produk yang sama diinput dua kali;
+if (Ada duplikat produk?) then (Ya)
+  :Tolak dan tampilkan pesan error;
+  stop
+else (Tidak)
+endif
+:Cek ketersediaan stok semua produk;
+if (Stok Cukup?) then (Ya)
+  :Hitung total belanja;
+  :Kurangi saldo pelanggan jika digunakan;
   if (Metode Pembayaran?) then (QRIS)
-    :Tampilkan kode QRIS untuk discan;
-    |Admin Toko|
-    :Arahkan pelanggan melakukan scan QRIS;
-    |Sistem POS|
-    :Verifikasi status penerimaan dana;
-  else (Tunai / Saldo)
-    :Catat penerimaan pembayaran;
+    :Buat tagihan QRIS ke Pakasir;
+    if (Pakasir berhasil?) then (Ya)
+      :Simpan data penjualan dengan status "Menunggu Pembayaran";
+      :Tampilkan kode QRIS ke layar;
+      |Admin Toko|
+      :Arahkan pelanggan untuk scan QRIS;
+      |Sistem POS|
+      :Tunggu konfirmasi pembayaran dari Pakasir (webhook);
+      :Ubah status penjualan menjadi "Selesai";
+    else (Gagal)
+      :Batalkan transaksi dan kembalikan stok;
+      :Tampilkan pesan error;
+      stop
+    endif
+  else if (Tunai)
+    :Validasi jumlah uang yang dibayarkan;
+    if (Bayar kurang dan bukan hutang?) then (Ya)
+      :Tolak transaksi;
+      stop
+    else (Tidak)
+    endif
+    :Hitung kembalian;
+    if (Ada kembalian dan opsi bayar hutang lama?) then (Ya)
+      :Gunakan kembalian untuk melunasi hutang lama pelanggan;
+    else (Tidak)
+    endif
+  else (Potong Saldo)
+    :Kurangi saldo akun pelanggan;
   endif
-  :Proses pengurangan stok;
-  :Cetak faktur / struk transaksi;
+  :Simpan data penjualan dan detail item;
+  :Kurangi stok produk;
+  :Catat riwayat mutasi stok;
+  if (Pembayaran kurang dan dicatat hutang?) then (Ya)
+    :Buat catatan hutang untuk pelanggan;
+  else (Tidak)
+  endif
   |Admin Toko|
-  :Berikan faktur kepada pelanggan;
+  :Cetak struk / bukti transaksi;
 else (Tidak)
   |Sistem POS|
-  :Tampilkan pesan stok produk tidak mencukupi;
+  :Tampilkan pesan stok tidak mencukupi;
 endif
-
 stop
 @enduml

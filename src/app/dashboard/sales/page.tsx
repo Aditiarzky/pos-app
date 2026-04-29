@@ -34,11 +34,7 @@ import { FilterWrap } from "@/components/filter-wrap";
 import { SalesFilterForm } from "./_components/_ui/sales-filter-form";
 import { DebtFilterForm } from "./_components/_ui/debt-filter-form";
 import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import BarcodeScannerCamera from "@/components/barcode-scanner-camera";
 import { toast } from "sonner";
 import { BUSINESS_TERMS } from "@/lib/business-terms";
@@ -98,11 +94,14 @@ function SalesContent() {
 
   const viewMode = uiStates.view;
   const debtStatusFilter = uiStates.filter;
-  const debtCustomerId = uiStates.customerId > 0 ? uiStates.customerId : undefined;
+  const debtCustomerId =
+    uiStates.customerId > 0 ? uiStates.customerId : undefined;
 
   const setViewMode = (v: "table" | "card") => setUiStates({ view: v });
-  const setDebtStatusFilter = (f: "active" | "unpaid" | "partial") => setUiStates({ filter: f });
-  const setDebtCustomerId = (id: number | undefined) => setUiStates({ customerId: id ?? 0 });
+  const setDebtStatusFilter = (f: "active" | "unpaid" | "partial") =>
+    setUiStates({ filter: f });
+  const setDebtCustomerId = (id: number | undefined) =>
+    setUiStates({ customerId: id ?? 0 });
 
   // Fetch Analytics Data (Static hook for top cards)
   const { analytics: salesAnalytics } = useSaleList({ initialLimit: 1 });
@@ -120,7 +119,9 @@ function SalesContent() {
     debtStatusFilter !== "active" || !!debtCustomerId;
 
   const hasActiveAdvancedFilters =
-    hasActiveSalesAdvancedFilters || hasActiveDebtAdvancedFilters || !!saleList.searchInput;
+    hasActiveSalesAdvancedFilters ||
+    hasActiveDebtAdvancedFilters ||
+    !!saleList.searchInput;
 
   const resetDebtFilters = () => {
     setUiStates({ filter: "active", customerId: 0 });
@@ -303,21 +304,21 @@ function SalesContent() {
           <TabsList className="bg-background w-full sm:w-fit justify-start h-auto gap-1 overflow-x-auto flex-nowrap scrollbar-hide">
             <TabsTrigger
               value="cashier"
-              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer whitespace-nowrap text-xs sm:text-sm"
+              className="text-[clamp(0.75rem,2vw,1rem)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer whitespace-nowrap text-xs sm:text-sm"
             >
               <ShoppingCart className="mr-2 h-4 w-4 shrink-0" />
               Menu Kasir
             </TabsTrigger>
             <TabsTrigger
               value="history-sales"
-              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer whitespace-nowrap text-xs sm:text-sm"
+              className="text-[clamp(0.75rem,2vw,1rem)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer whitespace-nowrap text-xs sm:text-sm"
             >
               <History className="mr-2 h-4 w-4 shrink-0" />
               Riwayat
             </TabsTrigger>
             <TabsTrigger
               value="history-returns"
-              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer whitespace-nowrap text-xs sm:text-sm"
+              className="text-[clamp(0.75rem,2vw,1rem)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer whitespace-nowrap text-xs sm:text-sm"
             >
               <Undo2 className="mr-2 h-4 w-4 shrink-0" />
               Retur

@@ -1,18 +1,25 @@
 @startuml
-|Admin Toko / Sistem|
+|Admin Toko / Admin Sistem|
 start
-:Mulai memantau informasi lewat panel bel notifikasi utama;
-|Sistem POS|
-:Ekstrak informasi dinamis (stok rendah, sampah penuh, piutang kedaluwarsa);
-:Bentuk kerangka daftar pemberitahuan secara sekuensial;
-|Admin Toko / Sistem|
-:Saring informasi kritis terkait operasional;
-:Pilih notifikasi yang telah dibaca atau diselesaikan;
+:Buka panel notifikasi;
 
 |Sistem POS|
-:Tandai item tersebut menjadi riwayat masa lampau;
-:Sembunyikan dari lencana pandangan pertama (badges);
-|Admin Toko / Sistem|
-:Terima area pandang daftar yang kembali bersih;
+:Cek kondisi kritis (stok menipis, hutang jatuh tempo);
+if (Ada notifikasi baru?) then (Ya)
+  :Tampilkan daftar notifikasi dengan status "Belum Dibaca";
+else (Tidak)
+  :Tampilkan panel kosong;
+endif
+
+|Admin Toko / Admin Sistem|
+:Baca notifikasi yang muncul;
+:Klik notifikasi untuk menandai sudah dibaca;
+
+|Sistem POS|
+:Update status notifikasi menjadi "Sudah Dibaca";
+:Kurangi jumlah badge notifikasi di navbar;
+
+|Admin Toko / Admin Sistem|
+:Tindak lanjuti notifikasi (misal: lakukan pembelian jika stok menipis);
 stop
 @enduml

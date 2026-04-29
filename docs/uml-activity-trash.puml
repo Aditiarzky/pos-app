@@ -1,41 +1,28 @@
 @startuml
 |Admin Sistem|
 start
-:Buka menu kelola sampah sistem (Trash);
-:Pilih tindakan (Pemulihan Data atau Pembersihan);
+:Buka menu Trash (Sampah);
+:Lihat daftar data yang sudah dihapus (soft delete);
+:Pilih tindakan (Pulihkan atau Hapus Permanen);
 
-if (Tindakan?) then (Pulihkan Data Terhapus)
-  :Pilih berkas untuk dipulihkan;
+if (Tindakan?) then (Pulihkan Data)
+  :Pilih data yang ingin dipulihkan;
   |Sistem POS|
-  :Verifikasi keutuhan relasi antar data;
-  if (Data Utuh?) then (Ya)
-    :Batalkan status penghapusan data;
-    :Kembalikan ke antarmuka utama;
-    |Admin Sistem|
-    :Terima notifikasi keberhasilan;
-  else (Tidak)
-    |Sistem POS|
-    :Tolak pemulihan akibat cacat relasional;
-    |Admin Sistem|
-    :Terima rincian penolakan;
-  endif
-
-else (Pembersihan Permanen)
+  :Hapus tanda "terhapus" dari data tersebut;
+  :Data kembali aktif dan muncul di menu asalnya;
   |Admin Sistem|
-  :Instruksikan eksekusi pembersihan riwayat sampah lama;
+  :Lihat data sudah kembali aktif;
+
+else (Hapus Permanen / Cleanup Otomatis)
   |Sistem POS|
-  :Filter kriteria data yang kadaluarsa secara logika sistem;
-  if (Ada Kandidat?) then (Ya)
-    :Hapus modul data fisik secara permanen;
-    :Catat jejak audit pemusnahan file;
-    |Admin Sistem|
-    :Terima laporan ringkasan berkas terhapus;
+  :Cek data di Trash yang sudah melewati batas waktu (misal: > 30 hari);
+  if (Ada data kadaluarsa?) then (Ya)
+    :Hapus data tersebut secara permanen dari database;
   else (Tidak)
-    |Sistem POS|
-    :Hentikan prosedur secara kondusif;
-    |Admin Sistem|
-    :Dapat informasi sistem trash telah bersih;
+    :Tidak ada yang dihapus;
   endif
+  |Admin Sistem|
+  :Lihat ringkasan hasil cleanup;
 endif
 stop
 @enduml

@@ -1,30 +1,45 @@
 @startuml
 |Admin Toko|
 start
-:Buka menu retur pelanggan;
-:Pilih faktur penjualan dan produk yang diretur;
-:Pilih metode kompensasi (Tukar, Uang Kembali, Saldo);
-:Konfirmasi pengajuan retur;
+:Buka menu Retur Pelanggan;
+:Cari nomor faktur penjualan asli;
+:Pilih produk yang dikembalikan dan tentukan jumlahnya;
+:Pilih kondisi barang (bisa dijual lagi atau tidak);
+:Pilih jenis kompensasi (Uang Kembali / Tambah Saldo / Tukar Barang);
 
 |Sistem POS|
-:Validasi riwayat penjualan dan batas retur;
-if (Data Sesuai?) then (Ya)
-  :Proses pembaruan stok inventaris (Opsi retur ke stok);
-  if (Kompensasi?) then (Uang Kembali / Refund)
-    :Catat perintah pengembalian uang;
-  else if (Tambah Saldo Pelanggan)
-    :Perbarui saldo akun pelanggan;
-  else (Tukar Barang / Exchange)
-    :Catat pengurangan stok barang pengganti;
-    :Kalkulasi selisih harga barang;
+:Validasi faktur penjualan ditemukan dan tidak dibatalkan;
+:Cek jumlah retur tidak melebihi sisa yang belum pernah diretur;
+if (Validasi Lolos?) then (Ya)
+  if (Barang bisa dijual lagi?) then (Ya)
+    :Tambah kembali stok produk ke gudang;
+    :Catat mutasi stok masuk (retur);
+  else (Tidak)
+    :Stok tidak ditambah (barang rusak/cacat);
   endif
-  :Simpan catatan retur pelanggan;
+
+  if (Jenis Kompensasi?) then (Uang Kembali / Refund)
+    :Hitung total uang yang harus dikembalikan;
+    :Kasir menyerahkan uang tunai ke pelanggan;
+  else if (Tambah Saldo)
+    :Tambahkan nilai retur ke saldo akun pelanggan;
+  else (Tukar Barang)
+    :Cek stok barang pengganti mencukupi;
+    :Kurangi stok barang pengganti;
+    :Hitung selisih nilai (lebih bayar / kurang bayar);
+    if (Ada sisa uang?) then (Ya)
+      :Kembalikan tunai atau tambah ke saldo;
+    else if (Kurang bayar?) then (Ya)
+      :Tagih kekurangan ke pelanggan;
+    else (Impas)
+    endif
+  endif
+  :Simpan data retur;
   |Admin Toko|
-  :Terima bukti dan instruksi penyelesaian retur;
+  :Cetak bukti retur;
 else (Tidak)
   |Sistem POS|
-  :Tampilkan notifikasi penolakan validasi;
+  :Tampilkan pesan error;
 endif
-
 stop
 @enduml

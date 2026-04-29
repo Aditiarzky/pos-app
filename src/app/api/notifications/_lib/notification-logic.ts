@@ -49,6 +49,19 @@ export const buildExpiredTrashId = (count: number, oldestAt: string | null) => {
   return `trash_cleanup:expired_items:${count}:${dateStr}`;
 };
 
+export const buildRestockId = (
+  productId: number,
+  lastSaleAt: string,
+  qtySold: number,
+  periodDays: 7 | 30,
+) => {
+  const date = new Date(lastSaleAt);
+  const safeTimestamp = Number.isNaN(date.getTime())
+    ? "unknown"
+    : date.toISOString();
+  return `restock:${productId}:${periodDays}:${qtySold}:${safeTimestamp}`;
+};
+
 export const mapRestockSeverity = (
   estimatedDaysLeft: number | null,
 ): NotificationSeverity => {
@@ -99,20 +112,23 @@ export const applyNotificationState = <
   const readTime = state?.readAt ? Math.floor(new Date(state.readAt).getTime() / 1000) : 0;
   const dismissedTime = state?.dismissedAt ? Math.floor(new Date(state.dismissedAt).getTime() / 1000) : 0;
 
-  const isComputedNotification = item.type === "low_stock" || item.type === "restock";
+  const isLowStock = item.type === "low_stock";
+  const isRestock = item.type === "restock";
+  const isComputedNotification = isLowStock || isRestock;
   const isDismissed = Boolean(state?.dismissedAt) && (
-    isComputedNotification ? dismissedTime >= notificationTime : true
+    isLowStock ? dismissedTime >= notificationTime : true
   );
   if (isDismissed) return null;
 
   const isRead = isComputedNotification
-    ? Boolean(state?.readAt) && readTime >= notificationTime
+    ? isLowStock
+      ? Boolean(state?.readAt) && readTime >= notificationTime
+      : Boolean(state?.readAt)
     : Boolean(state?.readAt);
 
   return { 
     ...item, 
     isRead, 
     read: isRead,
-    createdAt: state?.createdAt ? state.createdAt.toISOString() : item.createdAt 
   };
 };

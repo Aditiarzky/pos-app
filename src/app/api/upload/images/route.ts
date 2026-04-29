@@ -18,11 +18,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // Ubah File ke Buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Gunakan fungsi helper yang kita buat di lib
     const result = (await uploadToCloudinary(
       buffer,
       "my-app-folder",
@@ -54,9 +52,6 @@ export async function GET(req: Request) {
     );
   }
 
-  // Gunakan f_auto dan q_auto untuk hasil terbaik
-  // f_auto: otomatis pilih format (WebP/AVIF) berdasarkan browser
-  // q_auto: otomatis pilih kualitas gambar terbaik dengan ukuran terkecil
   const cloudinaryUrl = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/f_auto,q_auto/${publicId}`;
 
   try {

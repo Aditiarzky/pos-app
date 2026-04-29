@@ -1,44 +1,43 @@
 @startuml
-|Admin Toko|
+|Admin Toko / Admin Sistem|
 start
-:Buka menu kelola produk;
-:Pilih aksi (Tambah, Ubah, Hapus);
+:Buka menu Produk;
+:Pilih aksi (Tambah, Edit, atau Hapus);
 
 if (Aksi?) then (Tambah Produk)
-  :Input rincian produk baru;
+  :Isi nama, kategori, satuan dasar, dan varian produk;
+  :Setiap varian diisi: nama, harga jual, dan konversi ke satuan terkecil;
   |Sistem POS|
-  :Validasi kelengkapan data;
-  if (Data Lengkap?) then (Ya)
-    :Simpan data produk ke penyimpanan;
-    |Admin Toko|
-    :Terima pesan produk berhasil ditambah;
+  :Validasi data wajib (nama min. 3 karakter, harga jual > 0, konversi >= 1);
+  if (Data Valid?) then (Ya)
+    :Simpan produk dan semua variannya;
   else (Tidak)
-    |Sistem POS|
     :Tampilkan pesan error validasi;
+    stop
   endif
 
-else (Ubah Produk)
-  |Admin Toko|
-  :Ubah rincian data produk;
+else if (Edit Produk)
+  |Admin Toko / Admin Sistem|
+  :Ubah data produk atau varian yang diinginkan;
   |Sistem POS|
-  :Validasi data perubahan;
+  :Validasi data yang diubah;
   if (Data Valid?) then (Ya)
-    :Perbarui data produk di penyimpanan;
-    |Admin Toko|
-    :Terima pesan produk berhasil diubah;
+    :Simpan perubahan;
   else (Tidak)
-    |Sistem POS|
     :Tampilkan pesan error;
+    stop
   endif
 
 else (Hapus Produk)
-  |Admin Toko|
+  |Admin Toko / Admin Sistem|
   :Pilih produk yang akan dihapus;
   |Sistem POS|
-  :Pindahkan data produk ke sistem rekam jejak (Trash);
-  |Admin Toko|
-  :Terima pesan produk dihapus;
+  :Pindahkan produk ke Trash (soft delete, bisa dipulihkan);
 endif
 
+|Sistem POS|
+:Tampilkan notifikasi berhasil;
+|Admin Toko / Admin Sistem|
+:Lihat perubahan di daftar produk;
 stop
 @enduml

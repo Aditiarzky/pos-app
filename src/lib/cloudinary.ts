@@ -21,11 +21,8 @@ export const uploadToCloudinary = (
       .upload_stream(
         {
           folder: folder,
-          format: "webp", // Mengubah semua upload menjadi webp
-          transformation: [
-            { quality: "auto" }, // Optimasi kualitas otomatis
-            { fetch_format: "webp" },
-          ],
+          format: "webp",
+          transformation: [{ quality: "auto" }, { fetch_format: "webp" }],
         },
         (error, result) => {
           if (error) return reject(error);

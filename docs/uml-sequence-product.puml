@@ -1,17 +1,17 @@
 @startuml
 actor "Admin Toko" as Admin
 participant "Sistem POS" as App
-database "Penyimpanan Data" as DB
+database "Database" as DB
 
-== Manajemen Penambahan / Pengubahan Produk ==
-Admin -> App: Input spesifikasi rinci suatu produk dan variannya
-App -> App: Telaah kesesuaian nilai standar spesifikasi
-App -> DB: Lakukan penambahan atau perbaruan kerangka produk awal
-App -> DB: Petakan satuan fisik konversi dan variasi penjabaran tambahan
-App --> Admin: Tunjukkan sinyal kesuksesan pembaharuan komoditas barang
+== Tambah / Edit Produk ==
+Admin -> App: Input nama produk, kategori, satuan dasar, dan daftar varian
+App -> App: Validasi data (nama, harga jual, konversi satuan)
+App -> DB: Simpan data produk
+App -> DB: Simpan data setiap varian (nama, harga jual, konversi ke satuan terkecil)
+App --> Admin: Tampilkan konfirmasi produk berhasil disimpan
 
-== Penghapusan Katalog ==
-Admin -> App: Ajukan pemblokiran referensi spesifik atas suatu barang
-App -> DB: Sematkan label pengarsipan data ke keranjang khusus
-App --> Admin: Katalog terkait lenyap dari pandangan menu penjualan rutin
+== Hapus Produk ==
+Admin -> App: Pilih produk yang akan dihapus
+App -> DB: Tandai produk sebagai terhapus (soft delete ke Trash)
+App --> Admin: Produk tidak lagi muncul di daftar aktif
 @enduml

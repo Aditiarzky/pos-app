@@ -1,32 +1,40 @@
 @startuml
 actor "Admin Toko" as Admin
 participant "Sistem POS" as App
-database "Penyimpanan Data" as DB
+database "Database" as DB
 
-== Pengajuan Retur Pelanggan ==
-Admin -> App: Buat pengajuan pengembalian barang atas dasar klaim pelanggan
-App -> DB: Cocokkan referensi faktur penjualan awal
-DB --> App: Referensi faktur penjualan ditemukan valid
-App -> App: Verifikasi kalkulasi batas kelayakan retur barang
-App -> App: Tentukan metode kompensasi (Uang Tunai / Tukar Barang / Potong Saldo)
+== Proses Retur Pelanggan ==
+Admin -> App: Input nomor faktur, produk yang diretur, dan jenis kompensasi
+App -> DB: Cari data penjualan berdasarkan nomor faktur
+DB --> App: Data penjualan ditemukan
+App -> App: Validasi jumlah retur tidak melebihi sisa yang belum diretur
 
-alt Kompensasi Pengisian Saldo
-  App -> DB: Tambahkan nilai kredit ke dompet akun pelanggan bersangkutan
-else Kompensasi Uang Tunai
-  App -> App: Keluarkan perintah tagihan uang direfund secara langsung
-else Kompensasi Tukar Barang Fisik
-  App -> DB: Kurangkan jumlah produk pengganti dari manajemen inventaris
-  App -> App: Lakukan perhitungan selisih ketetapan nilai harga komponen lama dan baru
+alt Barang bisa dijual lagi
+  App -> DB: Tambah stok produk kembali ke gudang
+  App -> DB: Catat mutasi stok masuk (retur)
 end
 
-App -> DB: Kembalikan volume barang retur ke persediaan stok utama (Bila Layak)
-App -> DB: Rekam jejak riwayat formulir retur
-App --> Admin: Tampilkan cetak layar bukti penyelesaian solusi retur
+alt Kompensasi Tambah Saldo
+  App -> DB: Tambah nilai retur ke saldo pelanggan
+  App -> DB: Catat mutasi saldo pelanggan
+else Kompensasi Tukar Barang
+  App -> DB: Cek dan kurangi stok barang pengganti
+  App -> DB: Catat mutasi stok keluar (pengganti)
+  App -> App: Hitung selisih nilai (lebih bayar / kurang bayar / impas)
+  alt Ada sisa uang dan masuk saldo
+    App -> DB: Tambah sisa ke saldo pelanggan
+  end
+else Kompensasi Uang Kembali (Refund)
+  App -> App: Hitung total uang yang dikembalikan
+end
 
-== Pembatalan Transaksi Retur ==
-Admin -> App: Lakukan permintaan pembatalan skema retur yang tidak valid
-App -> DB: Panggil ulang proses pembalikan perpindahan stok inventaris
-App -> DB: Tarik kembali surplus saldo nilai pelanggan
-App -> DB: Bekukan catatan retur menjadi tidak diakui
-App --> Admin: Konfirmasi bahwasannya operasi retur telah sukses dibatalkan
+App -> DB: Simpan data retur (header, item retur, item pengganti)
+App --> Admin: Tampilkan bukti retur
+
+== Pembatalan Retur ==
+Admin -> App: Pilih retur yang ingin dibatalkan
+App -> DB: Kembalikan stok ke kondisi sebelum retur
+App -> DB: Batalkan perubahan saldo pelanggan (jika ada)
+App -> DB: Tandai retur sebagai dibatalkan
+App --> Admin: Tampilkan konfirmasi pembatalan berhasil
 @enduml
