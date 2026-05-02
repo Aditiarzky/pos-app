@@ -13,11 +13,13 @@ import {
   Activity,
   AlertCircle,
   Blocks,
+  History,
 } from "lucide-react";
 
 import { useProducts } from "@/hooks/products/use-products";
 import { ProductFormModal } from "./_components/product-form/product-form-modal";
 import { StockMutationsSection } from "./_components/sections/stock-mutations-section";
+import { ProductAuditLogSection } from "./_components/sections/product-audit-log-section";
 import { StockAdjustmentModal } from "./_components/stock-adjustment-modal";
 import { ProductListSection } from "./_components/sections/product-list-section";
 import { AnimatedNumber } from "@/components/ui/animated-number";
@@ -174,6 +176,15 @@ function ProductsContent() {
                 <p className="truncate">Mutasi Stok</p>
               </TabsTrigger>
             )}
+            {isSystemAdmin && (
+              <TabsTrigger
+                value="audit-log"
+                className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
+              >
+                <History className="mr-2 h-4 w-4" />
+                <p className="truncate">Riwayat Produk</p>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* DAFTAR PRODUK */}
@@ -188,6 +199,13 @@ function ProductsContent() {
           {isSystemAdmin && (
             <TabsContent value="mutations">
               <StockMutationsSection />
+            </TabsContent>
+          )}
+
+          {/* RIWAYAT PRODUK */}
+          {isSystemAdmin && (
+            <TabsContent value="audit-log">
+              <ProductAuditLogSection />
             </TabsContent>
           )}
         </Tabs>

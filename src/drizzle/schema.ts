@@ -839,3 +839,34 @@ export const trashSettings = p.pgTable("trash_settings", {
   cleanupIntervalMinutes: p.integer("cleanup_interval_minutes").default(360).notNull(),
   updatedAt: p.timestamp("updated_at").defaultNow().$onUpdateFn(() => new Date()),
 });
+
+export const productAuditAction = p.pgEnum("product_audit_action", [
+  "create",
+  "update",
+  "delete",
+  "hard_delete",
+  "restore",
+  "stock_adjustment",
+]);
+
+export const productAuditLogs = p.pgTable(
+  "product_audit_logs",
+  {
+    id: p.serial("id").primaryKey(),
+    productId: p
+      .integer("product_id")
+      .references(() => products.id, { onDelete: "set null" }),
+    userId: p
+      .integer("user_id")
+      .references(() => users.id, { onDelete: "set null" }),
+    action: productAuditAction("action").notNull(),
+    changes: p.jsonb("changes"),
+    snapshot: p.jsonb("snapshot"),
+    createdAt: p.timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    p.index("product_audit_logs_product_id_idx").on(t.productId),
+    p.index("product_audit_logs_user_id_idx").on(t.userId),
+    p.index("product_audit_logs_created_at_idx").on(t.createdAt),
+  ],
+);

@@ -13,7 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProductAuditLogTab } from "./product-audit-log-tab";
+
 import {
   Edit,
   Trash2,
@@ -74,9 +76,10 @@ function ProductDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-full sm:max-w-[680px] mx-0 p-0 mt-16 sm:mt-0 overflow-hidden rounded-3xl border-none shadow-2xl max-h-[80dvh] sm:max-h-[92vh] flex flex-col">
-        {/* Header Image */}
-        <div className="relative h-52 sm:h-60 bg-muted shrink-0 overflow-hidden">
+      <DialogContent className="max-w-full sm:max-w-[680px] mx-0 p-0 mt-16 sm:mt-0 rounded-3xl border-none shadow-2xl max-h-[80dvh] sm:max-h-[92vh] flex flex-col overflow-hidden">
+
+        {/* Header Image - shrink-0 agar tidak ikut flex */}
+        <div className="relative h-52 sm:h-60 bg-muted shrink-0 overflow-hidden rounded-t-3xl">
           {product.image ? (
             <Image
               src={product.image}
@@ -90,9 +93,7 @@ function ProductDetailModal({
               <Package className="h-16 w-16 text-muted-foreground/30" />
             </div>
           )}
-
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-
           <div className="absolute bottom-0 left-0 right-0 p-5">
             <div className="flex items-center gap-2 flex-wrap">
               {product.category && (
@@ -108,7 +109,6 @@ function ProductDetailModal({
               {product.name}
             </DialogTitle>
           </div>
-
           {isLowStock && (
             <Badge
               variant="destructive"
@@ -120,124 +120,155 @@ function ProductDetailModal({
           )}
         </div>
 
-        <ScrollArea className="flex-1 overflow-y-scroll px-5">
-          <div className="space-y-6">
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <div
-                className={cn(
-                  "p-4 rounded-2xl",
-                  isLowStock
-                    ? "bg-red-50/20 border-border border"
-                    : "bg-emerald-50/20 border-border border",
-                )}
-              >
-                <div className="flex justify-between">
-                  <Package
-                    className={cn(
-                      "h-6 w-6",
-                      isLowStock
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-emerald-600 dark:text-emerald-200",
-                    )}
-                  />
-                  {isLowStock && (
-                    <Badge variant="destructive" className="text-[10px]">
-                      Perhatian
-                    </Badge>
+        {/*
+          Tabs mengambil sisa tinggi dengan flex-1 + min-h-0.
+          min-h-0 WAJIB agar flex child tidak meluber melebihi max-height parent.
+        */}
+        <Tabs defaultValue="detail" className="flex-1 min-h-0 flex flex-col">
+
+          {/* TabsList fixed, tidak ikut scroll */}
+          <TabsList className="mx-5 mt-2 w-auto self-start shrink-0">
+            <TabsTrigger value="detail">Detail</TabsTrigger>
+            <TabsTrigger value="history">Riwayat</TabsTrigger>
+          </TabsList>
+
+          {/*
+            TabsContent: flex-1 + min-h-0 + overflow-y-auto.
+            Tidak pakai ScrollArea karena shadcn ScrollArea butuh height eksplisit
+            yang sulit dipropagasi melewati Tabs internal wrapper.
+          */}
+          <TabsContent
+            value="detail"
+            className="flex-1 min-h-0 overflow-y-auto"
+          >
+            <div className="space-y-6 pb-4 px-5 pt-2">
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <div
+                  className={cn(
+                    "p-4 rounded-2xl",
+                    isLowStock
+                      ? "bg-red-50/20 border-border border"
+                      : "bg-emerald-50/20 border-border border"
                   )}
-                </div>
-                <div className="mt-3">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    STOK SAAT INI
-                  </p>
-                  <p
-                    className={cn(
-                      "text-xl sm:text-3xl font-black mt-1",
-                      isLowStock
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-emerald-600 dark:text-emerald-200",
+                >
+                  <div className="flex justify-between">
+                    <Package
+                      className={cn(
+                        "h-6 w-6",
+                        isLowStock
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-emerald-600 dark:text-emerald-200"
+                      )}
+                    />
+                    {isLowStock && (
+                      <Badge variant="destructive" className="text-[10px]">
+                        Perhatian
+                      </Badge>
                     )}
-                  >
-                    {formatCompactNumber(stockNum)}
+                  </div>
+                  <div className="mt-3">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      STOK SAAT INI
+                    </p>
+                    <p
+                      className={cn(
+                        "text-xl sm:text-3xl font-black mt-1",
+                        isLowStock
+                          ? "text-red-600 dark:text-red-400"
+                          : "text-emerald-600 dark:text-emerald-200"
+                      )}
+                    >
+                      {formatCompactNumber(stockNum)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Min: {minStockNum} {product.unit?.name}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-blue-50/20 border border-border">
+                  <Layers className="h-6 w-6 text-primary" />
+                  <p className="text-xs font-medium text-muted-foreground mt-3">
+                    HARGA JUAL
+                  </p>
+                  <p className="sm:text-3xl text-xl font-black text-primary mt-1">
+                    Rp {priceRange}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Min: {minStockNum} {product.unit?.name}
+                    {product.variants?.length || 0} varian
                   </p>
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-blue-50/20 border border-border">
-                <Layers className="h-6 w-6 text-primary" />
-                <p className="text-xs font-medium text-muted-foreground mt-3">
-                  HARGA JUAL
-                </p>
-                <p className="sm:text-3xl text-xl font-black text-primary mt-1">
-                  Rp {priceRange}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {product.variants?.length || 0} varian
-                </p>
-              </div>
+              {/* Variants List */}
+              {product.variants && product.variants.length > 0 ? (
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Layers className="h-4 w-4 text-primary" />
+                    <p className="font-semibold text-sm">Varian Produk</p>
+                  </div>
+                  <div className="space-y-3">
+                    {product.variants.map((v) => {
+                      const margin = calculateVariantMargin(
+                        v,
+                        product.averageCost
+                      );
+                      return (
+                        <div
+                          key={v.id}
+                          className="flex items-center justify-between bg-muted/50 rounded-2xl px-4 py-3 border border-transparent hover:border-border transition-all"
+                        >
+                          <div>
+                            <p className="font-semibold text-sm">{v.name}</p>
+                            <p className="text-xs text-muted-foreground font-mono">
+                              1 = {v.conversionToBase} {product.unit?.name}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-primary">
+                              Rp {Number(v.sellPrice).toLocaleString("id-ID")}
+                            </p>
+                            {isSystemAdmin && margin.hpp > 0 && (
+                              <Badge
+                                variant={
+                                  margin.isProfitable ? "default" : "destructive"
+                                }
+                                className="text-[10px] mt-1"
+                              >
+                                {margin.marginPercent.toFixed(0)}%
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-muted/30 rounded-2xl">
+                  <Package className="h-10 w-10 mx-auto text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Tidak ada varian tambahan
+                  </p>
+                </div>
+              )}
             </div>
+          </TabsContent>
 
-            {/* Variants List */}
-            {product.variants && product.variants.length > 0 ? (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Layers className="h-4 w-4 text-primary" />
-                  <p className="font-semibold text-sm">Varian Produk</p>
-                </div>
-                <div className="space-y-3">
-                  {product.variants.map((v) => {
-                    const margin = calculateVariantMargin(
-                      v,
-                      product.averageCost,
-                    );
-                    return (
-                      <div
-                        key={v.id}
-                        className="flex items-center justify-between bg-muted/50 rounded-2xl px-4 py-3 border border-transparent hover:border-border transition-all"
-                      >
-                        <div>
-                          <p className="font-semibold text-sm">{v.name}</p>
-                          <p className="text-xs text-muted-foreground font-mono">
-                            1 = {v.conversionToBase} {product.unit?.name}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-primary">
-                            Rp {Number(v.sellPrice).toLocaleString("id-ID")}
-                          </p>
-                          {isSystemAdmin && margin.hpp > 0 && (
-                            <Badge
-                              variant={
-                                margin.isProfitable ? "default" : "destructive"
-                              }
-                              className="text-[10px] mt-1"
-                            >
-                              {margin.marginPercent.toFixed(0)}%
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 bg-muted/30 rounded-2xl">
-                <Package className="h-10 w-10 mx-auto text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground mt-2">
-                  Tidak ada varian tambahan
-                </p>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+          {/* History Tab */}
+          <TabsContent
+            value="history"
+            className="flex-1 min-h-0 overflow-y-auto"
+          >
+            <div className="px-5 py-3">
+              <ProductAuditLogTab productId={product.id} />
+            </div>
+          </TabsContent>
+        </Tabs>
 
-        {/* Action Buttons */}
-        <div className="border-t p-4 flex flex-row gap-2  bg-muted/50">
+        {/* Action Buttons - shrink-0 agar tidak ikut flex */}
+        <div className="border-t p-4 flex flex-row gap-2 bg-muted/50 shrink-0">
           {onAdjust && (
             <Button
               variant="outline"
@@ -252,10 +283,9 @@ function ProductDetailModal({
               <p className="sm:hidden">Stok</p>
             </Button>
           )}
-
           {onEdit && (
             <Button
-              className="flex-1  rounded-2xl"
+              className="flex-1 rounded-2xl"
               onClick={() => {
                 onEdit(product.id);
                 onOpenChange(false);
@@ -266,11 +296,10 @@ function ProductDetailModal({
               <p className="sm:hidden">Edit</p>
             </Button>
           )}
-
           {onDelete && (
             <Button
               variant="destructive"
-              className=" rounded-2xl px-6"
+              className="rounded-2xl px-6"
               onClick={handleDeleteClick}
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -305,7 +334,6 @@ export function ProductCard({
 
   const handleDeleteClick = async () => {
     if (!onDelete) return;
-
     const isConfirmed = await confirm({
       title: "Hapus Produk?",
       description: (
@@ -317,7 +345,6 @@ export function ProductCard({
       confirmText: "Ya, Hapus",
       cancelText: "Batal",
     });
-
     if (isConfirmed) {
       onDelete(product.id);
     }
@@ -435,7 +462,6 @@ export function ProductCard({
             <h3 className="font-semibold text-sm sm:text-base leading-tight line-clamp-2 group-hover:text-primary transition-colors">
               {product.name}
             </h3>
-
             <div className="flex items-center gap-2 text-[10px] sm:text-xs text-muted-foreground">
               <span className="font-mono">{product.sku}</span>
               {product.category && (
@@ -450,14 +476,13 @@ export function ProductCard({
             <div className="sm:text-lg text-sm font-bold text-primary tracking-tighter">
               {displayPrice}
             </div>
-
             <div className="flex items-center justify-between mt-3">
               <div
                 className={cn(
                   "flex items-center gap-1.5 text-xs font-medium px-2 sm:py-1 py-0.5 rounded-full",
                   isLowStock
                     ? "bg-red-100 text-red-700"
-                    : "bg-emerald-100 text-emerald-700",
+                    : "bg-emerald-100 text-emerald-700"
                 )}
               >
                 <Package className="h-3 w-3 sm:h-4 sm:w-4 hidden sm:block" />
@@ -466,7 +491,6 @@ export function ProductCard({
                   {product.unit?.name}
                 </p>
               </div>
-
               {product.variants?.length ? (
                 <Badge variant="secondary" className="text-[10px] sm:text-xs">
                   {product.variants.length} varian

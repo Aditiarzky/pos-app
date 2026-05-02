@@ -71,3 +71,14 @@ export type CompensationTypeEnumType =
   (typeof schema.compensationType.enumValues)[number];
 export type SurplusStrategyEnumType =
   (typeof schema.surplusStrategyType.enumValues)[number];
+
+export type ProductAuditLogType = InferSelectModel<typeof schema.productAuditLogs>;
+export type InsertProductAuditLogType = InferInsertModel<typeof schema.productAuditLogs>;
+export type ProductAuditActionEnumType = (typeof schema.productAuditAction.enumValues)[number];
+
+export type ChangeEntry = {
+  field: string;
+  label: string;
+  oldValue: unknown;
+  newValue: unknown;
+};
