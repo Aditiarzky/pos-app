@@ -20,7 +20,7 @@ import {
 import { handleApiError } from "@/lib/api-utils";
 import { getInitial } from "@/lib/utils";
 import { verifySession } from "@/lib/auth";
-import { recordProductAudit } from "./_lib/audit";
+// import { recordProductAudit } from "./_lib/audit";
 
 export async function GET(request: NextRequest) {
   try {
@@ -147,7 +147,10 @@ export async function POST(request: NextRequest) {
   try {
     const session = await verifySession();
     if (!session) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
     const body = await request.json();
@@ -214,12 +217,12 @@ export async function POST(request: NextRequest) {
       }
 
       // 4. Audit log
-      await recordProductAudit(tx, {
+      /* await recordProductAudit(tx, {
         productId: newProduct.id,
         userId: session.userId,
         action: "create",
         changes: null,
-      });
+      }); */
 
       return { ...newProduct, barcodes: newBarcodes, variants: newVariants };
     });

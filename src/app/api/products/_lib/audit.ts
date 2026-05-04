@@ -6,7 +6,6 @@ const FIELD_LABELS: Record<string, string> = {
   name: "Nama Produk",
   categoryId: "Kategori",
   minStock: "Stok Minimum",
-  isActive: "Status Aktif",
   image: "Gambar",
 };
 
@@ -16,7 +15,7 @@ type BeforeAfterProduct = {
   minStock?: string | number | null;
   isActive?: boolean | null;
   image?: string | null;
-  variants?: Array<{ id: number; sellPrice: string | number }>;
+  variants?: Array<{ id: number; name: string; sellPrice: string | number }>;
   barcodes?: Array<{ barcode: string }>;
 };
 
@@ -49,7 +48,7 @@ export function diffProduct(
   const changes: ChangeEntry[] = [];
 
   // Scalar fields — compare as strings to avoid type mismatch (e.g. "true" vs true, "10500" vs 10500)
-  const scalarFields = ["name", "categoryId", "minStock", "isActive", "image"] as const;
+  const scalarFields = ["name", "categoryId", "minStock", "image"] as const;
   for (const field of scalarFields) {
     const oldVal = before[field];
     const newVal = after[field];
@@ -69,12 +68,16 @@ export function diffProduct(
 
   // Variants: compare sellPrice by id
   if (before.variants || after.variants) {
-    const beforeMap = new Map<number, { original: string | number; normalized: string }>();
+    const beforeMap = new Map<
+      number,
+      { original: string | number; normalized: string; name: string }
+    >();
 
     for (const v of before.variants ?? []) {
       beforeMap.set(v.id, {
         original: v.sellPrice,
         normalized: String(Number(v.sellPrice)),
+        name: v.name,
       });
     }
 
@@ -86,14 +89,14 @@ export function diffProduct(
         // New variant
         changes.push({
           field: `variant_${v.id}_sellPrice`,
-          label: `Harga Varian Baru (ID ${v.id})`,
+          label: `Harga Varian Baru (${v.name || `ID ${v.id}`})`,
           oldValue: null,
           newValue: v.sellPrice,
         });
       } else if (oldData.normalized !== newPrice) {
         changes.push({
           field: `variant_${v.id}_sellPrice`,
-          label: `Harga Varian (ID ${v.id})`,
+          label: `Harga Varian (${oldData.name || `ID ${v.id}`})`,
           oldValue: oldData.original,
           newValue: v.sellPrice,
         });

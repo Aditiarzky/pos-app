@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Package, Settings, ChevronLeft, History } from "lucide-react";
+import { Package, Settings, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import LogoNav from "@/assets/logo-nav/logo-nav";
@@ -59,12 +59,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         href: "/dashboard/products",
         icon: <Package className="w-5 h-5" />,
         roles: STORE_AND_SYSTEM_ROLES,
-      },
-      {
-        label: "Riwayat Produk",
-        href: "/dashboard/products?tab=audit-log",
-        icon: <History className="w-5 h-5" />,
-        roles: SYSTEM_ADMIN_ONLY_ROLES,
       },
       {
         label: "Pembelian & Supplier",

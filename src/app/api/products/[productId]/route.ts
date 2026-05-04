@@ -18,7 +18,7 @@ import { variantAdjustmentSchema } from "@/lib/validations/stock-adjustment";
 import { handleApiError } from "@/lib/api-utils";
 import { getInitial } from "@/lib/utils";
 import { verifySession } from "@/lib/auth";
-import { diffProduct, recordProductAudit } from "../_lib/audit";
+// import { diffProduct, recordProductAudit } from "../_lib/audit";
 
 // GET detail product
 export async function GET(
@@ -72,7 +72,10 @@ export async function PUT(
   try {
     const session = await verifySession();
     if (!session) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
     const { productId } = await params;
@@ -209,21 +212,22 @@ export async function PUT(
         .filter((v) => v.id !== undefined)
         .map((v) => ({
           id: v.id as number,
+          name: v.name,
           sellPrice: v.sellPrice,
         }));
       const afterBarcodes = (updatedBarcodes ?? []).map((b) => ({
         barcode: b.barcode,
       }));
 
-      const changes = diffProduct(
+      /* const changes = diffProduct(
         {
           name: oldProduct.name,
           categoryId: oldProduct.categoryId,
           minStock: oldProduct.minStock,
-          isActive: oldProduct.isActive,
           image: oldProduct.image,
           variants: oldProduct.variants.map((v) => ({
             id: v.id,
+            name: v.name,
             sellPrice: v.sellPrice,
           })),
           barcodes: oldProduct.barcodes.map((b) => ({ barcode: b.barcode })),
@@ -232,10 +236,12 @@ export async function PUT(
           name: productUpdateData.name,
           categoryId: productUpdateData.categoryId,
           minStock: productUpdateData.minStock,
-          isActive: productUpdateData.isActive,
           image: productUpdateData.image,
           variants: afterVariants,
-          barcodes: barcodes !== undefined ? afterBarcodes : oldProduct.barcodes.map((b) => ({ barcode: b.barcode })),
+          barcodes:
+            barcodes !== undefined
+              ? afterBarcodes
+              : oldProduct.barcodes.map((b) => ({ barcode: b.barcode })),
         },
       );
 
@@ -244,7 +250,7 @@ export async function PUT(
         userId: session.userId,
         action: "update",
         changes,
-      });
+      }); */
 
       return {
         ...updatedProduct,
@@ -267,7 +273,10 @@ export async function DELETE(
   try {
     const session = await verifySession();
     if (!session) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
     const productId = (await params).productId;
@@ -299,12 +308,12 @@ export async function DELETE(
         .where(eq(products.id, Number(productId)))
         .returning();
 
-      await recordProductAudit(tx, {
-        productId: Number(productId),
-        userId: session.userId,
-        action: "delete",
-        changes: null,
-      });
+      // await recordProductAudit(tx, {
+      //   productId: Number(productId),
+      //   userId: session.userId,
+      //   action: "delete",
+      //   changes: null,
+      // });
 
       return deleted;
     });
@@ -327,7 +336,10 @@ export async function PATCH(
   try {
     const session = await verifySession();
     if (!session) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
     }
 
     const { productId } = await params;
@@ -390,19 +402,19 @@ export async function PATCH(
       }
 
       // Audit log for stock adjustment
-      await recordProductAudit(tx, {
-        productId: idNum,
-        userId: session.userId,
-        action: "stock_adjustment",
-        changes: [
-          {
-            field: "stock",
-            label: "Stok",
-            oldValue: currentStockBase,
-            newValue: newTotalStockBase,
-          },
-        ],
-      });
+      // await recordProductAudit(tx, {
+      //   productId: idNum,
+      //   userId: session.userId,
+      //   action: "stock_adjustment",
+      //   changes: [
+      //     {
+      //       field: "stock",
+      //       label: "Stok",
+      //       oldValue: currentStockBase,
+      //       newValue: newTotalStockBase,
+      //     },
+      //   ],
+      // });
 
       return {
         previousStock: currentStockBase,

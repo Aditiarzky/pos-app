@@ -13,13 +13,14 @@ import {
   Activity,
   AlertCircle,
   Blocks,
-  History,
+  //   History,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { useProducts } from "@/hooks/products/use-products";
 import { ProductFormModal } from "./_components/product-form/product-form-modal";
 import { StockMutationsSection } from "./_components/sections/stock-mutations-section";
-import { ProductAuditLogSection } from "./_components/sections/product-audit-log-section";
+// import { ProductAuditLogSection } from "./_components/sections/product-audit-log-section";
 import { StockAdjustmentModal } from "./_components/stock-adjustment-modal";
 import { ProductListSection } from "./_components/sections/product-list-section";
 import { AnimatedNumber } from "@/components/ui/animated-number";
@@ -30,6 +31,7 @@ import { ProductResponse } from "@/services/productService";
 import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
 import { RoleGuard } from "@/components/role-guard";
 import { AccessDenied } from "@/components/access-denied";
+import { useTabsOverflow } from "@/hooks/use-tabs-overflow";
 
 function ProductsContent() {
   const { roles } = useAuth();
@@ -41,11 +43,29 @@ function ProductsContent() {
   const [adjustmentProduct, setAdjustmentProduct] =
     useState<ProductResponse | null>(null);
 
+  const { listRef, isOverflowing } = useTabsOverflow();
+
   // Still need analytics for the top cards
   const { data: productsData } = useProducts({
     params: { limit: 1 },
   });
   const analytics = productsData?.analytics;
+
+  type TabItem = {
+    value: string;
+    icon: React.ElementType;
+    label: string;
+  };
+
+  const tabItems: TabItem[] = [
+    { value: "list", icon: LayoutPanelTopIcon, label: "Daftar Produk" },
+    ...(isSystemAdmin
+      ? [{ value: "mutations", icon: Table, label: "Mutasi Stok" }]
+      : []),
+    // ...(isSystemAdmin
+    //   ? [{ value: "audit-log", icon: History, label: "Riwayat Produk" }]
+    //   : []),
+  ];
 
   return (
     <>
@@ -159,33 +179,34 @@ function ProductsContent() {
         </StickyCardStack>
 
         <Tabs value={tab} onValueChange={setTab} className="gap-4">
-          <TabsList className="bg-background">
-            <TabsTrigger
-              value="list"
-              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
-            >
-              <LayoutPanelTopIcon className="mr-2 h-4 w-4" />
-              <p className="truncate">Daftar Produk</p>
-            </TabsTrigger>
-            {isSystemAdmin && (
-              <TabsTrigger
-                value="mutations"
-                className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
-              >
-                <Table className="mr-2 h-4 w-4" />
-                <p className="truncate">Mutasi Stok</p>
-              </TabsTrigger>
-            )}
-            {isSystemAdmin && (
-              <TabsTrigger
-                value="audit-log"
-                className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
-              >
-                <History className="mr-2 h-4 w-4" />
-                <p className="truncate">Riwayat Produk</p>
-              </TabsTrigger>
-            )}
-          </TabsList>
+          {/*
+           * ref diarahkan ke div wrapper karena TabsList dari shadcn
+           * belum tentu forward ref. Kalau TabsList sudah support ref,
+           * bisa langsung pasang ref={listRef} di TabsList.
+           */}
+          <div ref={listRef} className="w-full overflow-hidden">
+            <TabsList className="bg-background w-max">
+              {tabItems.map(({ value, icon: Icon, label }) => (
+                <TabsTrigger
+                  key={value}
+                  value={value}
+                  className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span
+                    className={cn(
+                      "overflow-hidden transition-[max-width,opacity,margin] duration-300 ease-in-out",
+                      !isOverflowing || tab === value
+                        ? "max-w-[120px] opacity-100 ml-2"
+                        : "max-w-0 opacity-0 ml-0",
+                    )}
+                  >
+                    {label}
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           {/* DAFTAR PRODUK */}
           <TabsContent value="list">
@@ -203,11 +224,11 @@ function ProductsContent() {
           )}
 
           {/* RIWAYAT PRODUK */}
-          {isSystemAdmin && (
+          {/* {isSystemAdmin && (
             <TabsContent value="audit-log">
               <ProductAuditLogSection />
             </TabsContent>
-          )}
+          )} */}
         </Tabs>
 
         {/* MODALS */}

@@ -13,10 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { Loader2, SearchX, History } from "lucide-react";
+import { Loader2, SearchX } from "lucide-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { SearchInput } from "@/components/ui/search-input";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatNumber } from "@/lib/format";
 import { FilterWrap } from "@/components/filter-wrap";
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 import { AuditLogFilterForm } from "../ui/audit-log-filter-form";
@@ -33,7 +33,10 @@ const ACTION_LABELS: Record<string, string> = {
   stock_adjustment: "Penyesuaian Stok",
 };
 
-const ACTION_VARIANTS: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const ACTION_VARIANTS: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
   create: "default",
   update: "secondary",
   delete: "destructive",
@@ -44,7 +47,11 @@ const ACTION_VARIANTS: Record<string, "default" | "secondary" | "destructive" | 
 
 function formatValue(field: string, value: unknown): string {
   if (value === null || value === undefined) return "—";
-  if (field.includes("sellPrice") || field.includes("Price") || field.includes("Cost")) {
+  if (
+    field.includes("sellPrice") ||
+    field.includes("Price") ||
+    field.includes("Cost")
+  ) {
     return formatCurrency(String(value));
   }
   if (field === "isActive") return value ? "Aktif" : "Nonaktif";
@@ -52,20 +59,31 @@ function formatValue(field: string, value: unknown): string {
 }
 
 function ChangeSummary({ changes }: { changes: ChangeEntry[] }) {
-  const shown = changes.slice(0, 2);
-  const rest = changes.length - 2;
+  const filteredChanges = changes.filter((c) => {
+    return String(c.oldValue) !== String(c.newValue);
+  });
+
+  const shown = filteredChanges.slice(0, 2);
+  const rest = Math.max(0, shown.length - 2);
+
+  if (filteredChanges.length === 0) return null;
+
   return (
     <span className="text-xs text-muted-foreground">
       {shown.map((c, i) => (
         <span key={i}>
           {i > 0 && ", "}
           <span className="font-medium text-foreground">{c.label}</span>:{" "}
-          <span className="line-through opacity-60">{formatValue(c.field, c.oldValue)}</span>
+          <span className="line-through opacity-60">
+            {formatValue(c.field, formatNumber(c.oldValue as number))}
+          </span>
           {" → "}
-          {formatValue(c.field, c.newValue)}
+          {formatValue(c.field, formatNumber(c.newValue as number))}
         </span>
       ))}
-      {rest > 0 && <span className="text-muted-foreground"> +{rest} lainnya</span>}
+      {rest > 0 && (
+        <span className="text-muted-foreground"> +{rest} lainnya</span>
+      )}
     </span>
   );
 }
@@ -136,12 +154,24 @@ export const ProductAuditLogSection = () => {
           <Table>
             <TableHeader className="bg-muted/20 border-t border-b border-border/50">
               <TableRow className="border-none">
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Waktu</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Produk</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Aksi</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Ringkasan</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Oleh</TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  No.
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Waktu
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Produk
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Aksi
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Ringkasan
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Oleh
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -202,7 +232,12 @@ export const ProductAuditLogSection = () => {
                           </span>
                         )}
                         {!log.productId && (
-                           <Badge variant="destructive" className="w-fit text-[8px] sm:text-[10px] px-1 py-0 mt-1">Dihapus Permanen</Badge>
+                          <Badge
+                            variant="destructive"
+                            className="w-fit text-[8px] sm:text-[10px] px-1 py-0 mt-1"
+                          >
+                            Dihapus Permanen
+                          </Badge>
                         )}
                       </div>
                     </TableCell>
@@ -215,7 +250,7 @@ export const ProductAuditLogSection = () => {
                       </Badge>
                     </TableCell>
                     <TableCell className="px-2 sm:px-4 py-2 min-w-[200px] max-w-xs">
-                       {log.changes && log.changes.length > 0 ? (
+                      {log.changes && log.changes.length > 0 ? (
                         <ChangeSummary changes={log.changes} />
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
@@ -271,10 +306,10 @@ export const ProductAuditLogSection = () => {
                     </div>
 
                     <div className="pt-1.5 border-t border-muted/50">
-                       <div className="text-[8px] sm:text-xs text-muted-foreground uppercase font-bold tracking-tighter mb-1">
-                          Perubahan
-                        </div>
-                       {log.changes && log.changes.length > 0 ? (
+                      <div className="text-[8px] sm:text-xs text-muted-foreground uppercase font-bold tracking-tighter mb-1">
+                        Perubahan
+                      </div>
+                      {log.changes && log.changes.length > 0 ? (
                         <ChangeSummary changes={log.changes} />
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
@@ -290,14 +325,14 @@ export const ProductAuditLogSection = () => {
                           {log.userName || "System"}
                         </div>
                       </div>
-                       <div>
+                      <div>
                         <div className="text-[8px] sm:text-xs text-muted-foreground uppercase font-bold tracking-tighter">
                           Waktu
                         </div>
                         <div className="truncate">
-                           {format(new Date(log.createdAt), "dd/MM/yy HH:mm", {
-                              locale: id,
-                            })}
+                          {format(new Date(log.createdAt), "dd/MM/yy HH:mm", {
+                            locale: id,
+                          })}
                         </div>
                       </div>
                     </div>
