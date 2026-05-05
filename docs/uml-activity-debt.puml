@@ -1,25 +1,25 @@
 @startuml
 |Admin Toko|
 start
-:Buka menu Hutang Pelanggan;
-:Lihat daftar hutang yang belum lunas;
-:Pilih pelanggan dan tentukan jumlah pembayaran;
+:Buka menu Tagihan Pelanggan;
+:Lihat daftar piutang aktif;
+:Pilih identitas pelanggan dan tentukan nominal bayar;
 
 |Sistem POS|
-:Validasi jumlah bayar tidak melebihi sisa hutang;
-if (Jumlah bayar valid?) then (Ya)
-  :Kurangi sisa hutang pelanggan;
-  if (Hutang lunas sepenuhnya?) then (Ya)
-    :Ubah status hutang menjadi "Lunas";
-  else (Masih ada sisa)
-    :Ubah status hutang menjadi "Lunas Sebagian";
+:Verifikasi nominal bayar terhadap sisa tagihan;
+if (Nominal Valid?) then (Ya)
+  :Kurangi sisa tagihan pada sistem;
+  if (Tagihan Selesai?) then (Ya)
+    :Ubah status menjadi "Lunas";
+  else (Belum Selesai)
+    :Ubah status menjadi "Lunas Sebagian";
   endif
-  :Catat riwayat pembayaran hutang;
+  :Catat peristiwa pembayaran tagihan;
   |Admin Toko|
-  :Cetak bukti pembayaran hutang;
+  :Berikan bukti pembayaran kepada pelanggan;
 else (Tidak)
   |Sistem POS|
-  :Tampilkan pesan error (jumlah melebihi sisa hutang);
+  :Berikan informasi kesalahan nominal;
 endif
 stop
 @enduml

@@ -1,40 +1,37 @@
 @startuml
 actor "Admin Toko" as Admin
 participant "Sistem POS" as App
-database "Database" as DB
+database "Sistem Penyimpanan" as DB
 
 == Proses Retur Pelanggan ==
-Admin -> App: Input nomor faktur, produk yang diretur, dan jenis kompensasi
-App -> DB: Cari data penjualan berdasarkan nomor faktur
-DB --> App: Data penjualan ditemukan
-App -> App: Validasi jumlah retur tidak melebihi sisa yang belum diretur
+Admin -> App: Input identitas transaksi produk retur
+App -> DB: Tarik rincian sejarah transaksi
+DB --> App: Berikan data transaksi yang relevan
+App -> App: Verifikasi sisa kuantitas retur
 
-alt Barang bisa dijual lagi
-  App -> DB: Tambah stok produk kembali ke gudang
-  App -> DB: Catat mutasi stok masuk (retur)
+alt Barang Masih Baik
+  App -> DB: Tambahkan kembali stok barang
+  App -> DB: Catat arus masuk retur barang
 end
 
-alt Kompensasi Tambah Saldo
-  App -> DB: Tambah nilai retur ke saldo pelanggan
-  App -> DB: Catat mutasi saldo pelanggan
-else Kompensasi Tukar Barang
-  App -> DB: Cek dan kurangi stok barang pengganti
-  App -> DB: Catat mutasi stok keluar (pengganti)
-  App -> App: Hitung selisih nilai (lebih bayar / kurang bayar / impas)
-  alt Ada sisa uang dan masuk saldo
-    App -> DB: Tambah sisa ke saldo pelanggan
+alt Solusi Saldo
+  App -> DB: Kreditkan nilai retur ke saldo pelanggan
+else Solusi Tukar Barang
+  App -> DB: Proses pengeluaran barang pengganti
+  App -> App: Perhitungan selisih nilai tukar
+  alt Ada Selisih Saldo
+    App -> DB: Sesuaikan saldo pelanggan
   end
-else Kompensasi Uang Kembali (Refund)
-  App -> App: Hitung total uang yang dikembalikan
+else Solusi Refund
+  App -> App: Hitung total dana pengembalian
 end
 
-App -> DB: Simpan data retur (header, item retur, item pengganti)
-App --> Admin: Tampilkan bukti retur
+App -> DB: Rekam detail dokumen retur
+App --> Admin: Tampilkan bukti penanganan retur
 
 == Pembatalan Retur ==
-Admin -> App: Pilih retur yang ingin dibatalkan
-App -> DB: Kembalikan stok ke kondisi sebelum retur
-App -> DB: Batalkan perubahan saldo pelanggan (jika ada)
-App -> DB: Tandai retur sebagai dibatalkan
-App --> Admin: Tampilkan konfirmasi pembatalan berhasil
+Admin -> App: Pilih dokumen retur untuk dibatalkan
+App -> DB: Reversi stok dan saldo ke kondisi sebelum retur
+App -> DB: Tandai dokumen retur sebagai dibatalkan
+App --> Admin: Informasikan pembatalan berhasil
 @enduml

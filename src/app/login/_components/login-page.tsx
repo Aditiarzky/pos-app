@@ -385,14 +385,14 @@ export default function LoginPage() {
                       />
                       Ingat saya
                     </label>
-                    <Button
+                    {/* <Button
                       type="button"
                       variant="link"
                       className="h-auto p-0 text-sm"
                       onClick={() => setCurrentView("forgot")}
                     >
                       Lupa password?
-                    </Button>
+                    </Button> */}
                   </div>
                 )}
               </div>

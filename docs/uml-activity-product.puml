@@ -5,39 +5,39 @@ start
 :Pilih aksi (Tambah, Edit, atau Hapus);
 
 if (Aksi?) then (Tambah Produk)
-  :Isi nama, kategori, satuan dasar, dan varian produk;
-  :Setiap varian diisi: nama, harga jual, dan konversi ke satuan terkecil;
+  :Input identitas produk, kategori, dan daftar varian;
+  :Lengkapi data harga dan konversi satuan tiap varian;
   |Sistem POS|
-  :Validasi data wajib (nama min. 3 karakter, harga jual > 0, konversi >= 1);
+  :Validasi kelengkapan dan format data;
   if (Data Valid?) then (Ya)
-    :Simpan produk dan semua variannya;
+    :Rekam data produk baru;
   else (Tidak)
-    :Tampilkan pesan error validasi;
+    :Berikan pemberitahuan kesalahan data;
     stop
   endif
 
 else if (Edit Produk)
   |Admin Toko / Admin Sistem|
-  :Ubah data produk atau varian yang diinginkan;
+  :Sesuaikan data produk atau susunan varian;
   |Sistem POS|
-  :Validasi data yang diubah;
+  :Verifikasi perubahan data;
   if (Data Valid?) then (Ya)
-    :Simpan perubahan;
+    :Simpan pembaharuan data;
   else (Tidak)
-    :Tampilkan pesan error;
+    :Berikan pemberitahuan kesalahan;
     stop
   endif
 
 else (Hapus Produk)
   |Admin Toko / Admin Sistem|
-  :Pilih produk yang akan dihapus;
+  :Pilih produk yang akan dinonaktifkan;
   |Sistem POS|
-  :Pindahkan produk ke Trash (soft delete, bisa dipulihkan);
+  :Pindahkan produk ke dalam folder Sampah/Arsip;
 endif
 
 |Sistem POS|
-:Tampilkan notifikasi berhasil;
+:Tampilkan notifikasi keberhasilan transaksi;
 |Admin Toko / Admin Sistem|
-:Lihat perubahan di daftar produk;
+:Konfirmasi perubahan pada daftar produk;
 stop
 @enduml

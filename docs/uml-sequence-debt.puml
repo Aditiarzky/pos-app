@@ -1,19 +1,19 @@
 @startuml
 actor "Admin Toko" as Admin
 participant "Sistem POS" as App
-database "Database" as DB
+database "Sistem Penyimpanan" as DB
 
-== Pembayaran Hutang ==
-Admin -> App: Pilih pelanggan dan masukkan jumlah pembayaran
-App -> DB: Ambil data hutang aktif pelanggan
-App -> App: Validasi jumlah bayar tidak melebihi sisa hutang
+== Proses Pembayaran Tagihan ==
+Admin -> App: Input data pelanggan dan nominal bayar
+App -> DB: Tarik data tagihan aktif pelanggan
+App -> App: Verifikasi rincian pembayaran
 
-alt Hutang lunas sepenuhnya
-  App -> DB: Update status hutang menjadi "Lunas"
-else Masih ada sisa hutang
-  App -> DB: Kurangi sisa hutang dan update status menjadi "Lunas Sebagian"
+alt Pembayaran Penuh
+  App -> DB: Update status tagihan lunas
+else Pembayaran Sebagian
+  App -> DB: Kurangi sisa saldo tagihan
 end
 
-App -> DB: Catat riwayat pembayaran hutang
-App --> Admin: Tampilkan bukti pembayaran hutang
+App -> DB: Catat histori pembayaran tagihan
+App --> Admin: Tampilkan bukti pembayaran
 @enduml
