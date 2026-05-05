@@ -1,26 +1,26 @@
 @startuml
 actor "Admin Sistem" as Admin
 participant "Sistem POS" as App
-database "Database" as DB
+database "Sistem Penyimpanan" as DB
 
-== Melihat Data di Trash ==
-Admin -> App: Buka halaman Trash
-App -> DB: Ambil semua data yang sudah di-soft delete
-DB --> App: Kembalikan daftar data terhapus
-App --> Admin: Tampilkan daftar data di Trash
+== Melihat Data Terhapus ==
+Admin -> App: Akses halaman Sampah (Trash)
+App -> DB: Tarik daftar data terhapus sementara
+DB --> App: Berikan daftar data
+App --> Admin: Tampilkan daftar data yang bisa dikelola
 
 == Memulihkan Data ==
-Admin -> App: Pilih data yang ingin dipulihkan
-alt Data bisa dipulihkan
-  App -> DB: Hapus tanda "terhapus" dari data
-  App --> Admin: Data kembali aktif di menu asalnya
-else Data tidak bisa dipulihkan (referensi rusak)
-  App --> Admin: Tampilkan pesan error
+Admin -> App: Pilih data untuk dikembalikan
+alt Data dapat dipulihkan
+  App -> DB: Perbarui status data menjadi aktif
+  App --> Admin: Informasikan data berhasil dikembalikan
+else Gagal Pulihkan
+  App --> Admin: Berikan informasi kendala pemulihan
 end
 
-== Hapus Permanen (Cleanup) ==
-Admin -> App: Jalankan cleanup data kadaluarsa
-App -> DB: Cari data di Trash yang sudah melewati batas waktu
-App -> DB: Hapus data tersebut secara permanen
-App --> Admin: Tampilkan ringkasan hasil cleanup
+== Pembersihan Data (Cleanup) ==
+Admin -> App: Jalankan pembersihan data lama
+App -> DB: Cari data yang sudah kedaluwarsa
+App -> DB: Hapus data permanen dari sistem
+App --> Admin: Informasikan ringkasan hasil pembersihan
 @enduml

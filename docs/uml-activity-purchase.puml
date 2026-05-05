@@ -1,30 +1,24 @@
 @startuml
 |Admin Toko|
 start
-:Buka menu Pembelian;
-:Pilih Supplier dan tambahkan produk ke daftar;
-:Isi jumlah (Qty) dan harga beli per item;
-:Klik simpan transaksi pembelian;
+:Buka menu Pengadaan (Purchase);
+:Pilih Pemasok (Supplier) dan daftar barang;
+:Masukkan jumlah dan harga pengadaan;
+:Simpan transaksi pengadaan;
 
 |Sistem POS|
-:Cek apakah ada produk yang sama diinput dua kali;
-if (Ada duplikat produk?) then (Ya)
-  :Tolak dan tampilkan pesan error;
-  stop
-else (Tidak)
-endif
-:Validasi data produk dan supplier;
-if (Data Valid?) then (Ya)
-  :Buat nomor PO otomatis;
-  :Hitung subtotal tiap item;
-  :Tambah stok produk sesuai jumlah yang dibeli;
-  :Hitung ulang HPP dengan metode rata-rata tertimbang;
-  :Catat riwayat mutasi stok;
+:Cek konsistensi data barang dalam daftar;
+if (Data Konsisten?) then (Ya)
+  :Buat identitas transaksi pengadaan;
+  :Otomasi perhitungan total nilai barang;
+  :Tambah jumlah produk ke sistem gudang;
+  :Kalkulasi ulang nilai pokok barang (HPP);
+  :Catat pembaharuan data histori stok;
   |Admin Toko|
-  :Lihat konfirmasi pembelian berhasil disimpan;
+  :Konfirmasi pengadaan berhasil direkam;
 else (Tidak)
   |Sistem POS|
-  :Tampilkan pesan error validasi;
+  :Berikan informasi kendala pada data;
 endif
 stop
 @enduml

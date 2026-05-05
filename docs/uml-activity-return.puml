@@ -2,44 +2,44 @@
 |Admin Toko|
 start
 :Buka menu Retur Pelanggan;
-:Cari nomor faktur penjualan asli;
-:Pilih produk yang dikembalikan dan tentukan jumlahnya;
-:Pilih kondisi barang (bisa dijual lagi atau tidak);
-:Pilih jenis kompensasi (Uang Kembali / Tambah Saldo / Tukar Barang);
+:Tarik data transaksi awal;
+:Tentukan barang yang dikembalikan dan jumlahnya;
+:Tentukan status kondisi fisik barang;
+:Pilih solusi kompensasi (Refun / Saldo / Tukar);
 
 |Sistem POS|
-:Validasi faktur penjualan ditemukan dan tidak dibatalkan;
-:Cek jumlah retur tidak melebihi sisa yang belum pernah diretur;
+:Validasi keberadaan data transaksi awal;
+:Cek sisa barang yang dapat diretur;
 if (Validasi Lolos?) then (Ya)
-  if (Barang bisa dijual lagi?) then (Ya)
-    :Tambah kembali stok produk ke gudang;
-    :Catat mutasi stok masuk (retur);
+  if (Barang masih bernilai jual?) then (Ya)
+    :Kembalikan stok ke sistem gudang;
+    :Catat arus masuk barang (retur);
   else (Tidak)
-    :Stok tidak ditambah (barang rusak/cacat);
+    :Data stok tidak berubah (barang afkir);
   endif
 
-  if (Jenis Kompensasi?) then (Uang Kembali / Refund)
-    :Hitung total uang yang harus dikembalikan;
-    :Kasir menyerahkan uang tunai ke pelanggan;
-  else if (Tambah Saldo)
-    :Tambahkan nilai retur ke saldo akun pelanggan;
+  if (Bentuk Kompensasi?) then (Kembali Dana / Refund)
+    :Hitung nilai pengembalian dana;
+    :Berikan dana sesuai perhitungan;
+  else if (Kredit Saldo)
+    :Tambahkan nilai ke saldo pelanggan;
   else (Tukar Barang)
-    :Cek stok barang pengganti mencukupi;
+    :Verifikasi ketersediaan barang pengganti;
     :Kurangi stok barang pengganti;
-    :Hitung selisih nilai (lebih bayar / kurang bayar);
-    if (Ada sisa uang?) then (Ya)
-      :Kembalikan tunai atau tambah ke saldo;
-    else if (Kurang bayar?) then (Ya)
-      :Tagih kekurangan ke pelanggan;
+    :Kalkulasi selisih nilai transaksi;
+    if (Dana Berlebih?) then (Ya)
+      :Kembalikan sisa dana ke pelanggan;
+    else if (Dana Kurang?) then (Ya)
+      :Tagih selisih ke pelanggan;
     else (Impas)
     endif
   endif
-  :Simpan data retur;
+  :Simpan rincian data retur;
   |Admin Toko|
-  :Cetak bukti retur;
+  :Berikan bukti retur kepada pelanggan;
 else (Tidak)
   |Sistem POS|
-  :Tampilkan pesan error;
+  :Berikan informasi kendala data retur;
 endif
 stop
 @enduml

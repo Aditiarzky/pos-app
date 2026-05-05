@@ -2,64 +2,43 @@
 |Admin Toko|
 start
 :Buka menu Penjualan / Kasir;
-:Cari produk lewat nama atau scan barcode;
-:Pilih produk dan tentukan jumlah;
-:Pilih pelanggan (opsional, untuk member);
-:Pilih metode pembayaran (Tunai / QRIS / Potong Saldo);
+:Cari produk (Nama/Scan);
+:Tentukan jumlah produk dan identitas pelanggan;
+:Pilih metode pembayaran (Tunai / Digital / Saldo);
 
 |Sistem POS|
-:Cek apakah ada produk yang sama diinput dua kali;
-if (Ada duplikat produk?) then (Ya)
-  :Tolak dan tampilkan pesan error;
-  stop
-else (Tidak)
-endif
-:Cek ketersediaan stok semua produk;
+:Validasi ketersediaan stok;
 if (Stok Cukup?) then (Ya)
-  :Hitung total belanja;
-  :Kurangi saldo pelanggan jika digunakan;
-  if (Metode Pembayaran?) then (QRIS)
-    :Buat tagihan QRIS ke Pakasir;
-    if (Pakasir berhasil?) then (Ya)
-      :Simpan data penjualan dengan status "Menunggu Pembayaran";
-      :Tampilkan kode QRIS ke layar;
-      |Admin Toko|
-      :Arahkan pelanggan untuk scan QRIS;
-      |Sistem POS|
-      :Tunggu konfirmasi pembayaran dari Pakasir (webhook);
-      :Ubah status penjualan menjadi "Selesai";
-    else (Gagal)
-      :Batalkan transaksi dan kembalikan stok;
-      :Tampilkan pesan error;
+  :Hitung total transaksi;
+  if (Metode Pembayaran?) then (Digital)
+    :Buat tagihan pembayaran digital;
+    if (Pembayaran Berhasil?) then (Ya)
+      :Rekam transaksi dengan status "Lunas";
+    else (Gagal/Batal)
+      :Batalkan proses transaksi;
       stop
     endif
   else if (Tunai)
-    :Validasi jumlah uang yang dibayarkan;
-    if (Bayar kurang dan bukan hutang?) then (Ya)
-      :Tolak transaksi;
-      stop
-    else (Tidak)
-    endif
-    :Hitung kembalian;
-    if (Ada kembalian dan opsi bayar hutang lama?) then (Ya)
-      :Gunakan kembalian untuk melunasi hutang lama pelanggan;
-    else (Tidak)
+    :Validasi nominal pembayaran;
+    if (Dana Kurang?) then (Ya)
+      :Konfirmasi sisa sebagai Piutang;
+    else (Cukup/Lebih)
+      :Hitung nilai kembalian;
+      :Opsi alokasi kembalian untuk Piutang lama;
     endif
   else (Potong Saldo)
-    :Kurangi saldo akun pelanggan;
+    :Kurangi saldo resmi pelanggan;
   endif
-  :Simpan data penjualan dan detail item;
-  :Kurangi stok produk;
-  :Catat riwayat mutasi stok;
-  if (Pembayaran kurang dan dicatat hutang?) then (Ya)
-    :Buat catatan hutang untuk pelanggan;
-  else (Tidak)
-  endif
+  
+  :Simpan rincian penjualan;
+  :Update posisi stok produk;
+  :Catat pembaharuan saldo/piutang jika ada;
+  
   |Admin Toko|
-  :Cetak struk / bukti transaksi;
+  :Berikan bukti transaksi kepada pelanggan;
 else (Tidak)
   |Sistem POS|
-  :Tampilkan pesan stok tidak mencukupi;
+  :Berikan informasi stok tidak mencukupi;
 endif
 stop
 @enduml

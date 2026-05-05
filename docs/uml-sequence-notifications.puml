@@ -1,16 +1,16 @@
 @startuml
 actor "Admin / User" as Admin
 participant "Sistem POS" as App
-database "Database" as DB
+database "Sistem Penyimpanan" as DB
 
 == Melihat Notifikasi ==
-Admin -> App: Buka panel notifikasi
-App -> DB: Ambil daftar notifikasi (stok menipis, hutang jatuh tempo, dll)
-DB --> App: Kembalikan daftar notifikasi
-App --> Admin: Tampilkan daftar notifikasi beserta status baca
+Admin -> App: Akses panel notifikasi
+App -> DB: Tarik daftar pengingat sistem
+DB --> App: Berikan daftar pengingat
+App --> Admin: Tampilkan notifikasi beserta statusnya
 
 == Menandai Sudah Dibaca ==
-Admin -> App: Klik notifikasi atau tandai semua sudah dibaca
-App -> DB: Update status notifikasi menjadi "Sudah Dibaca"
-App --> Admin: Badge notifikasi di navbar berkurang / hilang
+Admin -> App: Tandai notifikasi sebagai terbaca
+App -> DB: Update status baca di sistem
+App --> Admin: Perbarui tampilan indikator notifikasi
 @enduml

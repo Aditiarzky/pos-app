@@ -1,25 +1,25 @@
 @startuml
 |Admin Toko / Admin Sistem|
 start
-:Buka panel notifikasi;
+:Buka menu Notifikasi;
 
 |Sistem POS|
-:Cek kondisi kritis (stok menipis, hutang jatuh tempo);
+:Evaluasi kondisi kritis sistem (stok, piutang, dsb);
 if (Ada notifikasi baru?) then (Ya)
-  :Tampilkan daftar notifikasi dengan status "Belum Dibaca";
+  :Tampilkan daftar peringatan terbaru;
 else (Tidak)
-  :Tampilkan panel kosong;
+  :Tampilkan pesan tidak ada notifikasi;
 endif
 
 |Admin Toko / Admin Sistem|
-:Baca notifikasi yang muncul;
-:Klik notifikasi untuk menandai sudah dibaca;
+:Tinjau pesan notifikasi;
+:Tandai pesan sebagai "Sudah Dibaca";
 
 |Sistem POS|
-:Update status notifikasi menjadi "Sudah Dibaca";
-:Kurangi jumlah badge notifikasi di navbar;
+:Perbarui status baca pada sistem;
+:Perbarui indikator jumlah notifikasi;
 
 |Admin Toko / Admin Sistem|
-:Tindak lanjuti notifikasi (misal: lakukan pembelian jika stok menipis);
+:Lakukan tindakan sesuai isi notifikasi (restok, penagihan, dsb);
 stop
 @enduml

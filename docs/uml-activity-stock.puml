@@ -1,22 +1,20 @@
 @startuml
 |Admin Toko|
 start
-:Buka menu Stok;
-:Lihat daftar stok produk saat ini;
-:Pilih produk untuk dilakukan penyesuaian stok;
-:Masukkan jumlah stok fisik yang sebenarnya dan alasan penyesuaian;
+:Buka menu Pengelolaan Stok;
+:Pilih produk untuk penyesuaian;
+:Input data stok fisik dan alasan perubahan;
 
 |Sistem POS|
-:Bandingkan stok sistem dengan stok fisik yang diinput;
+:Evaluasi selisih antara sistem dan fisik;
 if (Ada selisih?) then (Ya)
-  :Tentukan jenis selisih (stok berkurang atau bertambah);
-  :Update stok produk sesuai jumlah fisik;
-  :Catat riwayat mutasi stok dengan tipe "Penyesuaian Manual";
+  :Update data stok ke jumlah fisik terbaru;
+  :Catat peristiwa "Penyesuaian Manual";
   |Admin Toko|
-  :Lihat konfirmasi penyesuaian stok berhasil disimpan;
+  :Konfirmasi penyesuaian berhasil disimpan;
 else (Tidak)
   |Sistem POS|
-  :Tidak ada perubahan yang disimpan;
+  :Sistem tetap pada kondisi data lama;
 endif
 stop
 @enduml

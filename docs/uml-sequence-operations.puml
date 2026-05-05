@@ -1,20 +1,18 @@
 @startuml
 actor "Admin Sistem" as Admin
 participant "Sistem POS" as App
-database "Database" as DB
+database "Sistem Penyimpanan" as DB
 
-== Melihat Laporan Keuangan ==
-Admin -> App: Buka halaman laporan dengan rentang tanggal tertentu
-App -> DB: Ambil data penjualan, item, retur, biaya operasional, dan pajak
-DB --> App: Kembalikan data mentah
-App -> App: Hitung laba kotor (pendapatan - HPP)
-App -> App: Normalisasi biaya operasional ke periode laporan
-App -> App: Hitung pajak (persentase atau nominal tetap)
-App -> App: Hitung laba bersih = laba kotor - biaya ops - pajak
-App --> Admin: Tampilkan grafik dan ringkasan laporan keuangan
+== Analisa Laporan Keuangan ==
+Admin -> App: Pilih periode dan jenis laporan
+App -> DB: Tarik data transaksi dan biaya operasional
+DB --> App: Berikan data mentah
+App -> App: Kalkulasi total pendapatan dan pengeluaran
+App -> App: Hitung estimasi keuntungan dan pajak
+App --> Admin: Tampilkan ringkasan visual laporan keuangan
 
-== Pengaturan Sistem ==
-Admin -> App: Ubah pengaturan (profil toko, pengguna, biaya operasional, pajak)
-App -> DB: Simpan perubahan pengaturan
-App --> Admin: Konfirmasi pengaturan berhasil disimpan
+== Pengelolaan Konfigurasi ==
+Admin -> App: Sesuaikan pengaturan identitas toko/pengguna
+App -> DB: Simpan perubahan konfigurasi
+App --> Admin: Konfirmasi pembaharuan berhasil
 @enduml

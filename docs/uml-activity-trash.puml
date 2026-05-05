@@ -1,28 +1,28 @@
 @startuml
 |Admin Sistem|
 start
-:Buka menu Trash (Sampah);
-:Lihat daftar data yang sudah dihapus (soft delete);
+:Buka menu Sampah (Trash);
+:Lihat daftar data yang telah dihapus sementara;
 :Pilih tindakan (Pulihkan atau Hapus Permanen);
 
 if (Tindakan?) then (Pulihkan Data)
-  :Pilih data yang ingin dipulihkan;
+  :Pilih berkas/data yang akan dikembalikan;
   |Sistem POS|
-  :Hapus tanda "terhapus" dari data tersebut;
-  :Data kembali aktif dan muncul di menu asalnya;
+  :Aktifkan kembali status data;
+  :Kembalikan data ke menu asalnya;
   |Admin Sistem|
-  :Lihat data sudah kembali aktif;
+  :Konfirmasi data kembali aktif pada daftar;
 
-else (Hapus Permanen / Cleanup Otomatis)
+else (Hapus Permanen / Pembersihan Otomatis)
   |Sistem POS|
-  :Cek data di Trash yang sudah melewati batas waktu (misal: > 30 hari);
-  if (Ada data kadaluarsa?) then (Ya)
-    :Hapus data tersebut secara permanen dari database;
+  :Identifikasi data yang sudah melewati batas waktu penyimpanan;
+  if (Ada data kedaluwarsa?) then (Ya)
+    :Hapus data dari sistem secara permanen;
   else (Tidak)
-    :Tidak ada yang dihapus;
+    :Tidak melakukan penghapusan;
   endif
   |Admin Sistem|
-  :Lihat ringkasan hasil cleanup;
+  :Terima laporan hasil pembersihan sistem;
 endif
 stop
 @enduml

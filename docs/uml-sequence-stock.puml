@@ -1,19 +1,19 @@
 @startuml
 actor "Admin Toko" as Admin
 participant "Sistem POS" as App
-database "Database" as DB
+database "Sistem Penyimpanan" as DB
 
-== Lihat Riwayat Mutasi Stok ==
-Admin -> App: Buka halaman riwayat mutasi stok
-App -> DB: Ambil data mutasi (pembelian, penjualan, retur, penyesuaian)
-DB --> App: Kembalikan daftar riwayat perubahan stok
-App --> Admin: Tampilkan daftar mutasi stok per produk
+== Monitoring Mutasi Stok ==
+Admin -> App: Tarik laporan mutasi stok
+App -> DB: Ambil histori perubahan barang
+DB --> App: Berikan data histori mutasi
+App --> Admin: Tampilkan daftar perubahan stok
 
 == Penyesuaian Stok Manual ==
-Admin -> App: Input jumlah stok fisik dan alasan penyesuaian
-App -> DB: Ambil stok produk saat ini dari sistem
-App -> App: Hitung selisih antara stok sistem dan stok fisik
-App -> DB: Update stok produk ke jumlah fisik yang diinput
-App -> DB: Catat mutasi stok dengan tipe "Penyesuaian Manual"
-App --> Admin: Tampilkan konfirmasi penyesuaian berhasil
+Admin -> App: Input data stok fisik terbaru
+App -> DB: Cek stok sistem saat ini
+App -> App: Hitung besar selisih stok
+App -> DB: Perbarui stok ke nilai terbaru
+App -> DB: Catat peristiwa penyesuaian manual
+App --> Admin: Konfirmasi data berhasil diperbarui
 @enduml

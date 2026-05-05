@@ -1,38 +1,25 @@
 @startuml
 actor "Admin Toko" as Admin
 participant "Sistem POS" as App
-participant "Pakasir (QRIS)" as Pakasir
-database "Database" as DB
+participant "Sistem Pembayaran" as Pay
+database "Sistem Penyimpanan" as DB
 
 == Proses Penjualan ==
-Admin -> App: Tambah produk ke keranjang, pilih pelanggan (opsional)
-Admin -> App: Pilih metode pembayaran (Tunai / QRIS / Potong Saldo)
-App -> App: Cek duplikat produk dan validasi stok
-App -> DB: Ambil harga jual dan HPP tiap produk
-App -> App: Hitung total belanja
+Admin -> App: Masukkan produk dan pilih pelanggan
+Admin -> App: Tentukan cara pembayaran
+App -> App: Verifikasi stok dan hitung total
 
-alt Pembayaran QRIS
-  App -> Pakasir: Buat tagihan QRIS dengan nomor invoice
-  Pakasir --> App: Kembalikan data QR dan waktu kadaluarsa
-  App -> DB: Simpan penjualan dengan status "Menunggu Pembayaran"
-  App --> Admin: Tampilkan kode QRIS
-  Pakasir -> App: Kirim notifikasi pembayaran berhasil (webhook)
-  App -> DB: Update status penjualan menjadi "Selesai"
-else Tunai atau Potong Saldo
-  App -> App: Hitung kembalian atau validasi saldo cukup
-  App -> DB: Simpan penjualan dengan status "Selesai"
-  alt Ada kembalian dan opsi bayar hutang lama
-    App -> DB: Lunasi hutang lama pelanggan dari kembalian
-  end
+alt Pembayaran Digital
+  App -> Pay: Buat permintaan pembayaran
+  Pay --> App: Berikan status pembayaran berhasil
+  App -> DB: Rekam transaksi selesai
+else Tunai atau Saldo
+  App -> App: Hitung kembalian / potong saldo
+  App -> DB: Rekam transaksi selesai
 end
 
 App -> DB: Kurangi stok produk
-App -> DB: Catat mutasi stok keluar
-alt Pembayaran kurang dan dicatat hutang
-  App -> DB: Buat catatan hutang untuk pelanggan
-end
-alt Saldo pelanggan digunakan
-  App -> DB: Kurangi saldo pelanggan dan catat mutasi saldo
-end
-App --> Admin: Tampilkan struk transaksi
+App -> DB: Catat arus keluar barang
+App -> DB: Perbarui catatan saldo/piutang pelanggan
+App --> Admin: Tampilkan bukti transaksi
 @enduml
