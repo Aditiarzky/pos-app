@@ -103,12 +103,16 @@ export function VariantCard({
         allUnits.findIndex((item) => item.id === unit.id) === unitIndex,
     );
 
-  const baseConversion = Number(watch(`variants.${index}.conversionToBase`) || 1);
+  const baseConversion = Number(
+    watch(`variants.${index}.conversionToBase`) || 1,
+  );
   const currentSellPrice = Number(watch(`variants.${index}.sellPrice`) || 0);
   const unitCost = Number(averageCost || 0) * baseConversion;
   const marginAmount = currentSellPrice - unitCost;
   const marginPercent =
-    currentSellPrice > 0 ? Math.round((marginAmount / currentSellPrice) * 100) : 0;
+    currentSellPrice > 0
+      ? Math.round((marginAmount / currentSellPrice) * 100)
+      : 0;
   const isSold = isBaseUnit
     ? watch(`variants.${index}.isActive`) !== false
     : true;
@@ -156,7 +160,9 @@ export function VariantCard({
         <div className="space-y-2">
           <Label>
             SKU Satuan{" "}
-            <span className="text-xs text-muted-foreground">(auto-generated)</span>
+            <span className="text-xs text-muted-foreground">
+              (auto-generated)
+            </span>
           </Label>
           <Input {...register(`variants.${index}.sku`)} disabled />
           {errors.variants?.[index]?.sku && (
@@ -187,10 +193,14 @@ export function VariantCard({
                     value={conversionDraft}
                     onChange={setConversionDraft}
                     onBlur={() =>
-                      setValue(`variants.${index}.conversionValue`, conversionDraft, {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      })
+                      setValue(
+                        `variants.${index}.conversionValue`,
+                        conversionDraft,
+                        {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        },
+                      )
                     }
                     placeholder={`1 ${variantUnitName} berisi...`}
                     suffix={baseUnitName}
@@ -198,7 +208,11 @@ export function VariantCard({
                 )}
               />
               <Select
-                value={variant?.referenceUnitId ? String(variant.referenceUnitId) : undefined}
+                value={
+                  variant?.referenceUnitId
+                    ? String(variant.referenceUnitId)
+                    : undefined
+                }
                 onValueChange={(value) =>
                   setValue(`variants.${index}.referenceUnitId`, Number(value), {
                     shouldDirty: true,
@@ -221,7 +235,8 @@ export function VariantCard({
           )}
           {!isBaseUnit && (
             <p className="text-xs text-muted-foreground">
-              Setara {watch(`variants.${index}.conversionToBase`) || 0} {baseUnitName}
+              Setara {watch(`variants.${index}.conversionToBase`) || 0}{" "}
+              {baseUnitName}
             </p>
           )}
           {errors.variants?.[index]?.conversionToBase && (
@@ -264,8 +279,8 @@ export function VariantCard({
           />
           {!isSold && (
             <p className="text-xs text-muted-foreground">
-              Satuan dasar tetap dipakai untuk stok, tapi tidak dimasukkan sebagai
-              satuan jual.
+              Satuan dasar tetap dipakai untuk stok, tapi tidak dimasukkan
+              sebagai satuan jual.
             </p>
           )}
           {isSystemAdmin && Number(averageCost) > 0 && currentSellPrice > 0 && (

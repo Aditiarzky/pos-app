@@ -18,6 +18,8 @@ import {
   TrashItemInput,
   TrashValidationError,
 } from "../_lib/trash-utils";
+import { verifySession } from "@/lib/auth";
+import { recordProductAudit } from "@/app/api/products/_lib/audit";
 
 type RestoreResult = {
   id: number;
@@ -25,9 +27,12 @@ type RestoreResult = {
   name: string;
 };
 
+type TxType = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 async function restoreProduct(
-  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  tx: TxType,
   id: number,
+  userId: number | null,
 ): Promise<RestoreResult> {
   const [updated] = await tx
     .update(products)
@@ -42,11 +47,18 @@ async function restoreProduct(
     throw new Error("Product tidak ditemukan");
   }
 
+  await recordProductAudit(tx, {
+    productId: updated.id,
+    userId,
+    action: "restore",
+    changes: null,
+  });
+
   return { id: updated.id, type: "product", name: updated.name };
 }
 
 async function restoreCustomer(
-  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  tx: TxType,
   id: number,
 ): Promise<RestoreResult> {
   const [updated] = await tx
@@ -66,7 +78,7 @@ async function restoreCustomer(
 }
 
 async function restoreSale(
-  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  tx: TxType,
   id: number,
 ): Promise<RestoreResult> {
   const existingSale = await tx.query.sales.findFirst({
@@ -203,7 +215,7 @@ async function restoreSale(
 }
 
 async function restorePurchase(
-  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  tx: TxType,
   id: number,
 ): Promise<RestoreResult> {
   const existingOrder = await tx.query.purchaseOrders.findFirst({
@@ -288,12 +300,13 @@ async function restorePurchase(
 }
 
 async function restoreByType(
-  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  tx: TxType,
   item: TrashItemInput,
+  userId: number | null,
 ) {
   switch (item.type) {
     case "product":
-      return restoreProduct(tx, item.id);
+      return restoreProduct(tx, item.id, userId);
     case "customer":
       return restoreCustomer(tx, item.id);
     case "sale":
@@ -307,6 +320,9 @@ async function restoreByType(
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await verifySession();
+    const userId = session?.userId ?? null;
+
     const payload = await request.json();
     const items = parseTrashPayload(payload);
 
@@ -314,7 +330,7 @@ export async function POST(request: NextRequest) {
       const restoredItems: RestoreResult[] = [];
 
       for (const item of items) {
-        const restored = await restoreByType(tx, item);
+        const restored = await restoreByType(tx, item, userId);
         restoredItems.push(restored);
       }
 

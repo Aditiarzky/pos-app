@@ -3,6 +3,7 @@ import {
   applyNotificationState,
   buildLowStockId,
   buildExpiredTrashId,
+  buildRestockId,
   deduplicateRestockSignals,
   PRIORITY_BY_SEVERITY,
   resolveStableTrashCreatedAt,
@@ -31,6 +32,11 @@ describe("notification-logic", () => {
     expect(id).toBe("trash_cleanup:expired_items:5:2026-04-10");
   });
 
+  it("builds dynamic restock id from occurrence fingerprint", () => {
+    const id = buildRestockId(7, "2026-04-20T08:00:00.000Z", 12, 7);
+    expect(id).toBe("restock:7:7:12:2026-04-20T08:00:00.000Z");
+  });
+
   it("deduplicates restock signals by choosing highest urgency", () => {
     const deduped = deduplicateRestockSignals([
       { productId: 1, urgencyScore: 15 },
@@ -50,12 +56,12 @@ describe("notification-logic", () => {
     expect(stable).toBe("2026-03-10T10:00:00.000Z");
   });
 
-  it("locks createdAt date when state exists in database (First-Seen)", () => {
+  it("keeps low_stock createdAt from current event even when state exists", () => {
     const item = {
       id: "low_stock:1",
       type: "low_stock" as const,
       severity: "warning" as const,
-      createdAt: "2026-04-21T10:00:00.000Z", // 'Current' time from API
+      createdAt: "2026-04-21T10:00:00.000Z",
     };
     const stateMap = new Map([
       [
@@ -63,13 +69,13 @@ describe("notification-logic", () => {
         {
           readAt: null,
           dismissedAt: null,
-          createdAt: new Date("2026-04-20T08:00:00.000Z"), // First seen yesterday
+          createdAt: new Date("2026-04-20T08:00:00.000Z"),
         },
       ],
     ]);
 
     const result = applyNotificationState(item, stateMap);
-    expect(result?.createdAt).toBe("2026-04-20T08:00:00.000Z");
+    expect(result?.createdAt).toBe("2026-04-21T10:00:00.000Z");
   });
 
   it("reopens computed notification when previous read is older than new occurrence", () => {
@@ -92,5 +98,28 @@ describe("notification-logic", () => {
 
     const result = applyNotificationState(item, stateMap);
     expect(result?.isRead).toBe(false);
+  });
+
+  it("keeps restock read state for same occurrence even when createdAt is newer", () => {
+    const item = {
+      id: "restock:7:7:12:2026-04-20",
+      type: "restock" as const,
+      severity: "warning" as const,
+      createdAt: "2026-04-28T10:00:00.000Z",
+    };
+    const stateMap = new Map([
+      [
+        item.id,
+        {
+          readAt: new Date("2026-04-28T09:00:00.000Z"),
+          dismissedAt: null,
+          createdAt: new Date("2026-04-28T09:00:00.000Z"),
+        },
+      ],
+    ]);
+
+    const result = applyNotificationState(item, stateMap);
+    expect(result?.isRead).toBe(true);
+    expect(result?.createdAt).toBe("2026-04-28T10:00:00.000Z");
   });
 });

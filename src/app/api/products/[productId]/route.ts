@@ -17,6 +17,8 @@ import {
 import { variantAdjustmentSchema } from "@/lib/validations/stock-adjustment";
 import { handleApiError } from "@/lib/api-utils";
 import { getInitial } from "@/lib/utils";
+import { verifySession } from "@/lib/auth";
+// import { diffProduct, recordProductAudit } from "../_lib/audit";
 
 // GET detail product
 export async function GET(
@@ -68,6 +70,14 @@ export async function PUT(
   { params }: { params: Promise<{ productId: string }> },
 ) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const { productId } = await params;
     const idNum = Number(productId);
     const body = await request.json();
@@ -84,6 +94,10 @@ export async function PUT(
     const result = await db.transaction(async (tx) => {
       const oldProduct = await tx.query.products.findFirst({
         where: and(eq(products.id, idNum), eq(products.isActive, true)),
+        with: {
+          variants: { where: eq(productVariants.isActive, true) },
+          barcodes: true,
+        },
       });
 
       if (!oldProduct) {
@@ -108,7 +122,6 @@ export async function PUT(
       const prodCode = getInitial(productUpdateData.name || oldProduct.name);
       const newParentSku = `${catCode}-${prodCode}-${idNum}`;
 
-      // Exclude stock from update - stock is only managed through stock mutations
       const [updatedProduct] = await tx
         .update(products)
         .set({
@@ -194,6 +207,51 @@ export async function PUT(
         }
       }
 
+      // Compute diff and record audit
+      const afterVariants = updatedVariants
+        .filter((v) => v.id !== undefined)
+        .map((v) => ({
+          id: v.id as number,
+          name: v.name,
+          sellPrice: v.sellPrice,
+        }));
+      const afterBarcodes = (updatedBarcodes ?? []).map((b) => ({
+        barcode: b.barcode,
+      }));
+
+      /* const changes = diffProduct(
+        {
+          name: oldProduct.name,
+          categoryId: oldProduct.categoryId,
+          minStock: oldProduct.minStock,
+          image: oldProduct.image,
+          variants: oldProduct.variants.map((v) => ({
+            id: v.id,
+            name: v.name,
+            sellPrice: v.sellPrice,
+          })),
+          barcodes: oldProduct.barcodes.map((b) => ({ barcode: b.barcode })),
+        },
+        {
+          name: productUpdateData.name,
+          categoryId: productUpdateData.categoryId,
+          minStock: productUpdateData.minStock,
+          image: productUpdateData.image,
+          variants: afterVariants,
+          barcodes:
+            barcodes !== undefined
+              ? afterBarcodes
+              : oldProduct.barcodes.map((b) => ({ barcode: b.barcode })),
+        },
+      );
+
+      await recordProductAudit(tx, {
+        productId: idNum,
+        userId: session.userId,
+        action: "update",
+        changes,
+      }); */
+
       return {
         ...updatedProduct,
         variants: updatedVariants,
@@ -208,12 +266,19 @@ export async function PUT(
 }
 
 // DELETE delete product
-
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ productId: string }> },
 ) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const productId = (await params).productId;
 
     if (!productId) {
@@ -233,14 +298,26 @@ export async function DELETE(
       );
     }
 
-    const deletedProduct = await db
-      .update(products)
-      .set({
-        isActive: false,
-        deletedAt: new Date(),
-      })
-      .where(eq(products.id, Number(productId)))
-      .returning();
+    const deletedProduct = await db.transaction(async (tx) => {
+      const [deleted] = await tx
+        .update(products)
+        .set({
+          isActive: false,
+          deletedAt: new Date(),
+        })
+        .where(eq(products.id, Number(productId)))
+        .returning();
+
+      // await recordProductAudit(tx, {
+      //   productId: Number(productId),
+      //   userId: session.userId,
+      //   action: "delete",
+      //   changes: null,
+      // });
+
+      return deleted;
+    });
+
     return NextResponse.json({
       success: true,
       data: deletedProduct,
@@ -250,12 +327,21 @@ export async function DELETE(
     return handleApiError(error);
   }
 }
+
 // PATCH adjust stock via multiple variants
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ productId: string }> },
 ) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
     const { productId } = await params;
     const idNum = Number(productId);
     const body = await request.json();
@@ -271,7 +357,6 @@ export async function PATCH(
     const { variants: adjustments, userId } = validation.data;
 
     const result = await db.transaction(async (tx) => {
-      // 1. Get product and variants
       const product = await tx.query.products.findFirst({
         where: eq(products.id, idNum),
         with: {
@@ -283,7 +368,6 @@ export async function PATCH(
         throw new Error("Product not found");
       }
 
-      // 2. Calculate new total stock in base unit
       let newTotalStockBase = 0;
       for (const adj of adjustments) {
         const variant = product.variants.find((v) => v.id === adj.variantId);
@@ -298,7 +382,6 @@ export async function PATCH(
       const currentStockBase = Number(product.stock);
       const diff = newTotalStockBase - currentStockBase;
 
-      // 3. Update product stock
       const [updatedProduct] = await tx
         .update(products)
         .set({
@@ -307,17 +390,31 @@ export async function PATCH(
         .where(eq(products.id, idNum))
         .returning();
 
-      // 4. Record mutation if there's a difference
       if (diff !== 0) {
         await tx.insert(stockMutations).values({
           productId: idNum,
-          variantId: product.variants[0].id, // Attach to first variant as primary ref
+          variantId: product.variants[0].id,
           type: "adjustment",
           qtyBaseUnit: diff.toFixed(4),
           reference: "Adjustment",
           userId: userId,
         });
       }
+
+      // Audit log for stock adjustment
+      // await recordProductAudit(tx, {
+      //   productId: idNum,
+      //   userId: session.userId,
+      //   action: "stock_adjustment",
+      //   changes: [
+      //     {
+      //       field: "stock",
+      //       label: "Stok",
+      //       oldValue: currentStockBase,
+      //       newValue: newTotalStockBase,
+      //     },
+      //   ],
+      // });
 
       return {
         previousStock: currentStockBase,

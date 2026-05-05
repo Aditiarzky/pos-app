@@ -1,0 +1,40 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Admin Toko" as AdminToko
+actor "Admin Sistem" as AdminSistem
+
+' Admin Sistem memiliki akses ke semua fitur Admin Toko
+AdminToko <|-- AdminSistem
+
+rectangle "Sistem Point of Sales (POS)" {
+  usecase "Kelola Produk" as UC_Produk
+  usecase "Kelola Pembelian" as UC_Pembelian
+  usecase "Kelola Stok" as UC_Stok
+  usecase "Transaksi Penjualan" as UC_Penjualan
+  usecase "Kelola Retur" as UC_Retur
+  usecase "Kelola Piutang" as UC_Piutang
+  usecase "Lihat Notifikasi" as UC_Notifikasi
+  
+  usecase "Kelola Trash" as UC_Trash
+  usecase "Manajemen Operasional & Laporan" as UC_Laporan
+}
+
+' Relasi Aktor ke Use Case
+AdminToko --> UC_Produk
+AdminToko --> UC_Pembelian
+AdminToko --> UC_Stok
+AdminToko --> UC_Penjualan
+AdminToko --> UC_Retur
+AdminToko --> UC_Piutang
+AdminToko --> UC_Notifikasi
+
+AdminSistem --> UC_Trash
+AdminSistem --> UC_Laporan
+
+' Relasi antar Use Case (Opsional - maksimal 2 relasi)
+UC_Penjualan .> UC_Stok : <<include>>
+UC_Pembelian .> UC_Stok : <<include>>
+
+@enduml

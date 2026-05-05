@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useDeleteSale } from "@/hooks/sales/use-sale";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { usePrintReceipt } from "../../_hooks/use-print-receipt";
@@ -102,6 +103,7 @@ export function SalesListSection({
 
   // Cancel QRIS dari list (tanpa buka modal dulu)
   const [isCancellingId, setIsCancellingId] = useState<number | null>(null);
+  const queryClient = useQueryClient();
 
   const deleteMutation = useDeleteSale();
 
@@ -189,6 +191,7 @@ export function SalesListSection({
         throw new Error(json.error || `HTTP ${res.status}`);
 
       toast.success("Transaksi QRIS berhasil dibatalkan", { id: toastId });
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
       refetch();
     } catch (err) {
       toast.error(
@@ -203,6 +206,7 @@ export function SalesListSection({
   // Callback setelah QRIS modal berhasil
   const handleQrisSuccess = () => {
     setQrisData(null);
+    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     refetch();
     toast.success("Pembayaran QRIS berhasil dikonfirmasi");
   };
@@ -210,6 +214,7 @@ export function SalesListSection({
   // Callback setelah cancel dari dalam QR modal
   const handleQrisCancel = () => {
     setQrisData(null);
+    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
     refetch();
   };
 

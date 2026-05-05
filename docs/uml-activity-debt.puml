@@ -1,0 +1,25 @@
+@startuml
+|Admin Toko|
+start
+:Buka menu Hutang Pelanggan;
+:Lihat daftar hutang yang belum lunas;
+:Pilih pelanggan dan tentukan jumlah pembayaran;
+
+|Sistem POS|
+:Validasi jumlah bayar tidak melebihi sisa hutang;
+if (Jumlah bayar valid?) then (Ya)
+  :Kurangi sisa hutang pelanggan;
+  if (Hutang lunas sepenuhnya?) then (Ya)
+    :Ubah status hutang menjadi "Lunas";
+  else (Masih ada sisa)
+    :Ubah status hutang menjadi "Lunas Sebagian";
+  endif
+  :Catat riwayat pembayaran hutang;
+  |Admin Toko|
+  :Cetak bukti pembayaran hutang;
+else (Tidak)
+  |Sistem POS|
+  :Tampilkan pesan error (jumlah melebihi sisa hutang);
+endif
+stop
+@enduml

@@ -99,6 +99,39 @@ export const getProducts = async (params?: {
   return response.data;
 };
 
+export type ChangeEntry = {
+  field: string;
+  label: string;
+  oldValue: unknown;
+  newValue: unknown;
+};
+
+export type ProductAuditLogResponse = {
+  id: number;
+  productId: number | null;
+  productName: string | null;
+  productSku: string | null;
+  action: string;
+  changes: ChangeEntry[] | null;
+  snapshot: Record<string, unknown> | null;
+  createdAt: string;
+  userName: string | null;
+  userId: number | null;
+};
+
+// Get product audit logs
+export const getProductAuditLogs = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  action?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<ApiResponse<ProductAuditLogResponse[]>> => {
+  const response = await axiosInstance.get("/products/audit-logs", { params });
+  return response.data;
+};
+
 // Get single product
 export const getProduct = async (
   id: number,

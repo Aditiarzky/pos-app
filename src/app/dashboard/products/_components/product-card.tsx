@@ -13,7 +13,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+/* import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"; */
+// import { ProductAuditLogTab } from "./product-audit-log-tab";
+
 import {
   Edit,
   Trash2,
@@ -23,6 +30,7 @@ import {
   Eye,
   AlertCircle,
   Layers,
+  //   History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/contexts/ConfirmDialog";
@@ -58,6 +66,7 @@ function ProductDetailModal({
   handleDeleteClick: () => void;
   isSystemAdmin?: boolean;
 }) {
+  // const [showHistory, setShowHistory] = useState(false);
   const stockNum = Number(product.stock);
   const minStockNum = Number(product.minStock);
   const isLowStock = stockNum < minStockNum && minStockNum > 0;
@@ -74,9 +83,9 @@ function ProductDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-full sm:max-w-[680px] mx-0 p-0 mt-16 sm:mt-0 overflow-hidden rounded-3xl border-none shadow-2xl max-h-[80dvh] sm:max-h-[92vh] flex flex-col">
-        {/* Header Image */}
-        <div className="relative h-52 sm:h-60 bg-muted shrink-0 overflow-hidden">
+      <DialogContent className="max-w-full sm:max-w-[680px] mx-0 p-0 mt-16 sm:mt-0 rounded-3xl border-none shadow-2xl max-h-[80dvh] sm:max-h-[92vh] flex flex-col overflow-hidden">
+        {/* Header Image - shrink-0 agar tidak ikut flex */}
+        <div className="relative h-52 sm:h-60 bg-muted shrink-0 overflow-hidden rounded-t-3xl">
           {product.image ? (
             <Image
               src={product.image}
@@ -90,9 +99,7 @@ function ProductDetailModal({
               <Package className="h-16 w-16 text-muted-foreground/30" />
             </div>
           )}
-
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-
           <div className="absolute bottom-0 left-0 right-0 p-5">
             <div className="flex items-center gap-2 flex-wrap">
               {product.category && (
@@ -103,12 +110,23 @@ function ProductDetailModal({
               <span className="text-xs font-mono bg-black/50 text-white/80 px-2 py-0.5 rounded">
                 {product.sku}
               </span>
+              <span className="text-xs font-mono bg-black/50 text-white/80 px-2 py-0.5 rounded">
+                {product.sku}
+              </span>
+              {/* <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[10px] bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border border-white/20 rounded backdrop-blur ml-auto"
+                onClick={() => setShowHistory(true)}
+              >
+                <History className="h-3 w-3 mr-1" />
+                Riwayat
+              </Button> */}
             </div>
             <DialogTitle className="text-2xl sm:text-3xl font-bold text-white mt-2 leading-7">
               {product.name}
             </DialogTitle>
           </div>
-
           {isLowStock && (
             <Badge
               variant="destructive"
@@ -120,8 +138,12 @@ function ProductDetailModal({
           )}
         </div>
 
-        <ScrollArea className="flex-1 overflow-y-scroll px-5">
-          <div className="space-y-6">
+        {/*
+          Tabs mengambil sisa tinggi dengan flex-1 + min-h-0.
+          min-h-0 WAJIB agar flex child tidak meluber melebihi max-height parent.
+        */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="space-y-6 pb-4 px-5 pt-4">
             {/* Stats */}
             <div className="grid grid-cols-2 gap-4">
               <div
@@ -234,10 +256,33 @@ function ProductDetailModal({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
-        {/* Action Buttons */}
-        <div className="border-t p-4 flex flex-row gap-2  bg-muted/50">
+        {/* Auditor Log Sheet */}
+        {/* <Sheet open={showHistory} onOpenChange={setShowHistory}>
+          <SheetContent
+            side="right"
+            className="w-full sm:max-w-md p-0 flex flex-col"
+          >
+            <SheetHeader className="p-6 border-b shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <History className="h-5 w-5 text-primary" />
+                </div>
+                <SheetTitle>Riwayat Perubahan</SheetTitle>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Log riwayat untuk {product.name}
+              </p>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto px-6 py-4">
+              <ProductAuditLogTab productId={product.id} />
+            </div>
+          </SheetContent>
+        </Sheet> */}
+
+        {/* Action Buttons - shrink-0 agar tidak ikut flex */}
+        <div className="border-t p-4 flex flex-row gap-2 bg-muted/50 shrink-0">
           {onAdjust && (
             <Button
               variant="outline"
@@ -252,10 +297,9 @@ function ProductDetailModal({
               <p className="sm:hidden">Stok</p>
             </Button>
           )}
-
           {onEdit && (
             <Button
-              className="flex-1  rounded-2xl"
+              className="flex-1 rounded-2xl"
               onClick={() => {
                 onEdit(product.id);
                 onOpenChange(false);
@@ -266,11 +310,10 @@ function ProductDetailModal({
               <p className="sm:hidden">Edit</p>
             </Button>
           )}
-
           {onDelete && (
             <Button
               variant="destructive"
-              className=" rounded-2xl px-6"
+              className="rounded-2xl px-6"
               onClick={handleDeleteClick}
             >
               <Trash2 className="mr-2 h-4 w-4" />
@@ -305,7 +348,6 @@ export function ProductCard({
 
   const handleDeleteClick = async () => {
     if (!onDelete) return;
-
     const isConfirmed = await confirm({
       title: "Hapus Produk?",
       description: (
@@ -317,7 +359,6 @@ export function ProductCard({
       confirmText: "Ya, Hapus",
       cancelText: "Batal",
     });
-
     if (isConfirmed) {
       onDelete(product.id);
     }
@@ -435,7 +476,6 @@ export function ProductCard({
             <h3 className="font-semibold text-sm sm:text-base leading-tight line-clamp-2 group-hover:text-primary transition-colors">
               {product.name}
             </h3>
-
             <div className="flex items-center gap-2 text-[10px] sm:text-xs text-muted-foreground">
               <span className="font-mono">{product.sku}</span>
               {product.category && (
@@ -450,7 +490,6 @@ export function ProductCard({
             <div className="sm:text-lg text-sm font-bold text-primary tracking-tighter">
               {displayPrice}
             </div>
-
             <div className="flex items-center justify-between mt-3">
               <div
                 className={cn(
@@ -466,7 +505,6 @@ export function ProductCard({
                   {product.unit?.name}
                 </p>
               </div>
-
               {product.variants?.length ? (
                 <Badge variant="secondary" className="text-[10px] sm:text-xs">
                   {product.variants.length} varian

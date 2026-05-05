@@ -9,6 +9,8 @@ import {
   TrashItemInput,
   TrashValidationError,
 } from "../_lib/trash-utils";
+import { verifySession } from "@/lib/auth";
+import { recordProductAudit } from "@/app/api/products/_lib/audit";
 
 type ForceDeleteResult = {
   id: number;
@@ -16,12 +18,21 @@ type ForceDeleteResult = {
   name: string;
 };
 
+type TxType = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 async function forceDeleteOne(
-  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  tx: TxType,
   item: TrashItemInput,
+  userId: number | null,
 ): Promise<ForceDeleteResult> {
   switch (item.type) {
     case "product": {
+      // Fetch snapshot before delete
+      const productData = await tx.query.products.findFirst({
+        where: eq(products.id, item.id),
+        with: { category: { columns: { id: true, name: true } } },
+      });
+
       const [deleted] = await tx
         .delete(products)
         .where(
@@ -35,6 +46,20 @@ async function forceDeleteOne(
       if (!deleted) {
         throw new Error(`Product dengan ID ${item.id} tidak ditemukan di Trash`);
       }
+
+      // Audit log with snapshot (productId will be null after delete)
+      await recordProductAudit(tx, {
+        productId: null,
+        userId,
+        action: "hard_delete",
+        changes: null,
+        snapshot: {
+          id: deleted.id,
+          name: deleted.name,
+          sku: productData?.sku,
+          categoryId: productData?.categoryId,
+        },
+      });
 
       return { id: deleted.id, type: "product", name: deleted.name };
     }
@@ -107,6 +132,9 @@ async function forceDeleteOne(
 
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await verifySession();
+    const userId = session?.userId ?? null;
+
     const payload = await request.json();
     const items = parseTrashPayload(payload);
 
@@ -114,7 +142,7 @@ export async function DELETE(request: NextRequest) {
       const deleted: ForceDeleteResult[] = [];
 
       for (const item of items) {
-        deleted.push(await forceDeleteOne(tx, item));
+        deleted.push(await forceDeleteOne(tx, item, userId));
       }
 
       return deleted;

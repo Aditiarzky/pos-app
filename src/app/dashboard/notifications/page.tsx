@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Bell,
@@ -180,19 +180,6 @@ function NotificationsContent() {
         items,
       }));
   }, [visibleNotifications]);
-
-  useEffect(() => {
-    const unreadVisibleIds = filteredNotifications
-      .slice(0, PAGE_SIZE)
-      .filter((notification) => !isNotificationRead(notification))
-      .map((notification) => notification.id);
-
-    if (unreadVisibleIds.length === 0) return;
-    if (!markManyAsReadMutation.isPending) {
-      markManyAsReadMutation.mutate(unreadVisibleIds);
-    }
-
-  }, [notificationsQuery.data, filter, filteredNotifications, markManyAsReadMutation]);
 
   return (
     <>

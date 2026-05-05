@@ -31,7 +31,6 @@ import { toast } from "sonner";
 const POPOVER_MAX_ITEMS = 8;
 const isNotificationRead = (notification: NotificationItem) =>
   notification.isRead ?? notification.read;
-const markedOnOpenRefFallback = new Set<string>();
 
 const getNotificationIcon = (notification: NotificationItem) => {
   if (notification.type === "low_stock") return <TriangleAlert className="h-4 w-4 text-amber-500" />;
@@ -88,10 +87,10 @@ const formatTimeAgo = (createdAt: string) => {
 
 export function NotificationPanel() {
   const [isOpen, setIsOpen] = React.useState(false);
-  const markedOnOpenRef = React.useRef(markedOnOpenRefFallback);
   const notificationsQuery = useNotifications({
     params: { limit: 60 },
   });
+  const { refetch: refetchNotifications } = notificationsQuery;
   const markManyAsReadMutation = useMarkNotificationsAsRead();
   const clearReadMutation = useClearReadNotifications();
 
@@ -137,25 +136,10 @@ export function NotificationPanel() {
 
   React.useEffect(() => {
     if (isOpen) {
-      notificationsQuery.refetch();
+      void refetchNotifications();
     }
 
-  }, [isOpen, notificationsQuery]);
-
-  React.useEffect(() => {
-    if (!isOpen || markManyAsReadMutation.isPending) return;
-
-    const unreadVisibleIds = latestNotifications
-      .filter((notification) => !isNotificationRead(notification))
-      .filter((notification) => !markedOnOpenRef.current.has(notification.id))
-      .map((notification) => notification.id);
-
-    if (unreadVisibleIds.length > 0) {
-      unreadVisibleIds.forEach((id) => markedOnOpenRef.current.add(id));
-      markManyAsReadMutation.mutate(unreadVisibleIds);
-    }
-
-  }, [isOpen, latestNotifications, markManyAsReadMutation, notificationsQuery.data]);
+  }, [isOpen, refetchNotifications]);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
