@@ -49,7 +49,7 @@ export const PurchaseFilterForm = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="createdAt">Tanggal</SelectItem>
-              <SelectItem value="orderNumber">No. Invoice</SelectItem>
+              <SelectItem value="orderNumber">No. Transaksi</SelectItem>
               <SelectItem value="total">Total</SelectItem>
             </SelectContent>
           </Select>
