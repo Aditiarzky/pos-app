@@ -11,8 +11,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AppPagination } from "@/components/app-pagination";
-import { Button } from "@/components/ui/button";
-import { LayoutList, SearchX, PrinterIcon } from "lucide-react";
+import { LayoutList, SearchX } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { Badge } from "@/components/ui/badge";
 
@@ -26,17 +25,15 @@ import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { FilterWrap } from "@/components/filter-wrap";
 import { PurchaseFilterForm } from "./_ui/purchase-filter-form";
-import { usePrintReceipt } from "../../sales/_hooks/use-print-receipt";
-import { PurchaseReceipt } from "./_ui/purchase-receipt";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 import { useQueryState } from "@/hooks/use-query-state";
+import { formatCurrency, formatDate } from "@/lib/format";
 
 export function PurchaseListSection({
   // Optional props for direct injection
@@ -89,7 +86,6 @@ export function PurchaseListSection({
     null,
   );
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
-  const { receiptRef, handlePrint } = usePrintReceipt();
 
   const openReceipt = (purchase: PurchaseResponse) => {
     setSelectedPurchase(purchase);
@@ -104,7 +100,7 @@ export function PurchaseListSection({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-3 bg-background rounded-md">
         <SearchInput
-          placeholder="Cari No. Invoice atau Supplier..."
+          placeholder="Cari No. Transaksi atau Supplier..."
           value={searchInput}
           onChange={setSearchInput}
         />
@@ -141,7 +137,7 @@ export function PurchaseListSection({
                 <TableHeader className="bg-muted/20 border-t border-b border-border/50">
                   <TableRow className="border-none">
                     <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Invoice</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Transaksi</TableHead>
                     <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-center font-semibold text-muted-foreground uppercase tracking-wide">
                       Tanggal
                     </TableHead>
@@ -175,7 +171,7 @@ export function PurchaseListSection({
                 <TableHeader className="bg-muted/20 border-t border-b border-border/50">
                   <TableRow className="border-none">
                     <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Invoice</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Transaksi</TableHead>
                     <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-center font-semibold text-muted-foreground uppercase tracking-wide">
                       Tanggal
                     </TableHead>
@@ -216,7 +212,7 @@ export function PurchaseListSection({
                   <TableHeader className="bg-muted/20 border-t border-b border-border/50">
                     <TableRow className="border-none">
                       <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
-                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Invoice</TableHead>
+                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Transaksi</TableHead>
                       <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-center font-semibold text-muted-foreground uppercase tracking-wide">
                         Tanggal
                       </TableHead>
@@ -274,29 +270,81 @@ export function PurchaseListSection({
       )}
 
       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
-        <DialogContent className="max-w-[340px] p-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-6 pb-2">
-            <DialogTitle>Nota Pembelian</DialogTitle>
+        <DialogContent className="max-w-[640px] p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-2 border-b">
+            <DialogTitle>Detail Pembelian</DialogTitle>
           </DialogHeader>
 
-          <div className="px-4 pb-4">
+          <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
             {selectedPurchase && (
-              <PurchaseReceipt ref={receiptRef} purchase={selectedPurchase} />
+              <>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">No. Transaksi</p>
+                    <p className="font-semibold">{selectedPurchase.orderNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Tanggal</p>
+                    <p className="font-semibold">
+                      {selectedPurchase.createdAt
+                        ? formatDate(selectedPurchase.createdAt)
+                        : "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Supplier</p>
+                    <p className="font-semibold">
+                      {selectedPurchase.supplier?.name || "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Dicatat Oleh</p>
+                    <p className="font-semibold">
+                      {selectedPurchase.user?.name || "-"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Produk</TableHead>
+                        <TableHead>Varian</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Harga</TableHead>
+                        <TableHead className="text-right">Subtotal</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(selectedPurchase.items || []).map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>{item.product?.name || "-"}</TableCell>
+                          <TableCell>{item.productVariant?.name || "-"}</TableCell>
+                          <TableCell className="text-right">{item.qty}</TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(Number(item.price || 0))}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold">
+                            {formatCurrency(Number(item.subtotal || 0))}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="flex justify-end">
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Total Transaksi</p>
+                    <p className="text-lg font-bold text-primary">
+                      {formatCurrency(Number(selectedPurchase.total || 0))}
+                    </p>
+                  </div>
+                </div>
+              </>
             )}
           </div>
-
-          <DialogFooter className="px-4 pb-4 flex justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsReceiptOpen(false)}
-            >
-              Tutup
-            </Button>
-            <Button size="sm" onClick={handlePrint}>
-              <PrinterIcon className="w-4 h-auto" /> Cetak Nota
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
