@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "dev:vinext": "vinext dev --port 3001",
-    "build:vinext": "node -e \"require('fs').mkdirSync('dist/server', { recursive: true }); require('fs').writeFileSync('dist/server/index.js', 'export default {}')\" && vinext build && node -e \"const fs=require('fs'); fs.copyFileSync('dist/server/ssr/index.js', 'dist/server/index.js')\"",
+    "build:vinext": "node -e \"require('fs').mkdirSync('dist/server', { recursive: true }); require('fs').writeFileSync('dist/server/index.js', 'export default {}')\" && vinext build && node -e \"const fs=require('fs'); const cfg=JSON.parse(fs.readFileSync('dist/server/wrangler.json','utf8')); cfg.main='ssr/index.js'; fs.writeFileSync('dist/server/wrangler.json', JSON.stringify(cfg))\"",
     "start:vinext": "vinext start",
     "deploy:worker": "npm run build:vinext && wrangler deploy",
     "test": "vitest run --config vitest.config.ts",

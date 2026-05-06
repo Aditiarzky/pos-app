@@ -1,5 +1,5 @@
 name = "pos-app"
-main = "dist/server/index.js"
+main = "dist/server/ssr/index.js" 
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"] 
 
