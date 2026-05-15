@@ -1,20 +1,31 @@
 @startuml
 |Admin Sistem|
 start
-:Akses menu Laporan & Analisa;
-:Pilih kategori laporan (Penjualan/Keuangan/Stok);
-:Tentukan periode waktu;
+:Akses menu Administrasi Operasional;
+if (Pilih Aktivitas?) then (Kelola Biaya & Pajak)
+  :Input/Update Biaya Operasional\n(Listrik, Gaji, Sewa, dsb);
+  :Konfigurasi Parameter Pajak\n(Persentase/Nominal Tetap);
+  
+  |Sistem POS|
+  :Validasi parameter input;
+  :Simpan pembaruan ke basis data;
+  :Normalisasi biaya ke periode berjalan;
+else (Analisis Laporan)
+  |Admin Sistem|
+  :Pilih kategori laporan\n(Penjualan/Keuangan/Stok);
+  :Tentukan periode waktu evaluasi;
+  
+  |Sistem POS|
+  :Kumpulkan data transaksi & operasional;
+  :Ambil parameter biaya/pajak yang aktif;
+  :Hitung akumulasi pendapatan & beban;
+  :Otomasi kalkulasi Laba Kotor & Laba Bersih;
+  :Tampilkan visualisasi performa bisnis;
+  
+  |Admin Sistem|
+  :Evaluasi hasil laporan pada dasbor;
+  :Simpan/Unduh berkas laporan;
+endif
 
-|Sistem POS|
-:Kumpulkan data transaksi dan operasional terkait;
-:Hitung akumulasi pendapatan dan beban;
-:Otomasi perhitungan selisih keuntungan;
-:Estimasi beban kewajiban (pajak/biaya tetap);
-:Susun ringkasan laba bersih;
-:Tampilkan grafik performa bisnis;
-
-|Admin Sistem|
-:Evaluasi hasil laporan pada dasbor;
-:Simpan/Unduh berkas laporan;
 stop
 @enduml

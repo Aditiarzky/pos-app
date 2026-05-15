@@ -28,7 +28,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { TaxConfig } from "@/services/costService";
-import { TAX_APPLIES_TO_LABELS, PERIOD_LABELS } from "../../../_types/cost-types";
+import {
+  TAX_APPLIES_TO_LABELS,
+  PERIOD_LABELS,
+} from "../../../_types/cost-types";
 import { useTaxConfigList } from "../../../_hooks/use-tax-config-list";
 import { TaxConfigForm } from "../tax-config-form";
 import { format } from "date-fns";
@@ -102,9 +105,17 @@ export function TaxConfigsSection({ hook }: Props) {
       ) : !taxConfigs?.length ? (
         <EmptyState search={search} />
       ) : viewMode === "table" ? (
-        <TaxTable configs={taxConfigs} onEdit={handleOpenEdit} onDelete={handleDelete} />
+        <TaxTable
+          configs={taxConfigs}
+          onEdit={handleOpenEdit}
+          onDelete={handleDelete}
+        />
       ) : (
-        <TaxCardGrid configs={taxConfigs} onEdit={handleOpenEdit} onDelete={handleDelete} />
+        <TaxCardGrid
+          configs={taxConfigs}
+          onEdit={handleOpenEdit}
+          onDelete={handleDelete}
+        />
       )}
 
       {meta && meta.totalPages > 1 && (
@@ -239,10 +250,15 @@ function TaxTable({
                   <TableCell className="py-3 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3 shrink-0" />
-                      {format(new Date(tax.effectiveFrom), "d MMM yyyy", { locale: id })}
+                      {format(new Date(tax.effectiveFrom), "d MMM yyyy", {
+                        locale: id,
+                      })}
                       {tax.effectiveTo && (
                         <span className="text-[10px]">
-                          — {format(new Date(tax.effectiveTo), "d MMM yyyy", { locale: id })}
+                          —{" "}
+                          {format(new Date(tax.effectiveTo), "d MMM yyyy", {
+                            locale: id,
+                          })}
                         </span>
                       )}
                     </span>
@@ -341,7 +357,9 @@ function TaxCard({
               )}
             </div>
             <div className="min-w-0">
-              <p className="font-semibold text-sm leading-tight truncate">{tax.name}</p>
+              <p className="font-semibold text-sm leading-tight truncate">
+                {tax.name}
+              </p>
               <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                 <Badge
                   variant="outline"
@@ -417,7 +435,10 @@ function TaxCard({
           <span className="flex items-center gap-1.5">
             <Calendar className="h-3 w-3 shrink-0" />
             <span>
-              Sejak {format(new Date(tax.effectiveFrom), "d MMM yyyy", { locale: id })}
+              Sejak{" "}
+              {format(new Date(tax.effectiveFrom), "d MMM yyyy", {
+                locale: id,
+              })}
               {tax.effectiveTo &&
                 ` — ${format(new Date(tax.effectiveTo), "d MMM yyyy", { locale: id })}`}
             </span>
@@ -454,7 +475,9 @@ function EmptyState({ search }: { search: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground rounded-xl border border-dashed bg-muted/10">
       <SearchX className="h-10 w-10 mb-3 opacity-20" />
-      <p className="font-semibold text-foreground">Belum ada konfigurasi pajak</p>
+      <p className="font-semibold text-foreground">
+        Belum ada konfigurasi pajak
+      </p>
       <p className="text-sm mt-1 max-w-xs">
         {search
           ? "Tidak ada pajak yang cocok dengan pencarian."

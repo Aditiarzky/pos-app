@@ -166,6 +166,17 @@ export function ExchangeItemPicker({
                   <span className="font-medium">
                     {formatCurrency(item.sellPrice)}
                   </span>
+                  {" · "}
+                  <span
+                    className={cn(
+                      "font-medium",
+                      item.currentStock <= 0
+                        ? "text-destructive"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    Stok: {item.currentStock}
+                  </span>
                 </p>
               </div>
 

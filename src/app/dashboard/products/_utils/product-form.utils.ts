@@ -16,8 +16,9 @@ export function mapProductToForm(product: ProductResponse) {
   );
 
   const nonBaseVariants =
-    product.variants?.filter((variant) => variant.unitId !== product.baseUnitId) ??
-    [];
+    product.variants?.filter(
+      (variant) => variant.unitId !== product.baseUnitId,
+    ) ?? [];
 
   const mappedVariants = [
     {

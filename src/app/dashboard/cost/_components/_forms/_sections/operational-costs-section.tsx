@@ -104,9 +104,17 @@ export function OperationalCostsSection({ hook }: Props) {
       ) : !costs?.length ? (
         <EmptyState search={search} />
       ) : viewMode === "table" ? (
-        <CostTable costs={costs} onEdit={handleOpenEdit} onDelete={handleDelete} />
+        <CostTable
+          costs={costs}
+          onEdit={handleOpenEdit}
+          onDelete={handleDelete}
+        />
       ) : (
-        <CostCardGrid costs={costs} onEdit={handleOpenEdit} onDelete={handleDelete} />
+        <CostCardGrid
+          costs={costs}
+          onEdit={handleOpenEdit}
+          onDelete={handleDelete}
+        />
       )}
 
       {meta && meta.totalPages > 1 && (
@@ -193,7 +201,10 @@ function CostTable({
                 <TableCell className="py-3">
                   <Badge
                     variant="outline"
-                    className={cn("text-[10px] font-medium", CATEGORY_COLORS[cost.category])}
+                    className={cn(
+                      "text-[10px] font-medium",
+                      CATEGORY_COLORS[cost.category],
+                    )}
                   >
                     {CATEGORY_LABELS[cost.category]}
                   </Badge>
@@ -207,10 +218,15 @@ function CostTable({
                 <TableCell className="py-3 text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3 w-3 shrink-0" />
-                    {format(new Date(cost.effectiveFrom), "d MMM yyyy", { locale: id })}
+                    {format(new Date(cost.effectiveFrom), "d MMM yyyy", {
+                      locale: id,
+                    })}
                     {cost.effectiveTo && (
                       <span className="text-[10px]">
-                        — {format(new Date(cost.effectiveTo), "d MMM yyyy", { locale: id })}
+                        —{" "}
+                        {format(new Date(cost.effectiveTo), "d MMM yyyy", {
+                          locale: id,
+                        })}
                       </span>
                     )}
                   </span>
@@ -261,7 +277,12 @@ function CostCardGrid({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
       {costs.map((cost) => (
-        <CostCard key={cost.id} cost={cost} onEdit={onEdit} onDelete={onDelete} />
+        <CostCard
+          key={cost.id}
+          cost={cost}
+          onEdit={onEdit}
+          onDelete={onDelete}
+        />
       ))}
     </div>
   );
@@ -287,11 +308,16 @@ function CostCard({
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm leading-tight truncate">{cost.name}</p>
+            <p className="font-semibold text-sm leading-tight truncate">
+              {cost.name}
+            </p>
             <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
               <Badge
                 variant="outline"
-                className={cn("text-[10px] font-medium", CATEGORY_COLORS[cost.category])}
+                className={cn(
+                  "text-[10px] font-medium",
+                  CATEGORY_COLORS[cost.category],
+                )}
               >
                 {CATEGORY_LABELS[cost.category]}
               </Badge>
@@ -339,7 +365,10 @@ function CostCard({
           <span className="flex items-center gap-1.5">
             <Calendar className="h-3 w-3 shrink-0" />
             <span>
-              Sejak {format(new Date(cost.effectiveFrom), "d MMM yyyy", { locale: id })}
+              Sejak{" "}
+              {format(new Date(cost.effectiveFrom), "d MMM yyyy", {
+                locale: id,
+              })}
               {cost.effectiveTo &&
                 ` — ${format(new Date(cost.effectiveTo), "d MMM yyyy", { locale: id })}`}
             </span>
@@ -376,7 +405,9 @@ function EmptyState({ search }: { search: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground rounded-xl border border-dashed bg-muted/10">
       <SearchX className="h-10 w-10 mb-3 opacity-20" />
-      <p className="font-semibold text-foreground">Belum ada biaya operasional</p>
+      <p className="font-semibold text-foreground">
+        Belum ada biaya operasional
+      </p>
       <p className="text-sm mt-1 max-w-xs">
         {search
           ? "Tidak ada biaya yang cocok dengan pencarian."

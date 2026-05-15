@@ -3,10 +3,7 @@ import { Label } from "@/components/ui/label";
 import { TabsContent } from "@/components/ui/tabs";
 import { Upload, X, Loader2 } from "lucide-react";
 import { CategoryType, UnitType } from "@/drizzle/type";
-import { NumericInput } from "@/components/ui/numeric-input";
 import {
-  Control,
-  Controller,
   UseFormRegister,
   UseFormSetValue,
   UseFormWatch,
@@ -32,7 +29,6 @@ export function BasicInfoTab({
   inputRef,
   uploadImage,
   clearImage,
-  control,
 }: {
   register: UseFormRegister<InsertProductInputType | UpdateProductInputType>;
   errors: FormFieldErrors;
@@ -45,12 +41,7 @@ export function BasicInfoTab({
   inputRef: React.RefObject<HTMLInputElement>;
   uploadImage: (file: File) => void;
   clearImage: () => void;
-  control: Control<InsertProductInputType | UpdateProductInputType>;
 }) {
-  const selectedUnitId = watch("baseUnitId");
-  const selectedUnitName = units.find(
-    (u: UnitType) => u.id === selectedUnitId,
-  )?.name;
   return (
     <div className="space-y-4">
       <TabsContent value="basic" className="space-y-4 mt-4">
@@ -116,28 +107,6 @@ export function BasicInfoTab({
             {errors.baseUnitId && (
               <p className="text-sm text-destructive">
                 {errors.baseUnitId.message}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label>Stok Minimal</Label>
-            <Controller
-              name="minStock"
-              control={control}
-              render={({ field }) => (
-                <NumericInput
-                  {...field}
-                  value={field.value ?? ""}
-                  placeholder="Contoh: 10"
-                  min={0}
-                  suffix={selectedUnitName}
-                  max={1000000}
-                />
-              )}
-            />
-            {errors.minStock && (
-              <p className="text-sm text-destructive">
-                {errors.minStock.message}
               </p>
             )}
           </div>

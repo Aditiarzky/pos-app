@@ -30,7 +30,7 @@ export function ReturnSuccessModal({
 
   const compensationLabels: Record<string, string> = {
     refund: "Refund Tunai",
-    credit_note: "Credit Note (Saldo)",
+    credit_note: "Saldo Pelanggan",
     exchange: "Tukar Barang",
   };
 

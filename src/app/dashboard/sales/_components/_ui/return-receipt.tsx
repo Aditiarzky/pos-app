@@ -18,14 +18,13 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
     const storeAddress = setting?.address || "Sidorekso, Kudus";
     const storePhone = setting?.phone || "0812-3456-7890";
     const footerMessage = setting?.footerMessage || "Terima Kasih!";
-    const receiptNote =
-      "Pengembalian barang diproses sesuai dengan ketentuan.";
+    const receiptNote = "Pengembalian barang diproses sesuai dengan ketentuan.";
 
     const compensationLabel =
       result.compensationType === "refund"
         ? "REFUND TUNAI"
         : result.compensationType === "credit_note"
-          ? "CREDIT NOTE"
+          ? "SALDO PELANGGAN"
           : "TUKAR BARANG";
 
     const isRefundPositive = result.netRefundAmount >= 0;
@@ -223,7 +222,9 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
                   {item.productName}
                 </span>
                 <span style={{ fontWeight: 700, fontSize: "11px" }}>
-                  {formatCurrency(item.qty * (item.priceAtSale || item.priceAtReturn || 0))}
+                  {formatCurrency(
+                    item.qty * (item.priceAtSale || item.priceAtReturn || 0),
+                  )}
                 </span>
               </div>
               <div
@@ -246,7 +247,9 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
                   fontStyle: "italic",
                 }}
               >
-                {item.returnedToStock ? "Restock" : "Waste / Tidak kembali ke stok"}
+                {item.returnedToStock
+                  ? "Restock"
+                  : "Waste / Tidak kembali ke stok"}
               </div>
             </div>
           ))}
@@ -270,7 +273,9 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
                   key={`${item.variantId}-${idx}`}
                   style={{
                     marginBottom:
-                      idx < (result.exchangeItems?.length || 0) - 1 ? "9px" : "0",
+                      idx < (result.exchangeItems?.length || 0) - 1
+                        ? "9px"
+                        : "0",
                   }}
                 >
                   <div style={flexBetween}>
@@ -282,7 +287,11 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
                     </span>
                   </div>
                   <div
-                    style={{ fontSize: "9.5px", color: "#999", marginTop: "1px" }}
+                    style={{
+                      fontSize: "9.5px",
+                      color: "#999",
+                      marginTop: "1px",
+                    }}
                   >
                     {Number(item.qty).toFixed(0)} pcs &times;{" "}
                     {formatCurrency(item.sellPrice)}

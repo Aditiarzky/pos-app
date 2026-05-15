@@ -12,6 +12,9 @@ import { insertCustomerReturnPayload } from "@/services/customerReturnService";
 import { usePayDebt } from "@/hooks/debt/use-debts";
 import { useQueryClient } from "@tanstack/react-query";
 import { saleKeys } from "@/hooks/sales/sale-query-options";
+import { InsufficientStockItem } from "../_components/_ui/stock-warning-modal";
+import { useAdjustStock } from "@/hooks/products/use-adjust-stock";
+import { useCustomers } from "@/hooks/master/use-customers";
 
 export interface ReturnItemEntry {
   productId: number;
@@ -70,7 +73,9 @@ export function useReturnForm() {
   const { user } = useAuth();
   const createReturnMutation = useCreateCustomerReturn();
   const payDebtMutation = usePayDebt();
+  const adjustStockMutation = useAdjustStock();
   const queryClient = useQueryClient();
+  const { data: customersData } = useCustomers();
 
   // Step management
   const [step, setStep] = useState<ReturnStep>("invoice");
@@ -101,6 +106,13 @@ export function useReturnForm() {
 
   // Result (after successful submit)
   const [returnResult, setReturnResult] = useState<ReturnResult | null>(null);
+
+  // Stock Warning
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [insufficientItems, setInsufficientItems] = useState<
+    InsufficientStockItem[]
+  >([]);
+  const [isAdjustingStock, setIsAdjustingStock] = useState(false);
 
   // ============================================
   // INVOICE LOOKUP
@@ -368,10 +380,106 @@ export function useReturnForm() {
   ]);
 
   // ============================================
+  // STOCK VALIDATION
+  // ============================================
+
+  const validateStock = useCallback(() => {
+    if (compensationType !== "exchange") return true;
+
+    const problematicItems: InsufficientStockItem[] = [];
+
+    exchangeItems.forEach((item) => {
+      const requestedQty = Number(item.qty);
+      // In return process, we assumes exchange item qty is already in unit (not base unit yet)
+      // but currentStock is usually in base unit.
+      // Wait, let's check addExchangeItem logic for currentStock.
+      // In addExchangeItem: currentStock: Number(product.stock)
+      // product.stock is in base unit.
+      // So requestedQty * conversionToBase should be compared with currentStock.
+
+      const matchedVariant = item.variants?.find(
+        (v) => v.id === item.variantId,
+      );
+      const conversionFactor = Number(matchedVariant?.conversionToBase || 1);
+      const requestedTotalBase = requestedQty * conversionFactor;
+      const currentStock = Number(item.currentStock || 0);
+
+      if (requestedTotalBase > currentStock) {
+        problematicItems.push({
+          variantId: item.variantId,
+          productId: item.productId,
+          productName: item.productName || "Unknown",
+          variantName: item.variantName || "Default",
+          qty: item.qty,
+          requestedQty: requestedTotalBase,
+          currentStock,
+          difference: requestedTotalBase - currentStock,
+          conversionToBase: conversionFactor,
+        });
+      }
+    });
+
+    if (problematicItems.length > 0) {
+      setInsufficientItems(problematicItems);
+      setIsStockModalOpen(true);
+      return false;
+    }
+
+    return true;
+  }, [compensationType, exchangeItems]);
+
+  const handleAdjustStock = useCallback(async () => {
+    setIsAdjustingStock(true);
+    const toastId = toast.loading("Menyesuaikan stok...");
+
+    try {
+      for (const item of insufficientItems) {
+        await adjustStockMutation.mutateAsync({
+          id: item.productId,
+          userId: user?.id || 0,
+          variants: [{ variantId: item.variantId || 0, qty: item.qty }],
+        });
+      }
+
+      toast.success("Stok berhasil disesuaikan, memproses retur...", {
+        id: toastId,
+      });
+
+      // Update currentStock in exchangeItems local state
+      setExchangeItems((prev) =>
+        prev.map((item) => {
+          const problem = insufficientItems.find(
+            (p) => p.productId === item.productId,
+          );
+          if (problem) {
+            return { ...item, currentStock: problem.requestedQty };
+          }
+          return item;
+        }),
+      );
+
+      // Re-trigger submit after adjustment
+      // We need to wait for state to update or just call the logic
+      // To be safe, we'll let the user click submit again or trigger it manually
+      // In use-sale-form it calls handleSubmit(form.getValues())
+      // Here we can call handleSubmit() but without the stock check
+      await handleSubmitInternal();
+      setIsStockModalOpen(false);
+    } catch (error) {
+      toast.error(
+        error ? (error as ApiResponse).error : "Gagal menyesuaikan stok",
+        { id: toastId },
+      );
+    } finally {
+      setIsAdjustingStock(false);
+    }
+  }, [insufficientItems, adjustStockMutation, user?.id]);
+
+  // ============================================
   // SUBMIT
   // ============================================
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmitInternal = useCallback(async () => {
     if (!saleData || !canSubmit) return;
 
     const toastId = toast.loading("Memproses retur...");
@@ -413,12 +521,23 @@ export function useReturnForm() {
           message: string;
         };
 
+        // Resolve customer name
+        let customerName = "Guest";
+        if (selectedCustomerId) {
+          const selectedCust = customersData?.data?.find(
+            (c: { id: number; name: string }) => c.id === selectedCustomerId,
+          );
+          customerName = selectedCust?.name || "Guest";
+        } else if (saleData.customer?.name) {
+          customerName = saleData.customer.name;
+        }
+
         setReturnResult({
           returnNumber: resultData.returnHeader.returnNumber,
           compensationType,
           netRefundAmount: resultData.netChange,
           message: resultData.message,
-          customerName: saleData.customer?.name || "Guest",
+          customerName,
           saleData,
           returnItems: selectedReturnItems,
           exchangeItems,
@@ -446,7 +565,16 @@ export function useReturnForm() {
     selectedCustomerId,
     surplusStrategy,
     netRefundAmount,
+    customersData?.data,
   ]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!isAdjustingStock) {
+      const isStockValid = validateStock();
+      if (!isStockValid) return;
+    }
+    await handleSubmitInternal();
+  }, [isAdjustingStock, validateStock, handleSubmitInternal]);
 
   const handleMarkAsPaid = useCallback(async () => {
     if (!debtInfo) return;
@@ -584,11 +712,17 @@ export function useReturnForm() {
     surplusStrategy,
     setSurplusStrategy,
 
-    // Debt
     hasDebt,
     debtRemainingAmount: debtInfo?.remainingAmount || 0,
     handleMarkAsPaid,
     isPayingDebt: payDebtMutation.isPending,
+
+    // Stock
+    isStockModalOpen,
+    setIsStockModalOpen,
+    insufficientItems,
+    handleAdjustStock,
+    isAdjustingStock,
 
     // Reset
     resetForm,

@@ -2,12 +2,16 @@
 
 import { useState } from "react";
 import { useTaxConfigs, useDeleteTaxConfig } from "@/hooks/cost/use-cost";
+import { useConfirm } from "@/contexts/ConfirmDialog";
 import { TaxConfig } from "@/services/costService";
 import { toast } from "sonner";
 
 export function useTaxConfigList() {
+  const confirm = useConfirm();
   const [search, setSearch] = useState("");
-  const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
+  const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(
+    undefined,
+  );
   const [editingTax, setEditingTax] = useState<TaxConfig | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -41,8 +45,15 @@ export function useTaxConfigList() {
     setEditingTax(null);
   };
 
-  const handleDelete = (tax: TaxConfig) => {
-    if (!confirm(`Hapus pajak "${tax.name}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+  const handleDelete = async (tax: TaxConfig) => {
+    const ok = await confirm({
+      title: "Hapus Pajak",
+      description: `Apakah Anda yakin ingin menghapus pajak "${tax.name}"? Tindakan ini tidak bisa dibatalkan.`,
+      confirmText: "Ya, Hapus",
+      cancelText: "Batal",
+    });
+
+    if (!ok) return;
     deleteMutation.mutate(tax.id);
   };
 

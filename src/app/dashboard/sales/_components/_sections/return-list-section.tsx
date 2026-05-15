@@ -122,6 +122,7 @@ export function ReturnListSection() {
   };
 
   const getCompensationName = (type: string) => {
+    if (type === "credit_note") return "SALDO PELANGGAN";
     return type.replace("_", " ").toUpperCase();
   };
 
@@ -182,37 +183,40 @@ export function ReturnListSection() {
 
   const returnDataResult = selectedReturn
     ? ({
-      ...selectedReturn,
-      customerName: selectedReturn.customer?.name || "",
-      returnNumber: selectedReturn.returnNumber || "",
-      netRefundAmount: Number(selectedReturn.totalRefund),
-      message: "Nota Retur",
-      saleData: {
-        ...(selectedReturn.sales?.[0] || {}),
-        invoiceNumber: selectedReturn.sales?.[0]?.invoiceNumber || fallbackInvoiceNumber || "-",
-      },
-      returnItems: (selectedReturn.items || []).map((item) => ({
-        productId: item.productId,
-        variantId: item.variantId,
-        productName: item.product?.name || "Unknown",
-        variantName: item.productVariant?.name || "Default",
-        qty: Number(item.qty),
-        priceAtReturn: Number(item.priceAtReturn),
-        unitFactorAtReturn: Number(item.unitFactorAtReturn),
-        returnedToStock: item.returnedToStock,
-        reason: item.reason,
-      })),
-      exchangeItems: (selectedReturn.exchangeItems || []).map((item) => ({
-        productId: item.productId,
-        variantId: item.variantId,
-        productName: item.product?.name || "Unknown",
-        variantName: item.productVariant?.name || "Default",
-        qty: Number(item.qty),
-        sellPrice: Number(item.priceAtExchange),
-      })),
-      totalValueReturned: Number(selectedReturn.totalValueReturned),
-      totalValueExchange: totalExchangeValue,
-    } as unknown as ReturnResult)
+        ...selectedReturn,
+        customerName: selectedReturn.customer?.name || "",
+        returnNumber: selectedReturn.returnNumber || "",
+        netRefundAmount: Number(selectedReturn.totalRefund),
+        message: "Nota Retur",
+        saleData: {
+          ...(selectedReturn.sales?.[0] || {}),
+          invoiceNumber:
+            selectedReturn.sales?.[0]?.invoiceNumber ||
+            fallbackInvoiceNumber ||
+            "-",
+        },
+        returnItems: (selectedReturn.items || []).map((item) => ({
+          productId: item.productId,
+          variantId: item.variantId,
+          productName: item.product?.name || "Unknown",
+          variantName: item.productVariant?.name || "Default",
+          qty: Number(item.qty),
+          priceAtReturn: Number(item.priceAtReturn),
+          unitFactorAtReturn: Number(item.unitFactorAtReturn),
+          returnedToStock: item.returnedToStock,
+          reason: item.reason,
+        })),
+        exchangeItems: (selectedReturn.exchangeItems || []).map((item) => ({
+          productId: item.productId,
+          variantId: item.variantId,
+          productName: item.product?.name || "Unknown",
+          variantName: item.productVariant?.name || "Default",
+          qty: Number(item.qty),
+          sellPrice: Number(item.priceAtExchange),
+        })),
+        totalValueReturned: Number(selectedReturn.totalValueReturned),
+        totalValueExchange: totalExchangeValue,
+      } as unknown as ReturnResult)
     : null;
 
   return (
@@ -265,7 +269,8 @@ export function ReturnListSection() {
           Semua Retur
         </h3>
         <div className="text-sm font-medium">
-          Total Retur: <span className="text-primary font-bold">{meta?.total || 0}</span>
+          Total Retur:{" "}
+          <span className="text-primary font-bold">{meta?.total || 0}</span>
         </div>
       </div>
 
@@ -279,14 +284,30 @@ export function ReturnListSection() {
             <Table>
               <TableHeader className="bg-muted/20 border-t border-b border-border/50">
                 <TableRow className="border-none">
-                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
-                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Retur</TableHead>
-                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tanggal</TableHead>
-                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Customer</TableHead>
-                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Items</TableHead>
-                  <TableHead className="text-center text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tipe</TableHead>
-                  <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Sisa Refund</TableHead>
-                  <TableHead className="text-right w-24 text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Aksi</TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    No.
+                  </TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    No. Retur
+                  </TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    Tanggal
+                  </TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    Customer
+                  </TableHead>
+                  <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    Items
+                  </TableHead>
+                  <TableHead className="text-center text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    Tipe
+                  </TableHead>
+                  <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    Sisa Refund
+                  </TableHead>
+                  <TableHead className="text-right w-24 text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                    Aksi
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -294,11 +315,22 @@ export function ReturnListSection() {
                   const itemCount = ret.items?.length || 0;
 
                   return (
-                    <TableRow key={ret.id} className="hover:bg-muted/50 transition-colors border-b border-border/30 last:border-none">
-                      <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">{(page - 1) * limit + idx + 1}</TableCell>
-                      <TableCell className="font-mono text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-bold text-primary">{ret.returnNumber}</TableCell>
-                      <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">{formatDate(ret.createdAt || new Date())}</TableCell>
-                      <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-semibold">{ret.customer?.name || "-"}</TableCell>
+                    <TableRow
+                      key={ret.id}
+                      className="hover:bg-muted/50 transition-colors border-b border-border/30 last:border-none"
+                    >
+                      <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
+                        {(page - 1) * limit + idx + 1}
+                      </TableCell>
+                      <TableCell className="font-mono text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-bold text-primary">
+                        {ret.returnNumber}
+                      </TableCell>
+                      <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
+                        {formatDate(ret.createdAt || new Date())}
+                      </TableCell>
+                      <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-semibold">
+                        {ret.customer?.name || "-"}
+                      </TableCell>
                       <TableCell className="px-2 sm:px-4 py-2">
                         <Popover>
                           <PopoverTrigger asChild>
@@ -309,9 +341,15 @@ export function ReturnListSection() {
                               {itemCount} item{itemCount !== 1 ? "s" : ""}
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-80" align="start" sideOffset={4}>
+                          <PopoverContent
+                            className="w-80"
+                            align="start"
+                            sideOffset={4}
+                          >
                             <div className="space-y-3">
-                              <div className="font-semibold text-sm">Daftar Item Retur</div>
+                              <div className="font-semibold text-sm">
+                                Daftar Item Retur
+                              </div>
                               <div className="space-y-2 text-sm max-h-[240px] overflow-y-auto pr-1">
                                 {ret.items?.slice(0, 3).map((item, itemIdx) => (
                                   <div
@@ -320,7 +358,8 @@ export function ReturnListSection() {
                                   >
                                     <div className="flex-1">
                                       <span className="font-medium">
-                                        {item.product?.name || "Unknown Product"}
+                                        {item.product?.name ||
+                                          "Unknown Product"}
                                       </span>
                                       <span className="text-muted-foreground ml-1">
                                         ({item.productVariant?.name || "-"})
@@ -374,7 +413,9 @@ export function ReturnListSection() {
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Batalkan Retur?</AlertDialogTitle>
+                                <AlertDialogTitle>
+                                  Batalkan Retur?
+                                </AlertDialogTitle>
                                 <AlertDialogDescription>
                                   Tindakan ini akan membatalkan retur,
                                   mengembalikan stok (rollback), dan membatalkan
@@ -480,7 +521,12 @@ export function ReturnListSection() {
                 </div>
 
                 <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 flex justify-between items-center gap-1.5 sm:gap-2 mt-auto">
-                  <Button variant="outline" size="sm" onClick={() => openReceipt(ret)} className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openReceipt(ret)}
+                    className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs"
+                  >
                     <Eye className="mr-1 h-3.5 w-3.5" />
                     Detail
                   </Button>
@@ -538,7 +584,9 @@ export function ReturnListSection() {
           </DialogHeader>
 
           <div className="px-4 pb-4 overflow-y-auto flex-grow custom-scrollbar">
-            {returnDataResult && <ReturnReceipt ref={receiptRef} result={returnDataResult} />}
+            {returnDataResult && (
+              <ReturnReceipt ref={receiptRef} result={returnDataResult} />
+            )}
           </div>
 
           <DialogFooter className="px-4 pb-4 flex justify-end gap-2">

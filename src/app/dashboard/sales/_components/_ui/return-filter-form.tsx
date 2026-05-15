@@ -79,7 +79,7 @@ export const ReturnFilterForm = ({
           <SelectContent>
             <SelectItem value="all">Semua Tipe</SelectItem>
             <SelectItem value="refund">Tunai (Refund)</SelectItem>
-            <SelectItem value="credit_note">Saldo (Credit Note)</SelectItem>
+            <SelectItem value="credit_note">Saldo Pelanggan</SelectItem>
             <SelectItem value="exchange">Tukar Barang</SelectItem>
           </SelectContent>
         </Select>
