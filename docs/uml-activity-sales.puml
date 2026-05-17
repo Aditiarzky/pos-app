@@ -1,44 +1,62 @@
-@startuml
+@startuml Activity - Penjualan
 |Admin Toko|
 start
-:Buka menu Penjualan / Kasir;
-:Cari produk (Nama/Scan);
-:Tentukan jumlah produk dan identitas pelanggan;
-:Pilih metode pembayaran (Tunai / Digital / Saldo);
+:Inisiasi transaksi melalui antarmuka Kasir;
+:Identifikasi entitas produk dan kuantitas;
+:Spesifikasi identitas pelanggan dan metode pembayaran;
 
 |Sistem POS|
-:Validasi ketersediaan stok;
-if (Stok Cukup?) then (Ya)
-  :Hitung total transaksi;
-  if (Metode Pembayaran?) then (Digital)
-    :Buat tagihan pembayaran digital;
-    if (Pembayaran Berhasil?) then (Ya)
-      :Rekam transaksi dengan status "Lunas";
-    else (Gagal/Batal)
-      :Batalkan proses transaksi;
+:Verifikasi integritas parameter dan validasi skema data;
+if (Metode & Parameter Valid?) then (Ya)
+  partition "Proses Eksekusi Transaksional" {
+    :Inisiasi blok transaksi database;
+    :Evaluasi ketersediaan stok fisik;
+    
+    if (Stok Mencukupi?) then (Ya)
+      :Alokasi aset inventaris dan penyesuaian stok;
+      :Persistensi rincian item dan mutasi stok;
+      
+      if (Penggunaan Saldo Kredit?) then (Ya)
+        :Rekonsiliasi saldo kredit pelanggan;
+      endif
+
+      if (Kekurangan Nominal Pembayaran?) then (Ya)
+        :Formalisasi sisa tagihan sebagai akun piutang;
+      else (Cukup/Lebih)
+        :Kalkulasi nilai surplus pembayaran;
+        :Opsi alokasi surplus untuk pelunasan piutang historis;
+      endif
+      
+      :Update status dan metadata transaksi (Lunas/Piutang);
+      
+      partition "Sinkronisasi Notifikasi Stok" {
+        :Evaluasi ambang batas stok (min_stock) & histori permintaan;
+        if (Stok Rendah atau Perlu Restock?) then (Ya)
+          :Pemicuan notifikasi sistem (Low Stock/Restock);
+        endif
+      }
+    else (Tidak)
+      :Terminasi transaksi akibat insufisiensi stok;
       stop
     endif
-  else if (Tunai)
-    :Validasi nominal pembayaran;
-    if (Dana Kurang?) then (Ya)
-      :Konfirmasi sisa sebagai Piutang;
-    else (Cukup/Lebih)
-      :Hitung nilai kembalian;
-      :Opsi alokasi kembalian untuk Piutang lama;
+  }
+
+  if (Metode Pembayaran Digital (QRIS)?) then (Ya)
+    :Generasi instruksi pembayaran eksternal;
+    if (Integrasi Berhasil?) then (Ya)
+      :Sinkronisasi data transaksi eksternal;
+    else (Gagal)
+      :Eksekusi prosedur pemulihan (Rollback) dan restorasi stok;
+      :Informasi kegagalan sistem kepada operator;
+      stop
     endif
-  else (Potong Saldo)
-    :Kurangi saldo resmi pelanggan;
   endif
-  
-  :Simpan rincian penjualan;
-  :Update posisi stok produk;
-  :Catat pembaharuan saldo/piutang jika ada;
-  
+
   |Admin Toko|
-  :Berikan bukti transaksi kepada pelanggan;
+  :Finalisasi transaksi dan distribusi bukti pembayaran;
 else (Tidak)
   |Sistem POS|
-  :Berikan informasi stok tidak mencukupi;
+  :Eskalasi pesan kesalahan validasi input;
 endif
 stop
 @enduml

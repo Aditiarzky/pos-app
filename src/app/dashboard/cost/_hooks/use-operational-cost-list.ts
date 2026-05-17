@@ -1,13 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { useOperationalCosts, useDeleteOperationalCost } from "@/hooks/cost/use-cost";
+import {
+  useOperationalCosts,
+  useDeleteOperationalCost,
+} from "@/hooks/cost/use-cost";
+import { useConfirm } from "@/contexts/ConfirmDialog";
 import { OperationalCost } from "@/services/costService";
 import { toast } from "sonner";
 
 export function useOperationalCostList() {
+  const confirm = useConfirm();
   const [search, setSearch] = useState("");
-  const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(undefined);
+  const [isActiveFilter, setIsActiveFilter] = useState<boolean | undefined>(
+    undefined,
+  );
   const [editingCost, setEditingCost] = useState<OperationalCost | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
@@ -41,8 +48,15 @@ export function useOperationalCostList() {
     setEditingCost(null);
   };
 
-  const handleDelete = (cost: OperationalCost) => {
-    if (!confirm(`Hapus biaya "${cost.name}"? Tindakan ini tidak bisa dibatalkan.`)) return;
+  const handleDelete = async (cost: OperationalCost) => {
+    const ok = await confirm({
+      title: "Hapus Biaya Operasional",
+      description: `Apakah Anda yakin ingin menghapus biaya "${cost.name}"? Tindakan ini tidak bisa dibatalkan.`,
+      confirmText: "Ya, Hapus",
+      cancelText: "Batal",
+    });
+
+    if (!ok) return;
     deleteMutation.mutate(cost.id);
   };
 

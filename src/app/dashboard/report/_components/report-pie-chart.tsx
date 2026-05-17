@@ -1,98 +1,79 @@
 "use client";
 
 import * as React from "react";
-import { Label, Pie, PieChart, Cell } from "recharts";
-
+import { Cell, Label, Pie, PieChart } from "recharts";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter,
 } from "@/components/ui/card";
 import {
+  ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from "@/components/ui/chart";
-import { formatCurrency } from "@/lib/format";
-import { BUSINESS_TERMS } from "@/lib/business-terms";
+
+// Dynamic chart config is now generated inside the component
 
 interface ReportPieChartProps {
-  data: {
-    productName: string;
-    revenue: number;
-  }[];
-  title?: string;
-  description?: string;
+  data: { productName?: string; categoryName?: string; revenue: number }[];
+  title: string;
+  description: string;
 }
 
-// Distinct categorical colors that work well in both light/dark themes
-const DISTINCT_COLORS = [
-  "hsl(217, 91%, 60%)", // Blue
-  "hsl(142, 71%, 45%)", // Emerald
-  "hsl(31, 97%, 55%)", // Orange/Amber
-  "hsl(262, 83%, 58%)", // Violet
-  "hsl(346, 84%, 61%)", // Rose/Pink
-];
+const PIE_COLORS = ["#2563eb", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6"];
 
 export function ReportPieChart({
   data,
-  title = `${BUSINESS_TERMS.revenueShort} per Produk`,
-  description = "Kontribusi produk teratas",
+  title,
+  description,
 }: ReportPieChartProps) {
   const chartData = React.useMemo(() => {
-    return data.map((item, index) => ({
-      name: item.productName,
-      revenue: item.revenue,
-      fill: DISTINCT_COLORS[index % DISTINCT_COLORS.length],
-    }));
-  }, [data]);
-
-  const totalRevenue = React.useMemo(() => {
-    return data.reduce((acc, curr) => acc + curr.revenue, 0);
-  }, [data]);
-
-  const chartConfig = React.useMemo(() => {
-    const config: ChartConfig = {
-      revenue: {
-        label: BUSINESS_TERMS.revenueShort,
-      },
-    };
-    data.forEach((item, index) => {
-      config[item.productName] = {
-        label: item.productName,
-        color: DISTINCT_COLORS[index % DISTINCT_COLORS.length],
+    return data.slice(0, 5).map((item, index) => {
+      const name = item.productName || item.categoryName || "Tanpa Nama";
+      const colorKey = `slice-${index + 1}`;
+      // Sanitize name for use as a CSS variable key if necessary,
+      // but Shadcn handles most strings if mapped correctly.
+      return {
+        name,
+        colorKey,
+        revenue: item.revenue,
+        fill: PIE_COLORS[index % PIE_COLORS.length],
       };
     });
-    return config;
   }, [data]);
 
-  if (data.length === 0) {
-    return (
-      <Card className="flex flex-col">
-        <CardHeader className="items-center pb-0 pt-6">
-          <CardTitle className="text-lg">{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex-1 pb-0 flex items-center justify-center min-h-[250px] text-muted-foreground text-sm italic">
-          Belum ada data tersedia pada periode ini
-        </CardContent>
-      </Card>
-    );
-  }
+  const config = React.useMemo(() => {
+    const c: ChartConfig = {
+      revenue: {
+        label: "Pendapatan",
+      },
+    };
+    chartData.forEach((item, index) => {
+      c[item.colorKey] = {
+        label: item.name,
+        color: PIE_COLORS[index % PIE_COLORS.length],
+      };
+    });
+    return c;
+  }, [chartData]);
+
+  const totalRevenue = React.useMemo(() => {
+    return chartData.reduce((acc, curr) => acc + curr.revenue, 0);
+  }, [chartData]);
 
   return (
-    <Card className="flex flex-col h-full shadow-md p-0">
-      <CardHeader className="items-center pb-0 pt-6 border-b bg-muted/20">
-        <CardTitle className="text-lg">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+    <Card className="flex flex-col p-0 shadow-md">
+      <CardHeader className="items-center pb-0 border-b bg-muted/20">
+        <CardTitle className="pt-6">{title}</CardTitle>
+        <CardDescription className="pb-4">{description}</CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 pb-0 pt-4">
+      <CardContent className="flex-1 pb-0">
         <ChartContainer
-          config={chartConfig}
+          config={config}
           className="mx-auto aspect-square max-h-[250px]"
         >
           <PieChart>
@@ -107,8 +88,8 @@ export function ReportPieChart({
               innerRadius={60}
               strokeWidth={5}
             >
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
+              {chartData.map((entry) => (
+                <Cell key={`cell-${entry.colorKey}`} fill={entry.fill} />
               ))}
               <Label
                 content={({ viewBox }) => {
@@ -123,16 +104,16 @@ export function ReportPieChart({
                         <tspan
                           x={viewBox.cx}
                           y={viewBox.cy}
-                          className="fill-foreground text-lg font-bold"
+                          className="fill-foreground text-xl font-bold"
                         >
-                          {formatCurrency(totalRevenue)}
+                          Top 5
                         </tspan>
                         <tspan
                           x={viewBox.cx}
                           y={(viewBox.cy || 0) + 24}
-                          className="fill-muted-foreground text-[10px] font-medium"
+                          className="fill-muted-foreground text-xs"
                         >
-                          Kontribusi {BUSINESS_TERMS.revenueShort}
+                          Produk
                         </tspan>
                       </text>
                     );
@@ -142,32 +123,34 @@ export function ReportPieChart({
             </Pie>
           </PieChart>
         </ChartContainer>
-      </CardContent>
-      <CardFooter className="flex-col gap-2 p-5 border-t bg-muted/5">
-        <div className="grid grid-cols-1 gap-1.5 w-full">
-          {chartData.map((item) => (
-            <div
-              key={item.name}
-              className="flex items-center justify-between gap-2"
-            >
-              <div className="flex items-center gap-1.5 min-w-0">
-                <div
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                  style={{ backgroundColor: item.fill }}
-                />
-                <span className="text-[11px] font-medium text-muted-foreground truncate">
-                  {item.name}
+        <div className="mx-auto mt-4 grid max-w-[320px] grid-cols-1 gap-2 pb-4">
+          {chartData.map((item) => {
+            const percentage =
+              totalRevenue > 0
+                ? ((item.revenue / totalRevenue) * 100).toFixed(1)
+                : "0";
+            return (
+              <div
+                key={`${item.colorKey}-${item.name}`}
+                className="flex items-center justify-between gap-3 text-sm"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                    style={{ backgroundColor: item.fill }}
+                  />
+                  <span className="truncate text-muted-foreground">
+                    {item.name}
+                  </span>
+                </div>
+                <span className="font-medium tabular-nums text-xs">
+                  {percentage}%
                 </span>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <span className="text-[11px] font-bold tabular-nums">
-                  {((item.revenue / totalRevenue) * 100).toFixed(1)}%
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
-      </CardFooter>
+      </CardContent>
     </Card>
   );
 }

@@ -1,0 +1,41 @@
+@startuml Activity - Pelunasan Hutang
+|Admin Toko|
+start
+split
+  :Pilih data hutang pelanggan;
+  :Input nominal pembayaran;
+  :Klik "Simpan Pembayaran";
+split again
+  :Proses Transaksi Penjualan;
+  :Ada sisa kembalian (Surplus);
+  :Opsi "Bayar Hutang Lama" aktif;
+end split
+
+|Sistem POS (Backend)|
+if (Skenario?) then (Standalone)
+  :Validasi Keberadaan Data;
+  if (Nominal > Sisa Hutang?) then (Ya)
+    :Tampilkan Error;
+    stop
+  endif
+else (Otomatis dari Penjualan)
+  :Cari daftar hutang aktif (Oldest First);
+endif
+
+partition "Database Transaction" {
+  :Simpan riwayat pembayaran (debtPayments);
+  :Update nominal sisa hutang (debts);
+  
+  if (Sisa Hutang = 0?) then (Ya)
+    :Update status hutang menjadi "paid";
+    :Update status penjualan (asal) menjadi "completed";
+  else (Tidak)
+    :Update status hutang menjadi "partial";
+  endif
+}
+
+|Admin Toko|
+:Notifikasi sukses;
+:Lihat pembaruan sisa hutang;
+stop
+@enduml

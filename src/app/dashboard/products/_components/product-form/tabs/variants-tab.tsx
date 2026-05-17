@@ -13,9 +13,7 @@ import {
   UseFormWatch,
   useWatch,
 } from "react-hook-form";
-import {
-  ProductVariantInputType,
-} from "@/lib/validations/product";
+import { ProductVariantInputType } from "@/lib/validations/product";
 import { FormFieldErrors } from "../../../_hooks/use-product-form";
 
 type ProductFormValues = {
@@ -171,7 +169,9 @@ export function VariantsTab({
     if (!baseUnitId || variants.length === 0) return;
 
     variants.forEach((variant, index) => {
-      const currentUnitName = units.find((unit) => unit.id === variant.unitId)?.name;
+      const currentUnitName = units.find(
+        (unit) => unit.id === variant.unitId,
+      )?.name;
 
       if (currentUnitName && variant.name !== currentUnitName) {
         setValue(`variants.${index}.name`, currentUnitName, {
@@ -209,17 +209,23 @@ export function VariantsTab({
             ? variant.referenceUnitId
             : previousVariants[previousVariants.length - 1]?.unitId),
       );
-      const referenceConversion = Number(referencedVariant?.conversionToBase || 0);
+      const referenceConversion = Number(
+        referencedVariant?.conversionToBase || 0,
+      );
 
       if (
         (!variant.conversionValue || Number(variant.conversionValue) <= 0) &&
         Number(variant.conversionToBase) > 0 &&
         Number(variant.referenceUnitId) === Number(baseUnitId)
       ) {
-        setValue(`variants.${index}.conversionValue`, variant.conversionToBase, {
-          shouldDirty: true,
-          shouldValidate: false,
-        });
+        setValue(
+          `variants.${index}.conversionValue`,
+          variant.conversionToBase,
+          {
+            shouldDirty: true,
+            shouldValidate: false,
+          },
+        );
       }
 
       const directConversion = Number(variant.conversionValue || 0);
@@ -236,7 +242,6 @@ export function VariantsTab({
       }
     });
   }, [baseUnitId, variants, units, setValue]);
-
   return (
     <div className="space-y-4">
       <TabsContent value="variants" className="mt-4 space-y-4">
@@ -273,15 +278,13 @@ export function VariantsTab({
           variant="outline"
           disabled={!baseUnitId}
           onClick={() =>
-            appendVariant(
-              {
-                name: "",
-                sku: "",
-                unitId: NaN,
-                conversionToBase: "",
-                sellPrice: "",
-              } as ProductVariantInputType,
-            )
+            appendVariant({
+              name: "",
+              sku: "",
+              unitId: NaN,
+              conversionToBase: "",
+              sellPrice: "",
+            } as ProductVariantInputType)
           }
         >
           <Plus className="mr-2 h-4 w-4" />

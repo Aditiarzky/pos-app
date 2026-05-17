@@ -30,7 +30,8 @@ import {
   Eye,
   AlertCircle,
   Layers,
-  //   History,
+  TrendingUp,
+  Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConfirm } from "@/contexts/ConfirmDialog";
@@ -110,9 +111,6 @@ function ProductDetailModal({
               <span className="text-xs font-mono bg-black/50 text-white/80 px-2 py-0.5 rounded">
                 {product.sku}
               </span>
-              <span className="text-xs font-mono bg-black/50 text-white/80 px-2 py-0.5 rounded">
-                {product.sku}
-              </span>
               {/* <Button
                 variant="ghost"
                 size="sm"
@@ -182,6 +180,9 @@ function ProductDetailModal({
                     )}
                   >
                     {formatCompactNumber(stockNum)}
+                    <span className="text-xs font-medium text-muted-foreground ml-1">
+                      {product.unit?.name}
+                    </span>
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Min: {minStockNum} {product.unit?.name}
@@ -219,29 +220,78 @@ function ProductDetailModal({
                     return (
                       <div
                         key={v.id}
-                        className="flex items-center justify-between bg-muted/50 rounded-2xl px-4 py-3 border border-transparent hover:border-border transition-all"
+                        className="relative group bg-muted/30 hover:bg-muted/50 rounded-3xl p-4 border border-border/50 hover:border-primary/20 transition-all duration-300"
                       >
-                        <div>
-                          <p className="font-semibold text-sm">{v.name}</p>
-                          <p className="text-xs text-muted-foreground font-mono">
-                            1 = {v.conversionToBase} {product.unit?.name}
-                          </p>
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <p className="font-bold uppercase text-sm sm:text-base text-foreground group-hover:text-primary transition-colors">
+                              {v.name}
+                            </p>
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-background/50 w-fit px-2 py-0.5 rounded-full border border-border/50">
+                              <Layers className="h-3 w-3" />
+                              <span>
+                                1 = {v.conversionToBase} {product.unit?.name}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="flex flex-col items-end">
+                              <span className="text-[9px] sm:text-[10px] uppercase font-black tracking-tighter text-muted-foreground/60 leading-none mb-1">
+                                Harga Jual
+                              </span>
+                              <p className="text-lg sm:text-xl font-black text-primary tracking-tighter leading-none">
+                                Rp {Number(v.sellPrice).toLocaleString("id-ID")}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-primary">
-                            Rp {Number(v.sellPrice).toLocaleString("id-ID")}
-                          </p>
-                          {isSystemAdmin && margin.hpp > 0 && (
-                            <Badge
-                              variant={
-                                margin.isProfitable ? "default" : "destructive"
-                              }
-                              className="text-[10px] mt-1"
-                            >
-                              {margin.marginPercent.toFixed(0)}%
-                            </Badge>
-                          )}
-                        </div>
+
+                        {isSystemAdmin && margin.hpp > 0 && (
+                          <div className="mt-4 pt-3 border-t border-dashed border-border/60 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2">
+                              <div className="p-1.5 bg-background rounded-xl border border-border/50">
+                                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground/70 leading-none">
+                                  Modal (HPP)
+                                </span>
+                                <span className="text-xs font-mono font-bold text-foreground">
+                                  Rp {margin.formattedHpp}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <div className="flex flex-col items-end">
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground/70 leading-none mb-1">
+                                  Keuntungan
+                                </span>
+                                <Badge
+                                  variant={
+                                    margin.isProfitable
+                                      ? "default"
+                                      : "destructive"
+                                  }
+                                  className={cn(
+                                    "h-6 px-2 text-[10px] font-black rounded-lg gap-1 border",
+                                    margin.isProfitable
+                                      ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20 shadow-none"
+                                      : "bg-red-500/10 text-red-600 hover:bg-red-500/20 border-red-500/20 shadow-none",
+                                  )}
+                                >
+                                  {margin.isProfitable ? (
+                                    <TrendingUp className="h-3 w-3" />
+                                  ) : (
+                                    <AlertCircle className="h-3 w-3" />
+                                  )}
+                                  {margin.marginPercent.toFixed(0)}%
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

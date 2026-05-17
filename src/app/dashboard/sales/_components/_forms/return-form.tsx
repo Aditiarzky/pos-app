@@ -23,6 +23,7 @@ import { useReturnForm, CompensationType } from "../../_hooks/use-return-form";
 import { ReturnItemSelector } from "../return-item-selector";
 import { ExchangeItemPicker } from "../exchange-item-picker";
 import { ReturnSuccessModal } from "../_ui/return-success-modal";
+import { StockWarningModal } from "../_ui/stock-warning-modal";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { CustomerSelect } from "@/components/ui/customer-select";
 import BarcodeScannerCamera from "@/components/barcode-scanner-camera";
@@ -66,6 +67,11 @@ export function ReturnForm() {
     debtRemainingAmount,
     handleMarkAsPaid,
     isPayingDebt,
+    isStockModalOpen,
+    setIsStockModalOpen,
+    insufficientItems,
+    handleAdjustStock,
+    isAdjustingStock,
   } = useReturnForm();
 
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -91,7 +97,7 @@ export function ReturnForm() {
     },
     {
       value: "credit_note",
-      label: "Credit Note",
+      label: "Saldo Pelanggan",
       description: "Saldo untuk pembelian berikutnya",
       icon: <CreditCard className="h-5 w-5" />,
       requiresCustomer: true,
@@ -479,14 +485,14 @@ export function ReturnForm() {
                   </div>
                 )}
 
-                {/* Credit note warning for guest */}
+                {/* Saldo Pelanggan warning for guest */}
                 {compensationType === "credit_note" &&
                   !saleData?.customerId &&
                   !selectedCustomerId && (
                     <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/30 text-yellow-700 text-xs font-medium flex items-start gap-2">
                       <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                       <span>
-                        Credit Note hanya tersedia untuk transaksi dengan
+                        Saldo Pelanggan hanya tersedia untuk transaksi dengan
                         customer terdaftar.
                       </span>
                     </div>
@@ -577,7 +583,16 @@ export function ReturnForm() {
       <ReturnSuccessModal
         isOpen={!!returnResult}
         onClose={resetForm}
-        result={returnResult}
+        result={returnResult!}
+      />
+
+      {/* Stock Warning Modal */}
+      <StockWarningModal
+        isOpen={isStockModalOpen}
+        onClose={() => setIsStockModalOpen(false)}
+        items={insufficientItems}
+        onAdjustStock={handleAdjustStock}
+        isAdjusting={isAdjustingStock}
       />
     </>
   );

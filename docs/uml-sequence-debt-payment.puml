@@ -1,0 +1,41 @@
+@startuml Sequence - Pelunasan Hutang
+actor "Admin Toko" as Admin
+participant "UI" as UI
+participant "Debts API" as DebtAPI
+participant "Sales API" as SaleAPI
+participant "Debt Service" as Service
+database "Database" as DB
+
+== Skenario 1: Pelunasan Mandiri ==
+Admin -> UI : Masukkan nominal & klik bayar
+UI -> DebtAPI : POST /api/debts/{id}/payment
+activate DebtAPI
+DebtAPI -> Service : processDebtPayment()
+activate Service
+Service -> DB : Update Data Hutang
+DB --> Service : OK
+Service --> DebtAPI : Result
+deactivate Service
+DebtAPI --> UI : 200 OK
+UI --> Admin : Notif Sukses
+
+== Skenario 2: Pelunasan via Penjualan (Otomatis) ==
+Admin -> UI : Proses Penjualan (Metode Cash + Surplus)
+UI -> SaleAPI : POST /api/sales
+activate SaleAPI
+SaleAPI -> DB : Simpan Transaksi Penjualan
+SaleAPI -> DB : Cek Hutang Aktif Pelanggan
+DB --> SaleAPI : Daftar Hutang
+loop Tiap Hutang (selama ada surplus)
+    SaleAPI -> Service : processDebtPayment()
+    activate Service
+    Service -> DB : Update Data Hutang
+    DB --> Service : OK
+    Service --> SaleAPI : Result
+    deactivate Service
+end
+SaleAPI --> UI : 200 OK (Invoice + Info Pelunasan)
+UI --> Admin : Notif Sukses & Struk Pelunasan
+deactivate SaleAPI
+
+@enduml

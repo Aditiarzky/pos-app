@@ -179,21 +179,6 @@ export function ChartAreaInteractive({
                 opacity={0.4}
                 stroke="var(--border)"
               />
-              <YAxis hide domain={["auto", "dataMax + (dataMax * 0.1)"]} />
-              <XAxis
-                dataKey="date"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                minTickGap={32}
-                tickFormatter={(value) => {
-                  const date = new Date(value);
-                  return date.toLocaleDateString("id-ID", {
-                    month: "short",
-                    day: "numeric",
-                  });
-                }}
-              />
               <ChartTooltip
                 cursor={false}
                 content={
@@ -214,13 +199,29 @@ export function ChartAreaInteractive({
                 <Area
                   key={key}
                   dataKey={key}
-                  type="natural"
+                  type="monotone"
+                  baseValue={0}
                   fill={`url(#fill${key})`}
                   stroke={`var(--color-${key})`}
                   strokeWidth={2}
                   stackId="a"
                 />
               ))}
+              <YAxis hide domain={["auto", "dataMax + (dataMax * 0.1)"]} />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                minTickGap={32}
+                tickFormatter={(value) => {
+                  const date = new Date(value);
+                  return date.toLocaleDateString("id-ID", {
+                    month: "short",
+                    day: "numeric",
+                  });
+                }}
+              />
             </AreaChart>
           ) : (
             <div className="flex h-full w-full items-center justify-center">
