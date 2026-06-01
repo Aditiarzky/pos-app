@@ -1,17 +1,42 @@
-@startuml
-actor "Admin Toko" as Admin
-participant "Sistem POS" as App
-database "Sistem Penyimpanan" as DB
+@startuml Product_Management_Sequence
+autonumber
 
-== Tambah / Edit Produk ==
-Admin -> App: Input data produk (nama, kategori, dan varian)
-App -> App: Validasi kelengkapan data
-App -> DB: Rekam identitas produk
-App -> DB: Rekam rincian harga dan satuan tiap varian
-App --> Admin: Tampilkan konfirmasi penyimpanan berhasil
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+skinparam defaultFontSize 20
+skinparam maxMessageSize 400
 
-== Hapus Produk ==
-Admin -> App: Pilih produk untuk dihapus/arsip
-App -> DB: Tandai produk sebagai non-aktif (ke folder Sampah)
-App --> Admin: Perbarui tampilan daftar produk aktif
+actor "Admin Sistem" as Admin
+boundary "UI Produk" as UI
+control "Product Controller" as Controller
+database "DB" as DB
+
+== 1. Pengambilan Data ==
+Admin -> UI : Buka list produk (Cari/Filter)
+UI -> Controller : Ambil daftar produk
+Controller -> DB : Query data produk & varian aktif
+DB --> UI : List Produk & Detail Stok
+
+== 2. Tambah Produk Baru ==
+Admin -> UI : Input data produk & multi-varian
+UI -> Controller : Simpan data produk baru
+activate Controller
+Controller -> DB : Simpan data produk, varian, & HPP awal
+DB --> UI : Konfirmasi Berhasil Simpan
+deactivate Controller
+
+== 3. Update & Soft Delete ==
+Admin -> UI : Edit data atau Delete
+alt Aksi: Edit Produk
+    UI -> Controller : Perbarui data produk
+    activate Controller
+    Controller -> Controller : Validasi & Cek HPP sebelumnya
+    Controller -> DB : Perbarui data produk & Hitung ulang Average Cost (HPP)
+    deactivate Controller
+else Aksi: Hapus Produk
+    UI -> Controller : Request penghapusan produk
+    Controller -> DB : Ubah status produk menjadi tidak aktif (Soft Delete)
+end
+Controller --> UI : Konfirmasi Berhasil
+
 @enduml

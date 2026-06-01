@@ -1,0 +1,111 @@
+@startuml POS_Functional_Class_Diagram
+
+' Configuration for clear and professional look
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
+
+title Diagram Kelas Fungsional - Sistem POS
+
+package "User & Access Management" {
+    abstract class User {
+        - id: Integer
+        - name: String
+        - email: String
+        + login(): Boolean
+        + logout(): void
+    }
+
+    class Cashier {
+        + openShift(): void
+        + processSale(): void
+        + closeShift(): void
+    }
+
+    class StoreAdmin {
+        + manageInventory(): void
+        + viewDailyReports(): void
+    }
+
+    class SystemAdmin {
+        + manageUsers(): void
+        + configureStore(): void
+        + auditSystem(): void
+    }
+
+    User <|-- Cashier
+    User <|-- StoreAdmin
+    User <|-- SystemAdmin
+}
+
+package "Product & Inventory" {
+    class Product {
+        - id: Integer
+        - sku: String
+        - name: String
+        - currentStock: Decimal
+        - minStock: Decimal
+        + updateStock(amount: Decimal): void
+        + checkLowStock(): Boolean
+    }
+
+    class ProductVariant {
+        - id: Integer
+        - variantName: String
+        - sellPrice: Decimal
+        + getActivePrice(): Decimal
+    }
+
+    class Category {
+        - id: Integer
+        - name: String
+    }
+
+    Product "1" *-- "0..*" ProductVariant : has
+    Product "0..*" -- "1" Category : belongs to
+}
+
+package "Transaction & Finance" {
+    class Sale {
+        - invoiceNumber: String
+        - date: DateTime
+        - totalPrice: Decimal
+        - paymentMethod: String
+        - status: String
+        + calculateTotal(): Decimal
+        + printReceipt(): void
+    }
+
+    class SaleItem {
+        - quantity: Decimal
+        - unitPrice: Decimal
+        - subtotal: Decimal
+        + calculateSubtotal(): Decimal
+    }
+
+    class Customer {
+        - id: Integer
+        - name: String
+        - creditBalance: Decimal
+        + updateBalance(amount: Decimal): void
+    }
+
+    class Debt {
+        - totalDebt: Decimal
+        - remainingDebt: Decimal
+        - status: String
+        + payInstallment(amount: Decimal): void
+    }
+
+    Sale "1" *-- "1..*" SaleItem : contains
+    SaleItem "0..*" o-- "1" ProductVariant : refers to
+    Sale "0..*" -- "0..1" Customer : buyer
+    Sale "1" -- "0..1" Debt : records
+    Cashier "1" -- "0..*" Sale : serves
+}
+
+@enduml

@@ -1,19 +1,37 @@
 @startuml
-actor "Admin Toko" as Admin
-participant "Sistem POS" as App
-database "Sistem Penyimpanan" as DB
+autonumber
 
-== Proses Pembayaran Tagihan ==
-Admin -> App: Input data pelanggan dan nominal bayar
-App -> DB: Tarik data tagihan aktif pelanggan
-App -> App: Verifikasi rincian pembayaran
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+skinparam defaultFontSize 20
+skinparam maxMessageSize 400
 
-alt Pembayaran Penuh
-  App -> DB: Update status tagihan lunas
-else Pembayaran Sebagian
-  App -> DB: Kurangi sisa saldo tagihan
+actor "Admin / Kasir" as Admin
+boundary "UI Piutang" as UI
+control "Debt Controller" as Controller
+database "DB" as DB
+
+== 1. Skenario Pembayaran ==
+Admin -> UI : Pilih Skenario (Mandiri / Via Penjualan)
+
+alt Skenario: Mandiri (Menu Hutang)
+    Admin -> UI : Input Nominal Bayar
+    UI -> Controller : Proses pembayaran piutang
+else Skenario: Via Penjualan (Kembalian)
+    Admin -> UI : Aktifkan opsi bayar piutang lama saat transaksi
+    UI -> Controller : Kirim data transaksi (dengan pelunasan piutang lama)
 end
 
-App -> DB: Catat histori pembayaran tagihan
-App --> Admin: Tampilkan bukti pembayaran
+== 2. Kalkulasi & Update Status ==
+activate Controller
+Controller -> DB : Perbarui rincian sisa piutang
+alt Kondisi: Masih Sisa
+    Controller -> DB : Ubah status menjadi dicicil (Partial)
+else Kondisi: Lunas
+    Controller -> DB : Ubah status menjadi lunas (Paid)
+end
+
+Controller -> DB : Simpan riwayat pembayaran piutang
+Controller --> UI : Konfirmasi Berhasil (Tampilkan sisa piutang terbaru)
+deactivate Controller
 @enduml

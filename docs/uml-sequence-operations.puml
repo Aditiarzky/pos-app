@@ -1,18 +1,32 @@
 @startuml
+autonumber
+
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+skinparam defaultFontSize 20
+skinparam maxMessageSize 400
+
 actor "Admin Sistem" as Admin
-participant "Sistem POS" as App
-database "Sistem Penyimpanan" as DB
+boundary "UI Keuangan" as UI
+control "Finance Controller" as Controller
+database "DB" as DB
 
-== Analisa Laporan Keuangan ==
-Admin -> App: Pilih periode dan jenis laporan
-App -> DB: Tarik data transaksi dan biaya operasional
-DB --> App: Berikan data mentah
-App -> App: Kalkulasi total pendapatan dan pengeluaran
-App -> App: Hitung estimasi keuntungan dan pajak
-App --> Admin: Tampilkan ringkasan visual laporan keuangan
+== 1. Pengelolaan Pengeluaran ==
+Admin -> UI : Masukkan biaya (Operasional / Pajak)
+UI -> Controller : Simpan data biaya operasional
+activate Controller
+Controller -> DB : Simpan rincian biaya operasional & konfigurasi pajak
+Controller -> DB : Sinkronisasi pengeluaran periode berjalan
+Controller --> UI : Konfirmasi Berhasil (Data ter-update)
+deactivate Controller
 
-== Pengelolaan Konfigurasi ==
-Admin -> App: Sesuaikan pengaturan identitas toko/pengguna
-App -> DB: Simpan perubahan konfigurasi
-App --> Admin: Konfirmasi pembaharuan berhasil
+== 2. Laporan Performa (Omset & Laba) ==
+Admin -> UI : Pilih Periode Laporan
+UI -> Controller : Ambil data laporan performa
+activate Controller
+Controller -> DB : Kumpulkan data pendapatan & pengeluaran
+DB --> Controller : Data Transaksi
+Controller -> Controller : Hitung Laba Kotor & Laba Bersih
+Controller --> UI : Tampilkan visualisasi grafik & ringkasan laba
+deactivate Controller
 @enduml

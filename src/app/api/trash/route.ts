@@ -3,7 +3,13 @@ import { and, eq, ilike, isNotNull, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { handleApiError } from "@/lib/api-utils";
 import { formatMeta, parsePagination } from "@/lib/query-helper";
-import { customers, products, purchaseOrders, sales } from "@/drizzle/schema";
+import {
+  customers,
+  products,
+  purchaseOrders,
+  sales,
+  suppliers,
+} from "@/drizzle/schema";
 import { TrashEntityType } from "./_lib/trash-utils";
 import { runTrashCleanup, shouldRunAutoCleanupDB } from "./_lib/cleanup-logic";
 
@@ -24,9 +30,9 @@ export async function GET(request: NextRequest) {
     }
 
     const params = parsePagination(request);
-    const typeFilter = request.nextUrl.searchParams.get("type") as
-      | TrashEntityType
-      | null;
+    const typeFilter = request.nextUrl.searchParams.get(
+      "type",
+    ) as TrashEntityType | null;
 
     const productWhere = and(
       or(isNotNull(products.deletedAt), eq(products.isActive, false)),
@@ -41,7 +47,10 @@ export async function GET(request: NextRequest) {
     );
 
     const purchaseWhere = and(
-      or(eq(purchaseOrders.isArchived, true), isNotNull(purchaseOrders.deletedAt)),
+      or(
+        eq(purchaseOrders.isArchived, true),
+        isNotNull(purchaseOrders.deletedAt),
+      ),
       params.search
         ? ilike(purchaseOrders.orderNumber, `%${params.search}%`)
         : undefined,
@@ -52,7 +61,12 @@ export async function GET(request: NextRequest) {
       params.search ? ilike(customers.name, `%${params.search}%`) : undefined,
     );
 
-    const [productRows, saleRows, purchaseRows, customerRows] =
+    const supplierWhere = and(
+      or(isNotNull(suppliers.deletedAt), eq(suppliers.isActive, false)),
+      params.search ? ilike(suppliers.name, `%${params.search}%`) : undefined,
+    );
+
+    const [productRows, saleRows, purchaseRows, customerRows, supplierRows] =
       await Promise.all([
         db
           .select({
@@ -90,6 +104,15 @@ export async function GET(request: NextRequest) {
           })
           .from(customers)
           .where(customerWhere),
+        db
+          .select({
+            id: suppliers.id,
+            name: suppliers.name,
+            deletedAt: suppliers.deletedAt,
+            updatedAt: suppliers.updatedAt,
+          })
+          .from(suppliers)
+          .where(supplierWhere),
       ]);
 
     const allRows: TrashRow[] = [
@@ -108,12 +131,18 @@ export async function GET(request: NextRequest) {
       ...purchaseRows.map((row) => ({
         id: row.id,
         type: "purchase" as const,
-        name: (row.name ?? 'Unknown Purchase Order') as string, // Explicitly cast to string to satisfy TrashRow type
+        name: (row.name ?? "Unknown Purchase Order") as string, // Explicitly cast to string to satisfy TrashRow type
         deleted_at: row.deletedAt ?? row.updatedAt ?? null,
       })),
       ...customerRows.map((row) => ({
         id: row.id,
         type: "customer" as const,
+        name: row.name,
+        deleted_at: row.deletedAt ?? row.updatedAt ?? null,
+      })),
+      ...supplierRows.map((row) => ({
+        id: row.id,
+        type: "supplier" as const,
         name: row.name,
         deleted_at: row.deletedAt ?? row.updatedAt ?? null,
       })),
@@ -130,7 +159,10 @@ export async function GET(request: NextRequest) {
     });
 
     const totalCount = sortedRows.length;
-    const paginatedRows = sortedRows.slice(params.offset, params.offset + params.limit);
+    const paginatedRows = sortedRows.slice(
+      params.offset,
+      params.offset + params.limit,
+    );
 
     return NextResponse.json({
       success: true,

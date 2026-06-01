@@ -7,11 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 import { useProducts } from "@/hooks/products/use-products";
 import { useCategories } from "@/hooks/master/use-categories";
@@ -41,9 +37,9 @@ export function ProductListSection({
   const { roles } = useAuth();
   const isSystemAdmin = (roles as string[]).includes("admin sistem");
 
-  const [searchInput, setSearchInput] = useQueryState<string>("q", "", { 
+  const [searchInput, setSearchInput] = useQueryState<string>("q", "", {
     debounce: 500,
-    syncWithUrl: false 
+    syncWithUrl: false,
   });
 
   const [filters, setFilters] = useQueryStates({
@@ -63,7 +59,8 @@ export function ProductListSection({
   const limit = filters.limit as number;
 
   const setCategoryFilter = (v: string) => setFilters({ category: v, page: 1 });
-  const setStockFilter = (v: "all" | "low" | "normal") => setFilters({ filter: v, page: 1 });
+  const setStockFilter = (v: "all" | "low" | "normal") =>
+    setFilters({ filter: v, page: 1 });
   const setOrderBy = (v: string) => setFilters({ sort: v, page: 1 });
   const setOrder = (v: "asc" | "desc") => setFilters({ order: v, page: 1 });
   const setPage = (p: number) => setFilters({ page: p });
@@ -271,16 +268,18 @@ export function ProductListSection({
             />
           </FilterWrap>
 
-          <Button
-            variant="outline"
-            className="h-10"
-            onClick={() => setIsPrinting(true)}
-            disabled={isPrinting || isFetchingPrint}
-          >
-            <Printer className="mr-2 h-4 w-4" />
-            <span className="hidden sm:inline">Cetak Opname</span>
-            <span className="sm:hidden">Cetak</span>
-          </Button>
+          {isSystemAdmin && (
+            <Button
+              variant="outline"
+              className="h-10"
+              onClick={() => setIsPrinting(true)}
+              disabled={isPrinting || isFetchingPrint}
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Cetak Opname</span>
+              <span className="sm:hidden">Cetak</span>
+            </Button>
+          )}
         </div>
       </div>
 

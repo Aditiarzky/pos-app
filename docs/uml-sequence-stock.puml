@@ -1,19 +1,51 @@
-@startuml
-actor "Admin Toko" as Admin
-participant "Sistem POS" as App
-database "Sistem Penyimpanan" as DB
+@startuml Stock_Adjustment_Sequence
+autonumber
 
-== Monitoring Mutasi Stok ==
-Admin -> App: Tarik laporan mutasi stok
-App -> DB: Ambil histori perubahan barang
-DB --> App: Berikan data histori mutasi
-App --> Admin: Tampilkan daftar perubahan stok
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+skinparam defaultFontSize 20
+skinparam maxMessageSize 400
 
-== Penyesuaian Stok Manual ==
-Admin -> App: Input data stok fisik terbaru
-App -> DB: Cek stok sistem saat ini
-App -> App: Hitung besar selisih stok
-App -> DB: Perbarui stok ke nilai terbaru
-App -> DB: Catat peristiwa penyesuaian manual
-App --> Admin: Konfirmasi data berhasil diperbarui
+actor "Admin Sistem" as Admin
+boundary "UI Penyesuaian Stok" as UI
+control "Stock Adjustment Controller" as Controller
+database "Database" as DB
+
+== 1. Skenario & Input ==
+Admin -> UI : Buka menu produk & stok
+alt Metode: Lembar Kerja
+    Admin -> UI : Pilih & Cetak Dokumen Stok Opname
+else Metode: Langsung (Real-time)
+    note over UI : Menuju pencarian produk
+end
+
+Admin -> UI : Scan / Masukkan Nama Produk
+UI -> Controller : Ambil data produk(id)
+Controller -> DB : Query data stok & varian
+DB --> UI : Data Produk Lengkap
+
+Admin -> UI : Masukkan stok fisik aktual per varian
+UI -> UI : Hitung total stok dasar & selisih (Client-side)
+
+== 2. Konfirmasi & Eksekusi ==
+Admin -> UI : Review selisih & Tekan tombol Konfirmasi
+UI -> Controller : Simpan penyesuaian stok
+
+activate Controller
+Controller -> DB : Update stok produk
+activate DB
+
+Controller -> DB : Catat mutasi stok (adjustment)
+DB --> Controller : Konfirmasi Simpan
+deactivate DB
+
+alt Proses Berhasil
+    Controller --> UI : Konfirmasi Berhasil
+    UI --> Admin : Notifikasi Berhasil & Update Tampilan
+else Proses Gagal
+    Controller --> UI : Notifikasi Gagal
+    UI --> Admin : Notifikasi Gagal (Rollback transaksi)
+end
+deactivate Controller
+
 @enduml

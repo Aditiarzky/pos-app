@@ -11,6 +11,7 @@ import {
   DashboardSummarySkeleton,
 } from "@/components/ui/loading";
 import { useDashboardSummary } from "@/hooks/dashboard/use-dashboard-summary";
+import { useAuth } from "@/hooks/use-auth";
 import { fillDailyGaps } from "@/lib/chart-utils";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -24,10 +25,14 @@ import {
   ArrowRight,
   CircleDollarSign,
   CreditCard,
+  ClipboardList,
+  PackageSearch,
+  ReceiptText,
   ShoppingCart,
   TrendingDown,
   TrendingUp,
   TriangleAlert,
+  Users,
   Wallet,
 } from "lucide-react";
 import Image from "next/image";
@@ -123,9 +128,11 @@ const KpiCard = ({
 
 export default function DashboardPage() {
   const dashboardQuery = useDashboardSummary();
+  const { roles } = useAuth();
   const summary = dashboardQuery.data?.data?.summary;
   const salesTrend = dashboardQuery.data?.data?.salesTrend ?? [];
   const alerts = dashboardQuery.data?.data?.alerts;
+  const isSystemAdmin = roles.includes("admin sistem");
 
   const today = new Date();
   const endDate = format(today, "yyyy-MM-dd");
@@ -144,6 +151,37 @@ export default function DashboardPage() {
   const visibleDebts = unpaidDebts.slice(0, ALERT_DISPLAY_LIMIT);
   const hasMoreLowStock = lowStockProducts.length > ALERT_DISPLAY_LIMIT;
   const hasMoreDebts = unpaidDebts.length > ALERT_DISPLAY_LIMIT;
+  const operationalData = [
+    {
+      title: "Transaksi Bulan Ini",
+      value: summary?.totalTransactionsMonth ?? 0,
+      icon: <ReceiptText className="h-4 w-4" />,
+      description: "Total transaksi kasir berjalan",
+      href: "/dashboard/sales",
+    },
+    {
+      title: "Produk Stok Kritis",
+      value: lowStockProducts.length,
+      icon: <PackageSearch className="h-4 w-4" />,
+      description: "Perlu restock prioritas",
+      href: "/dashboard/products",
+      isStockAction: true,
+    },
+    {
+      title: "Piutang Aktif",
+      value: unpaidDebts.length,
+      icon: <Users className="h-4 w-4" />,
+      description: "Perlu tindak lanjut tagihan",
+      href: "/dashboard/sales?tab=history-sales",
+    },
+    {
+      title: "Alert Operasional",
+      value: lowStockProducts.length + unpaidDebts.length,
+      icon: <ClipboardList className="h-4 w-4" />,
+      description: "Kombinasi stok kritis dan piutang",
+      href: "/dashboard/notifications",
+    },
+  ];
 
   const kpiData = summary
     ? [
@@ -223,43 +261,135 @@ export default function DashboardPage() {
             </Alert>
           ) : null}
 
-          {/* KPI Cards */}
+          {isSystemAdmin ? (
+            <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              {dashboardQuery.isLoading
+                ? Array.from({ length: 4 }).map((_, index) => (
+                    <Card key={index} className="p-4 space-y-3">
+                      <DashboardSummarySkeleton />
+                    </Card>
+                  ))
+                : kpiData.map((item) => (
+                    <KpiCard
+                      key={item.title}
+                      title={item.title}
+                      value={item.value}
+                      growth={item.growth}
+                      icon={item.icon}
+                      color={item.color}
+                      isCurrency={!item.asNumber}
+                    />
+                  ))}
+            </section>
+          ) : null}
+
           <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {dashboardQuery.isLoading
               ? Array.from({ length: 4 }).map((_, index) => (
-                  <Card key={index} className="p-4 space-y-3">
+                  <Card key={`operational-${index}`} className="p-4 space-y-3">
                     <DashboardSummarySkeleton />
                   </Card>
                 ))
-              : kpiData.map((item) => (
-                  <KpiCard
+              : operationalData.map((item) => (
+                  <Card
                     key={item.title}
-                    title={item.title}
-                    value={item.value}
-                    growth={item.growth}
-                    icon={item.icon}
-                    color={item.color}
-                    isCurrency={!item.asNumber}
-                  />
+                    className="relative overflow-hidden border-none shadow-md"
+                  >
+                    <CardBg />
+                    <CardHeader className="pb-2 z-10">
+                      <CardTitle className="text-sm font-medium flex items-center justify-between text-muted-foreground">
+                        {item.title}
+                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
+                          {item.icon}
+                        </div>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="z-10 pt-0 space-y-2">
+                      <div className="text-2xl font-bold text-primary">
+                        <AnimatedNumber value={item.value} />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        {item.description}
+                      </p>
+                      {item.isStockAction && !isSystemAdmin ? (
+                        <p className="text-[11px] text-muted-foreground border border-dashed rounded-app-md px-2 py-1.5">
+                          Informasi saja (tanpa aksi stok)
+                        </p>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full justify-between text-xs border border-dashed"
+                          asChild
+                        >
+                          <Link href={item.href}>
+                            Buka detail
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
                 ))}
           </section>
 
           {/* Chart & Alerts */}
           <section className="flex flex-col gap-4">
-            <div className="w-full">
-              <ChartAreaInteractive
-                data={filledSalesTrend}
-                config={{
-                  totalSales: {
-                    label: BUSINESS_TERMS.revenueShort,
-                    color: "var(--chart-1)",
-                  },
-                }}
-                title={`Tren ${BUSINESS_TERMS.revenueShort} 30 Hari Terakhir`}
-                description={`${BUSINESS_TERMS.revenueShort} Harian`}
-                showTimeRange={false}
-              />
-            </div>
+            {isSystemAdmin ? (
+              <div className="w-full">
+                <ChartAreaInteractive
+                  data={filledSalesTrend}
+                  config={{
+                    totalSales: {
+                      label: BUSINESS_TERMS.revenueShort,
+                      color: "var(--chart-1)",
+                    },
+                  }}
+                  title={`Tren ${BUSINESS_TERMS.revenueShort} 30 Hari Terakhir`}
+                  description={`${BUSINESS_TERMS.revenueShort} Harian`}
+                  showTimeRange={false}
+                />
+              </div>
+            ) : (
+              <Card className="shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-base">Fokus Operasional</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Link
+                    href="/dashboard/sales"
+                    className="rounded-app-lg border p-3 hover:bg-muted/30 transition-colors"
+                  >
+                    <p className="text-sm font-semibold">Kasir & Transaksi</p>
+                    <p className="text-xs text-muted-foreground">
+                      Input transaksi, cek histori, dan proses retur.
+                    </p>
+                  </Link>
+                  <div className="rounded-app-lg border p-3 bg-muted/20">
+                    <p className="text-sm font-semibold">Stok & Produk</p>
+                    <p className="text-xs text-muted-foreground">
+                      Pantau stok minimum sebagai informasi tanpa tindak lanjut
+                      stok.
+                    </p>
+                  </div>
+                  <div className="rounded-app-lg border p-3 bg-muted/20">
+                    <p className="text-sm font-semibold">Pembelian</p>
+                    <p className="text-xs text-muted-foreground">
+                      Tindak lanjut pembelian stok dibatasi untuk admin sistem.
+                    </p>
+                  </div>
+                  <Link
+                    href="/dashboard/notifications"
+                    className="rounded-app-lg border p-3 hover:bg-muted/30 transition-colors"
+                  >
+                    <p className="text-sm font-semibold">Notifikasi</p>
+                    <p className="text-xs text-muted-foreground">
+                      Tindak lanjuti alert operasional prioritas.
+                    </p>
+                  </Link>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Business Alerts */}
             <Card className="xl:col-span-1 shadow-sm">
@@ -296,44 +426,78 @@ export default function DashboardPage() {
                         <ul className="space-y-2">
                           {visibleLowStock.map((product) => (
                             <li key={product.productId}>
-                              <Link
-                                href={buildLowStockAlertHref(product)}
-                                className="flex gap-2 rounded-app-lg border p-2.5 text-xs hover:bg-muted/30 transition-colors"
-                              >
-                                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border bg-muted">
-                                  <Image
-                                    src={product.image}
-                                    alt={product.productName}
-                                    fill
-                                    className="object-cover transition-transform duration-300 group-hover:scale-110"
-                                    sizes="48px"
-                                  />
+                              {isSystemAdmin ? (
+                                <Link
+                                  href={buildLowStockAlertHref(product)}
+                                  className="flex gap-2 rounded-app-lg border p-2.5 text-xs hover:bg-muted/30 transition-colors"
+                                >
+                                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border bg-muted">
+                                    <Image
+                                      src={product.image}
+                                      alt={product.productName}
+                                      fill
+                                      className="object-cover transition-transform duration-300 group-hover:scale-110"
+                                      sizes="48px"
+                                    />
+                                  </div>
+                                  <div className="flex flex-1 flex-col min-w-0">
+                                    <span className="truncate text-sm font-semibold tracking-tight text-foreground">
+                                      {product.productName}
+                                    </span>
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                                      ID: {product.productId}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <Badge
+                                      variant="outline"
+                                      className="font-mono text-[11px] font-bold border-destructive/30 bg-destructive/5"
+                                    >
+                                      {formatNumber(product.stock)} /{" "}
+                                      {formatNumber(product.minStock)}
+                                    </Badge>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Stok Sisa
+                                    </span>
+                                  </div>
+                                </Link>
+                              ) : (
+                                <div className="flex gap-2 rounded-app-lg border p-2.5 text-xs bg-muted/20">
+                                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md border bg-muted">
+                                    <Image
+                                      src={product.image}
+                                      alt={product.productName}
+                                      fill
+                                      className="object-cover"
+                                      sizes="48px"
+                                    />
+                                  </div>
+                                  <div className="flex flex-1 flex-col min-w-0">
+                                    <span className="truncate text-sm font-semibold tracking-tight text-foreground">
+                                      {product.productName}
+                                    </span>
+                                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                                      ID: {product.productId}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <Badge
+                                      variant="outline"
+                                      className="font-mono text-[11px] font-bold border-destructive/30 bg-destructive/5"
+                                    >
+                                      {formatNumber(product.stock)} /{" "}
+                                      {formatNumber(product.minStock)}
+                                    </Badge>
+                                    <span className="text-[10px] text-muted-foreground">
+                                      Informasi
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex flex-1 flex-col min-w-0">
-                                  <span className="truncate text-sm font-semibold tracking-tight text-foreground">
-                                    {product.productName}
-                                  </span>
-                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                                    ID: {product.productId}
-                                  </p>
-                                </div>
-                                <div className="flex flex-col items-end gap-1">
-                                  <Badge
-                                    variant="outline"
-                                    className="font-mono text-[11px] font-bold border-destructive/30 bg-destructive/5"
-                                  >
-                                    {formatNumber(product.stock)} /{" "}
-                                    {formatNumber(product.minStock)}
-                                  </Badge>
-                                  <span className="text-[10px] text-muted-foreground">
-                                    Stok Sisa
-                                  </span>
-                                </div>
-                              </Link>
+                              )}
                             </li>
                           ))}
 
-                          {hasMoreLowStock && (
+                          {hasMoreLowStock && isSystemAdmin && (
                             <li>
                               <Button
                                 variant="ghost"
@@ -401,21 +565,30 @@ export default function DashboardPage() {
                                 </p>
                                 {/* Baris 3: sisa tagihan vs total awal */}
                                 <div className="flex items-center justify-between gap-2">
-                                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                                    <span>
+                                  {isSystemAdmin ? (
+                                    <>
+                                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                        <span>
+                                          {debt.originalAmount !==
+                                          debt.remainingAmount
+                                            ? "Sisa"
+                                            : "Hutang"}
+                                        </span>
+                                        <span className="font-semibold text-rose-600">
+                                          {formatCurrency(debt.remainingAmount)}
+                                        </span>
+                                      </div>
                                       {debt.originalAmount !==
-                                      debt.remainingAmount
-                                        ? "Sisa"
-                                        : "Hutang"}
-                                    </span>
-                                    <span className="font-semibold text-rose-600">
-                                      {formatCurrency(debt.remainingAmount)}
-                                    </span>
-                                  </div>
-                                  {debt.originalAmount !==
-                                    debt.remainingAmount && (
-                                    <span className="text-[10px] text-muted-foreground">
-                                      dari {formatCurrency(debt.originalAmount)}
+                                        debt.remainingAmount && (
+                                        <span className="text-[10px] text-muted-foreground">
+                                          dari{" "}
+                                          {formatCurrency(debt.originalAmount)}
+                                        </span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <span className="text-[11px] text-muted-foreground">
+                                      Tagihan perlu ditindaklanjuti
                                     </span>
                                   )}
                                 </div>

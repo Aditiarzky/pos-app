@@ -89,26 +89,26 @@ export function ReturnForm() {
     icon: React.ReactNode;
     requiresCustomer?: boolean;
   }[] = [
-    {
-      value: "refund",
-      label: "Refund Tunai",
-      description: "Uang dikembalikan langsung",
-      icon: <Banknote className="h-5 w-5" />,
-    },
-    {
-      value: "credit_note",
-      label: "Saldo Pelanggan",
-      description: "Saldo untuk pembelian berikutnya",
-      icon: <CreditCard className="h-5 w-5" />,
-      requiresCustomer: true,
-    },
-    {
-      value: "exchange",
-      label: "Tukar Barang",
-      description: "Ganti dengan produk lain",
-      icon: <RefreshCcw className="h-5 w-5" />,
-    },
-  ];
+      {
+        value: "refund",
+        label: "Refund Tunai",
+        description: "Uang dikembalikan langsung",
+        icon: <Banknote className="h-5 w-5" />,
+      },
+      {
+        value: "credit_note",
+        label: "Saldo Pelanggan",
+        description: "Saldo untuk pembelian berikutnya",
+        icon: <CreditCard className="h-5 w-5" />,
+        requiresCustomer: true,
+      },
+      {
+        value: "exchange",
+        label: "Tukar Barang",
+        description: "Ganti dengan produk lain",
+        icon: <RefreshCcw className="h-5 w-5" />,
+      },
+    ];
 
   return (
     <>
@@ -117,7 +117,7 @@ export function ReturnForm() {
         <div className="lg:col-span-2 flex flex-col gap-3 md:gap-4">
           {/* STEP 1: INVOICE LOOKUP */}
           {step === "invoice" && (
-            <Card className="p-4 md:p-6 animate-in fade-in duration-300">
+            <Card className="p-4 md:p-6 gap-2 animate-in fade-in duration-300">
               <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 block">
                 <FileText className="h-3 w-3 inline mr-1" />
                 Masukkan Nomor Invoice
@@ -369,7 +369,7 @@ export function ReturnForm() {
                           ? "border-primary bg-primary/5"
                           : "border-transparent bg-muted/30 hover:bg-muted/50",
                         (isDisabled || hasDebt) &&
-                          "opacity-40 cursor-not-allowed",
+                        "opacity-40 cursor-not-allowed",
                       )}
                     >
                       <div

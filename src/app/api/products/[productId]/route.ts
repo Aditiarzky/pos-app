@@ -78,6 +78,13 @@ export async function PUT(
       );
     }
 
+    if (!session.roles.includes("admin sistem")) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Admin system role required" },
+        { status: 403 },
+      );
+    }
+
     const { productId } = await params;
     const idNum = Number(productId);
     const body = await request.json();
@@ -279,6 +286,13 @@ export async function DELETE(
       );
     }
 
+    if (!session.roles.includes("admin sistem")) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Admin system role required" },
+        { status: 403 },
+      );
+    }
+
     const productId = (await params).productId;
 
     if (!productId) {
@@ -339,6 +353,18 @@ export async function PATCH(
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 },
+      );
+    }
+
+    const { roles } = session;
+    if (!roles.includes("admin sistem")) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Forbidden: Hanya Admin Sistem yang dapat melakukan penyesuaian stok fisik.",
+        },
+        { status: 403 },
       );
     }
 

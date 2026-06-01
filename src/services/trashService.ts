@@ -1,14 +1,22 @@
 import { axiosInstance } from "@/lib/axios";
 import { ApiResponse } from "./productService";
 
-export type TrashEntityType = "product" | "sale" | "purchase" | "customer";
+export type TrashEntityType =
+  | "product"
+  | "sale"
+  | "purchase"
+  | "purchase_order"
+  | "customer"
+  | "supplier";
 
 export type TrashItemPayload = {
   id: number;
   type: TrashEntityType;
 };
 
-export type TrashActionPayload = TrashItemPayload | { items: TrashItemPayload[] };
+export type TrashActionPayload =
+  | TrashItemPayload
+  | { items: TrashItemPayload[] };
 
 export type TrashListItem = {
   id: number;

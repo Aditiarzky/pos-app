@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { and, eq, isNotNull, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { handleApiError } from "@/lib/api-utils";
-import { customers, products, purchaseOrders, sales } from "@/drizzle/schema";
+import {
+  customers,
+  products,
+  purchaseOrders,
+  sales,
+  suppliers,
+} from "@/drizzle/schema";
 import {
   parseTrashPayload,
   TrashEntityType,
@@ -44,7 +50,9 @@ async function forceDeleteOne(
         .returning({ id: products.id, name: products.name });
 
       if (!deleted) {
-        throw new Error(`Product dengan ID ${item.id} tidak ditemukan di Trash`);
+        throw new Error(
+          `Product dengan ID ${item.id} tidak ditemukan di Trash`,
+        );
       }
 
       // Audit log with snapshot (productId will be null after delete)
@@ -76,10 +84,32 @@ async function forceDeleteOne(
         .returning({ id: customers.id, name: customers.name });
 
       if (!deleted) {
-        throw new Error(`Customer dengan ID ${item.id} tidak ditemukan di Trash`);
+        throw new Error(
+          `Customer dengan ID ${item.id} tidak ditemukan di Trash`,
+        );
       }
 
       return { id: deleted.id, type: "customer", name: deleted.name };
+    }
+
+    case "supplier": {
+      const [deleted] = await tx
+        .delete(suppliers)
+        .where(
+          and(
+            eq(suppliers.id, item.id),
+            or(isNotNull(suppliers.deletedAt), eq(suppliers.isActive, false)),
+          ),
+        )
+        .returning({ id: suppliers.id, name: suppliers.name });
+
+      if (!deleted) {
+        throw new Error(
+          `Supplier dengan ID ${item.id} tidak ditemukan di Trash`,
+        );
+      }
+
+      return { id: deleted.id, type: "supplier", name: deleted.name };
     }
 
     case "sale": {
@@ -115,7 +145,9 @@ async function forceDeleteOne(
         .returning({ id: purchaseOrders.id, name: purchaseOrders.orderNumber });
 
       if (!deleted) {
-        throw new Error(`Purchase dengan ID ${item.id} tidak ditemukan di Trash`);
+        throw new Error(
+          `Purchase dengan ID ${item.id} tidak ditemukan di Trash`,
+        );
       }
 
       return {

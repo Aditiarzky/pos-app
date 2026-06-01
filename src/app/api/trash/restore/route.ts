@@ -8,6 +8,7 @@ import {
   purchaseOrders,
   sales,
   stockMutations,
+  suppliers,
 } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { handleApiError } from "@/lib/api-utils";
@@ -57,10 +58,7 @@ async function restoreProduct(
   return { id: updated.id, type: "product", name: updated.name };
 }
 
-async function restoreCustomer(
-  tx: TxType,
-  id: number,
-): Promise<RestoreResult> {
+async function restoreCustomer(tx: TxType, id: number): Promise<RestoreResult> {
   const [updated] = await tx
     .update(customers)
     .set({
@@ -77,10 +75,24 @@ async function restoreCustomer(
   return { id: updated.id, type: "customer", name: updated.name };
 }
 
-async function restoreSale(
-  tx: TxType,
-  id: number,
-): Promise<RestoreResult> {
+async function restoreSupplier(tx: TxType, id: number): Promise<RestoreResult> {
+  const [updated] = await tx
+    .update(suppliers)
+    .set({
+      isActive: true, // Suppliers have isActive
+      deletedAt: null,
+    })
+    .where(eq(suppliers.id, id))
+    .returning({ id: suppliers.id, name: suppliers.name });
+
+  if (!updated) {
+    throw new Error("Supplier tidak ditemukan");
+  }
+
+  return { id: updated.id, type: "supplier", name: updated.name };
+}
+
+async function restoreSale(tx: TxType, id: number): Promise<RestoreResult> {
   const existingSale = await tx.query.sales.findFirst({
     where: and(
       eq(sales.id, id),
@@ -214,14 +226,14 @@ async function restoreSale(
   };
 }
 
-async function restorePurchase(
-  tx: TxType,
-  id: number,
-): Promise<RestoreResult> {
+async function restorePurchase(tx: TxType, id: number): Promise<RestoreResult> {
   const existingOrder = await tx.query.purchaseOrders.findFirst({
     where: and(
       eq(purchaseOrders.id, id),
-      or(eq(purchaseOrders.isArchived, true), isNotNull(purchaseOrders.deletedAt)),
+      or(
+        eq(purchaseOrders.isArchived, true),
+        isNotNull(purchaseOrders.deletedAt),
+      ),
     ),
     with: {
       items: true,
@@ -258,7 +270,7 @@ async function restorePurchase(
     const newAvgCost =
       currentStock > 0
         ? (currentStock * currentAvgCost + qtyInBaseUnit * pricePerBaseUnit) /
-        newStock
+          newStock
         : pricePerBaseUnit;
 
     await tx
@@ -309,6 +321,8 @@ async function restoreByType(
       return restoreProduct(tx, item.id, userId);
     case "customer":
       return restoreCustomer(tx, item.id);
+    case "supplier":
+      return restoreSupplier(tx, item.id);
     case "sale":
       return restoreSale(tx, item.id);
     case "purchase":

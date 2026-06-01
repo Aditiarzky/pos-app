@@ -66,7 +66,8 @@ export function useSupplierList(): UseSupplierListReturn {
   const debouncedSearch = useDebounce(searchInput, 500);
 
   // Sorting state
-  const [orderBy, setOrderBy] = useState<SuppliersQueryParams["orderBy"]>("createdAt");
+  const [orderBy, setOrderBy] =
+    useState<SuppliersQueryParams["orderBy"]>("createdAt");
   const [order, setOrder] = useState<SuppliersQueryParams["order"]>("desc");
 
   // Reset page to 1 when search changes
@@ -105,8 +106,8 @@ export function useSupplierList(): UseSupplierListReturn {
   // Delete handler
   const handleDelete = async (supplier: SupplierResponse) => {
     const ok = await confirm({
-      title: "Hapus Supplier",
-      description: `Apakah Anda yakin ingin menghapus supplier "${supplier.name}"?`,
+      title: "Pindahkan ke Sampah",
+      description: `Apakah Anda yakin ingin memindahkan supplier "${supplier.name}" ke tempat sampah?`,
       confirmText: "Ya, Hapus",
       cancelText: "Batal",
     });
@@ -114,11 +115,10 @@ export function useSupplierList(): UseSupplierListReturn {
     if (ok) {
       try {
         await deleteMutation.mutateAsync(supplier.id);
-        toast.success("Supplier berhasil dihapus");
+        toast.success("Supplier berhasil dipindahkan ke sampah");
       } catch (error) {
-        const errorMessage = error instanceof Error
-          ? error.message
-          : "Gagal menghapus supplier";
+        const errorMessage =
+          error instanceof Error ? error.message : "Gagal menghapus supplier";
         toast.error(errorMessage);
       }
     }
@@ -153,7 +153,7 @@ export function useSupplierList(): UseSupplierListReturn {
 
     // Actions
     handleDelete,
-    isDeleting: deleteMutation.isPending ? true : false,
+    isDeleting: deleteMutation.isPending,
   };
 
   return result;

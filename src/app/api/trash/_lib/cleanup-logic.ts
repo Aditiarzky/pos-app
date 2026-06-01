@@ -8,6 +8,7 @@ import {
   saleItems,
   sales,
   stockMutations,
+  suppliers,
   trashSettings,
 } from "@/drizzle/schema";
 import { db } from "@/lib/db";
@@ -15,7 +16,7 @@ import { appendTrashCleanupEvent } from "@/app/api/notifications/_lib/notificati
 
 export type CleanupCandidate = {
   id: number;
-  type: "product" | "sale" | "purchase" | "customer";
+  type: "product" | "sale" | "purchase" | "customer" | "supplier";
   name: string;
   expiredAt: string;
 };
@@ -23,8 +24,12 @@ export type CleanupCandidate = {
 export const TRASH_MAX_AGE_DAYS = 30;
 
 export async function getTrashSettings() {
-  const settings = await db.select().from(trashSettings).orderBy(trashSettings.id).limit(1);
-  
+  const settings = await db
+    .select()
+    .from(trashSettings)
+    .orderBy(trashSettings.id)
+    .limit(1);
+
   if (settings.length === 0) {
     const [newSettings] = await db
       .insert(trashSettings)
@@ -57,7 +62,7 @@ export async function shouldRunAutoCleanupDB() {
   const settings = await getTrashSettings();
   // Gunakan lastCheckAt (waktu pengecekan terakhir) untuk throttling
   const referenceTime = settings.lastCheckAt || settings.lastCleanupAt;
-  
+
   if (!referenceTime) return true;
 
   const now = Date.now();
@@ -139,6 +144,23 @@ const hasSaleDependency = async (saleId: number) => {
   return Number(activeDebtCount[0]?.total || 0) > 0;
 };
 
+const hasSupplierDependency = async (supplierId: number) => {
+  const [activePurchaseCount] = await Promise.all([
+    db
+      .select({ total: sql<number>`count(*)` })
+      .from(purchaseOrders)
+      .where(
+        and(
+          eq(purchaseOrders.supplierId, supplierId),
+          eq(purchaseOrders.isArchived, false),
+          sql`${purchaseOrders.deletedAt} is null`,
+        ),
+      ),
+  ]);
+
+  return Number(activePurchaseCount[0]?.total || 0) > 0;
+};
+
 async function canDelete(candidate: CleanupCandidate) {
   if (candidate.type === "product") {
     return !(await hasProductDependency(candidate.id));
@@ -146,6 +168,10 @@ async function canDelete(candidate: CleanupCandidate) {
 
   if (candidate.type === "customer") {
     return !(await hasCustomerDependency(candidate.id));
+  }
+
+  if (candidate.type === "supplier") {
+    return !(await hasSupplierDependency(candidate.id));
   }
 
   if (candidate.type === "sale") {
@@ -185,6 +211,19 @@ async function deleteCandidate(
     return deleted.length > 0;
   }
 
+  if (candidate.type === "supplier") {
+    const deleted = await tx
+      .delete(suppliers)
+      .where(
+        and(
+          eq(suppliers.id, candidate.id),
+          or(isNotNull(suppliers.deletedAt), eq(suppliers.isActive, false)),
+        ),
+      )
+      .returning({ id: suppliers.id });
+    return deleted.length > 0;
+  }
+
   if (candidate.type === "sale") {
     const deleted = await tx
       .delete(sales)
@@ -203,7 +242,10 @@ async function deleteCandidate(
     .where(
       and(
         eq(purchaseOrders.id, candidate.id),
-        or(eq(purchaseOrders.isArchived, true), isNotNull(purchaseOrders.deletedAt)),
+        or(
+          eq(purchaseOrders.isArchived, true),
+          isNotNull(purchaseOrders.deletedAt),
+        ),
       ),
     )
     .returning({ id: purchaseOrders.id });
@@ -214,50 +256,63 @@ export async function runTrashCleanup() {
   // Selalu perbarui waktu pengecekan (Check) agar interval ditaati
   await updateLastCheckTimestamp();
 
-  const cutoff = new Date(Date.now() - TRASH_MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
+  const cutoff = new Date(
+    Date.now() - TRASH_MAX_AGE_DAYS * 24 * 60 * 60 * 1000,
+  );
 
-  const [productRows, saleRows, purchaseRows, customerRows] = await Promise.all([
-    db
-      .select({
-        id: products.id,
-        name: products.name,
-        expiredAt: sql<string>`coalesce(${products.deletedAt}, ${products.updatedAt})`,
-      })
-      .from(products)
-      .where(
-        sql`(${products.deletedAt} is not null or ${products.isActive} = false) and coalesce(${products.deletedAt}, ${products.updatedAt}) <= ${cutoff}`,
-      ),
-    db
-      .select({
-        id: sales.id,
-        name: sales.invoiceNumber,
-        expiredAt: sql<string>`coalesce(${sales.deletedAt}, ${sales.updatedAt})`,
-      })
-      .from(sales)
-      .where(
-        sql`(${sales.deletedAt} is not null or ${sales.isArchived} = true) and coalesce(${sales.deletedAt}, ${sales.updatedAt}) <= ${cutoff}`,
-      ),
-    db
-      .select({
-        id: purchaseOrders.id,
-        name: purchaseOrders.orderNumber,
-        expiredAt: sql<string>`coalesce(${purchaseOrders.deletedAt}, ${purchaseOrders.updatedAt})`,
-      })
-      .from(purchaseOrders)
-      .where(
-        sql`(${purchaseOrders.deletedAt} is not null or ${purchaseOrders.isArchived} = true) and coalesce(${purchaseOrders.deletedAt}, ${purchaseOrders.updatedAt}) <= ${cutoff}`,
-      ),
-    db
-      .select({
-        id: customers.id,
-        name: customers.name,
-        expiredAt: sql<string>`coalesce(${customers.deletedAt}, ${customers.updatedAt})`,
-      })
-      .from(customers)
-      .where(
-        sql`(${customers.deletedAt} is not null or ${customers.isActive} = false) and coalesce(${customers.deletedAt}, ${customers.updatedAt}) <= ${cutoff}`,
-      ),
-  ]);
+  const [productRows, saleRows, purchaseRows, customerRows, supplierRows] =
+    await Promise.all([
+      db
+        .select({
+          id: products.id,
+          name: products.name,
+          expiredAt: sql<string>`coalesce(${products.deletedAt}, ${products.updatedAt})`,
+        })
+        .from(products)
+        .where(
+          sql`(${products.deletedAt} is not null or ${products.isActive} = false) and coalesce(${products.deletedAt}, ${products.updatedAt}) <= ${cutoff}`,
+        ),
+      db
+        .select({
+          id: sales.id,
+          name: sales.invoiceNumber,
+          expiredAt: sql<string>`coalesce(${sales.deletedAt}, ${sales.updatedAt})`,
+        })
+        .from(sales)
+        .where(
+          sql`(${sales.deletedAt} is not null or ${sales.isArchived} = true) and coalesce(${sales.deletedAt}, ${sales.updatedAt}) <= ${cutoff}`,
+        ),
+      db
+        .select({
+          id: purchaseOrders.id,
+          name: purchaseOrders.orderNumber,
+          expiredAt: sql<string>`coalesce(${purchaseOrders.deletedAt}, ${purchaseOrders.updatedAt})`,
+        })
+        .from(purchaseOrders)
+        .where(
+          sql`(${purchaseOrders.deletedAt} is not null or ${purchaseOrders.isArchived} = true) and coalesce(${purchaseOrders.deletedAt}, ${purchaseOrders.updatedAt}) <= ${cutoff}`,
+        ),
+      db
+        .select({
+          id: customers.id,
+          name: customers.name,
+          expiredAt: sql<string>`coalesce(${customers.deletedAt}, ${customers.updatedAt})`,
+        })
+        .from(customers)
+        .where(
+          sql`(${customers.deletedAt} is not null or ${customers.isActive} = false) and coalesce(${customers.deletedAt}, ${customers.updatedAt}) <= ${cutoff}`,
+        ),
+      db
+        .select({
+          id: suppliers.id,
+          name: suppliers.name,
+          expiredAt: sql<string>`coalesce(${suppliers.deletedAt}, ${suppliers.updatedAt})`,
+        })
+        .from(suppliers)
+        .where(
+          sql`(${suppliers.deletedAt} is not null or ${suppliers.isActive} = false) and coalesce(${suppliers.deletedAt}, ${suppliers.updatedAt}) <= ${cutoff}`,
+        ),
+    ]);
 
   const candidates: CleanupCandidate[] = [
     ...productRows.map((row) => ({
@@ -284,6 +339,12 @@ export async function runTrashCleanup() {
       name: row.name,
       expiredAt: row.expiredAt,
     })),
+    ...supplierRows.map((row) => ({
+      id: row.id,
+      type: "supplier" as const,
+      name: row.name,
+      expiredAt: row.expiredAt,
+    })),
   ];
 
   const oldestExpiredAt =
@@ -306,17 +367,17 @@ export async function runTrashCleanup() {
   const deletedCandidates: CleanupCandidate[] =
     deletableCandidates.length > 0
       ? await db.transaction(async (tx) => {
-        const deletedWithinTx: CleanupCandidate[] = [];
+          const deletedWithinTx: CleanupCandidate[] = [];
 
-        for (const candidate of deletableCandidates) {
-          const deleted = await deleteCandidate(tx, candidate);
-          if (deleted) {
-            deletedWithinTx.push(candidate);
+          for (const candidate of deletableCandidates) {
+            const deleted = await deleteCandidate(tx, candidate);
+            if (deleted) {
+              deletedWithinTx.push(candidate);
+            }
           }
-        }
 
-        return deletedWithinTx;
-      })
+          return deletedWithinTx;
+        })
       : [];
 
   const deletedKeys = new Set(

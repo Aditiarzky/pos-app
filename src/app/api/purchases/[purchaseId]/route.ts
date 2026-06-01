@@ -10,6 +10,7 @@ import {
 } from "@/drizzle/schema";
 import { handleApiError } from "@/lib/api-utils";
 import { insertPurchaseItemType } from "@/lib/validations/purchase";
+import { verifySession } from "@/lib/auth";
 
 // GET detail purchase
 export async function GET(
@@ -79,6 +80,24 @@ export async function PUT(
   { params }: { params: Promise<{ purchaseId: string }> },
 ) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    if (
+      !session.roles.includes("admin sistem") &&
+      !session.roles.includes("admin toko")
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Admin role required" },
+        { status: 403 },
+      );
+    }
+
     const poId = Number((await params).purchaseId);
     const body = await request.json();
     // Gunakan validator yang sama atau validator update
@@ -282,6 +301,24 @@ export async function DELETE(
   { params }: { params: Promise<{ purchaseId: string }> },
 ) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    if (
+      !session.roles.includes("admin sistem") &&
+      !session.roles.includes("admin toko")
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Admin role required" },
+        { status: 403 },
+      );
+    }
+
     const poId = Number((await params).purchaseId);
     if (isNaN(poId))
       return NextResponse.json(

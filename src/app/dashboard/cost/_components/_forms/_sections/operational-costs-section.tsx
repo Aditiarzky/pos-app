@@ -24,6 +24,7 @@ import {
   StickyNote,
   CheckCircle2,
   XCircle,
+  LayoutList,
 } from "lucide-react";
 import { OperationalCost } from "@/services/costService";
 import {
@@ -39,6 +40,7 @@ import { FilterWrap } from "@/components/filter-wrap";
 import { OperationalCostFilterForm } from "../../_ui/operational-cost-filter-form";
 import { AppPagination } from "@/components/app-pagination";
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
+import { Separator } from "@/components/ui/separator";
 
 type ViewMode = "table" | "card";
 
@@ -71,7 +73,7 @@ export function OperationalCostsSection({ hook }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>("table");
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Toolbar */}
       <div className="flex flex-col sm:flex-row gap-3 bg-background rounded-md">
         <SearchInput
@@ -90,7 +92,12 @@ export function OperationalCostsSection({ hook }: Props) {
             />
           </FilterWrap>
 
+          <Separator orientation="vertical" className="h-10" />
           <ViewModeSwitch value={viewMode} onChange={setViewMode} />
+          <Badge className="h-10 px-4 bg-primary/10 text-primary rounded-lg hidden md:flex items-center gap-2 font-medium">
+            <LayoutList className="h-4 w-4" />
+            Total {meta?.total || 0} Biaya
+          </Badge>
         </div>
       </div>
 

@@ -18,6 +18,7 @@ import {
   Eye,
   Phone,
   MapPin,
+  LayoutList,
 } from "lucide-react";
 import { useCustomers, useDeleteCustomer } from "@/hooks/master/use-customers";
 import { useMemo, useState } from "react";
@@ -48,14 +49,18 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 import { FilterWrap } from "@/components/filter-wrap";
+import { SearchInput } from "@/components/ui/search-input";
+import { Badge } from "@/components/ui/badge";
 
 interface CustomerListSectionProps {
   searchInput: string;
+  setSearchInput: (value: string) => void;
   onEdit: (customer: CustomerResponse) => void;
 }
 
 export function CustomerListSection({
   searchInput,
+  setSearchInput,
   onEdit,
 }: CustomerListSectionProps) {
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
@@ -114,11 +119,15 @@ export function CustomerListSection({
 
   return (
     <div className="space-y-6">
-      {/* View Toggle */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {meta?.total ? `${meta.total} pelanggan ditemukan` : ""}
-        </p>
+      <div className="flex flex-col sm:flex-row gap-3 bg-background rounded-md">
+        <SearchInput
+          placeholder="Cari nama atau telepon..."
+          value={searchInput}
+          onChange={(value) => {
+            setSearchInput(value);
+            setPage(1);
+          }}
+        />
 
         <div className="flex gap-2">
           <FilterWrap hasActiveFilters={balanceFilter !== "all"}>
@@ -154,7 +163,12 @@ export function CustomerListSection({
             </div>
           </FilterWrap>
 
+          <Separator orientation="vertical" className="h-10" />
           <ViewModeSwitch value={viewMode} onChange={setViewMode} />
+          <Badge className="h-10 px-4 bg-primary/10 text-primary rounded-lg hidden md:flex items-center gap-2 font-medium">
+            <LayoutList className="h-4 w-4" />
+            Total {meta?.total || 0} Pelanggan
+          </Badge>
         </div>
       </div>
 

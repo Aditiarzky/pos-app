@@ -70,3 +70,13 @@ export const deleteCustomerReturn = async (
   const response = await axiosInstance.delete(`/customer-returns/${id}`);
   return response.data;
 };
+
+export const updateReturnStatus = async (
+  id: number,
+  action: "complete" | "cancel",
+): Promise<ApiResponse<CustomerReturnResponse>> => {
+  const response = await axiosInstance.patch(`/customer-returns/${id}/status`, {
+    action,
+  });
+  return response.data;
+};

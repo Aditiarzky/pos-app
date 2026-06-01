@@ -1,37 +1,38 @@
-@startuml
-actor "Admin Toko" as Admin
-participant "Sistem POS" as App
-database "Sistem Penyimpanan" as DB
+@startuml Return_Process_Sequence
+autonumber
 
-== Proses Retur Pelanggan ==
-Admin -> App: Input identitas transaksi produk retur
-App -> DB: Tarik rincian sejarah transaksi
-DB --> App: Berikan data transaksi yang relevan
-App -> App: Verifikasi sisa kuantitas retur
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+skinparam defaultFontSize 20
+skinparam maxMessageSize 300
 
-alt Barang Masih Baik
-  App -> DB: Tambahkan kembali stok barang
-  App -> DB: Catat arus masuk retur barang
+actor "Admin / Kasir" as Admin
+boundary "UI Retur" as UI
+control "Return Controller" as Controller
+database "DB" as DB
+
+== 1. Validasi & Pengecekan Nota ==
+Admin -> UI : Masukkan nomor nota & barang retur
+UI -> Controller : Proses permintaan retur pelanggan
+activate Controller
+Controller -> DB : Validasi nomor nota & riwayat pembelian
+DB --> Controller : Data valid
+
+== 2. Penanganan Fisik & Stok ==
+alt Status Barang: Layak Jual
+    Controller -> DB : Kembalikan stok produk & simpan mutasi
+else Status Barang: Rusak
+    note right: Stok tidak dikembalikan ke inventori aktif
 end
 
-alt Solusi Saldo
-  App -> DB: Kreditkan nilai retur ke saldo pelanggan
-else Solusi Tukar Barang
-  App -> DB: Proses pengeluaran barang pengganti
-  App -> App: Perhitungan selisih nilai tukar
-  alt Ada Selisih Saldo
-    App -> DB: Sesuaikan saldo pelanggan
-  end
-else Solusi Refund
-  App -> App: Hitung total dana pengembalian
+== 3. Kompensasi & Finalisasi ==
+alt Kompensasi: Tunai / Saldo
+    Controller -> DB : Perbarui saldo pelanggan atau penyiapan dana
+else Kompensasi: Tukar Barang
+    Controller -> DB : Validasi stok & kurangi barang pengganti
 end
 
-App -> DB: Rekam detail dokumen retur
-App --> Admin: Tampilkan bukti penanganan retur
-
-== Pembatalan Retur ==
-Admin -> App: Pilih dokumen retur untuk dibatalkan
-App -> DB: Reversi stok dan saldo ke kondisi sebelum retur
-App -> DB: Tandai dokumen retur sebagai dibatalkan
-App --> Admin: Informasikan pembatalan berhasil
+Controller -> DB : Simpan rincian data retur
+Controller --> UI : Konfirmasi Berhasil (Tampilkan Nota Retur)
+deactivate Controller
 @enduml

@@ -52,32 +52,3 @@ export async function GET(
     return handleApiError(error);
   }
 }
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ customerReturnId: string }> },
-) {
-  try {
-    const { customerReturnId } = await params;
-    const returnId = Number(customerReturnId);
-
-    if (isNaN(returnId)) {
-      return NextResponse.json(
-        { success: false, error: "ID Retur tidak valid" },
-        { status: 400 },
-      );
-    }
-
-    const result = await db.transaction(async (tx) => {
-      return await voidCustomerReturn(tx, returnId);
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: "Data retur berhasil dibatalkan",
-      data: result,
-    });
-  } catch (error) {
-    return handleApiError(error);
-  }
-}

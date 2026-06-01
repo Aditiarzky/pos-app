@@ -333,7 +333,7 @@ function ProductDetailModal({
 
         {/* Action Buttons - shrink-0 agar tidak ikut flex */}
         <div className="border-t p-4 flex flex-row gap-2 bg-muted/50 shrink-0">
-          {onAdjust && (
+          {isSystemAdmin && onAdjust && (
             <Button
               variant="outline"
               className="flex-1 rounded-2xl"
@@ -347,7 +347,7 @@ function ProductDetailModal({
               <p className="sm:hidden">Stok</p>
             </Button>
           )}
-          {onEdit && (
+          {isSystemAdmin && onEdit && (
             <Button
               className="flex-1 rounded-2xl"
               onClick={() => {
@@ -360,7 +360,7 @@ function ProductDetailModal({
               <p className="sm:hidden">Edit</p>
             </Button>
           )}
-          {onDelete && (
+          {isSystemAdmin && onDelete && (
             <Button
               variant="destructive"
               className="rounded-2xl px-6"
@@ -478,7 +478,7 @@ export function ProductCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
-                {onEdit && (
+                {isSystemAdmin && onEdit && (
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
@@ -488,7 +488,7 @@ export function ProductCard({
                     <Edit className="mr-2 h-4 w-4" /> Edit Produk
                   </DropdownMenuItem>
                 )}
-                {onAdjust && (
+                {isSystemAdmin && onAdjust && (
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
@@ -498,7 +498,7 @@ export function ProductCard({
                     <PackagePlus className="mr-2 h-4 w-4" /> Atur Stok
                   </DropdownMenuItem>
                 )}
-                {onDelete && (
+                {isSystemAdmin && onDelete && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem

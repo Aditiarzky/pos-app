@@ -1,4 +1,10 @@
-export type TrashEntityType = "product" | "sale" | "purchase" | "customer";
+export type TrashEntityType =
+  | "product"
+  | "sale"
+  | "purchase"
+  | "purchase_order"
+  | "customer"
+  | "supplier";
 
 export type TrashItemInput = {
   id: number;
@@ -7,13 +13,15 @@ export type TrashItemInput = {
 
 export type TrashPayload = TrashItemInput | { items: TrashItemInput[] };
 
-export class TrashValidationError extends Error { }
+export class TrashValidationError extends Error {}
 
 const VALID_TYPES: TrashEntityType[] = [
   "product",
   "sale",
   "purchase",
+  "purchase_order",
   "customer",
+  "supplier",
 ];
 
 function isValidType(type: string): type is TrashEntityType {
@@ -28,7 +36,10 @@ export function parseTrashPayload(payload: unknown): TrashItemInput[] {
   let rawItems: unknown[];
 
   // Check if the payload matches the { items: TrashItemInput[] } structure
-  if ("items" in payload && Array.isArray((payload as { items: unknown[] }).items)) {
+  if (
+    "items" in payload &&
+    Array.isArray((payload as { items: unknown[] }).items)
+  ) {
     rawItems = (payload as { items: unknown[] }).items;
   } else {
     // Otherwise, treat the payload itself as a single TrashItemInput
@@ -39,7 +50,8 @@ export function parseTrashPayload(payload: unknown): TrashItemInput[] {
     throw new TrashValidationError("Tidak ada data yang dipilih");
   }
 
-  const normalized = rawItems.map((item: unknown) => { // Explicitly type item as unknown
+  const normalized = rawItems.map((item: unknown) => {
+    // Explicitly type item as unknown
     if (typeof item !== "object" || item === null) {
       throw new TrashValidationError("Item data tidak valid (bukan objek)");
     }

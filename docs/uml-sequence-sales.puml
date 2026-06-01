@@ -1,25 +1,58 @@
 @startuml
-actor "Admin Toko" as Admin
-participant "Sistem POS" as App
-participant "Sistem Pembayaran" as Pay
-database "Sistem Penyimpanan" as DB
+autonumber
 
-== Proses Penjualan ==
-Admin -> App: Masukkan produk dan pilih pelanggan
-Admin -> App: Tentukan cara pembayaran
-App -> App: Verifikasi stok dan hitung total
+skinparam BoxPadding 10
+skinparam ParticipantPadding 10
+skinparam defaultFontSize 20
+skinparam maxMessageSize 400
 
-alt Pembayaran Digital
-  App -> Pay: Buat permintaan pembayaran
-  Pay --> App: Berikan status pembayaran berhasil
-  App -> DB: Rekam transaksi selesai
-else Tunai atau Saldo
-  App -> App: Hitung kembalian / potong saldo
-  App -> DB: Rekam transaksi selesai
+actor "Admin / Kasir" as Admin
+boundary "UI Kasir" as UI
+control "Controller" as Controller
+database "DB" as DB
+
+== 1. Persiapan Keranjang & Pelanggan ==
+Admin -> UI : Scan/Input Produk & Pilih Pelanggan
+UI -> Controller : Ambil data pelanggan(id)
+Controller -> DB : Cek Saldo & Piutang pelanggan
+DB --> UI : Data Pelanggan & Sisa Saldo
+
+== 2. Eksekusi Pembayaran ==
+Admin -> UI : Pilih Metode & Proses Transaksi
+UI -> Controller : Kirim data transaksi penjualan
+
+activate Controller
+Controller -> DB : Validasi ketersediaan stok
+alt Stok Kurang
+    Controller --> UI : Notifikasi Stok Tidak Mencukupi
+    note right: Operator dapat melakukan penyesuaian stok jika perlu
+else Stok Cukup
+    Controller -> DB : Perbarui saldo pelanggan & stok produk
+    Controller -> DB : Simpan mutasi stok & saldo pelanggan
+    
+    alt Kondisi: Pembayaran Kurang
+        Controller -> DB : Simpan data piutang baru
+    end
+
+    alt Metode: QRIS
+        Controller -> Controller : Request pembuatan kode QRIS
+        Controller -> DB : Set status menunggu pembayaran
+        Controller --> UI : Tampilkan QR Code & Waktu Kedaluwarsa
+        
+        alt User Batal / QR Expired
+            UI -> Controller : Batalkan transaksi
+            Controller -> DB : Kembalikan stok, saldo, & data piutang
+        else Konfirmasi Berhasil (Webhook)
+            Controller -> DB : Update status transaksi selesai
+        end
+    else Metode: Tunai
+        Controller -> DB : Simpan data penjualan & rincian item
+        Controller --> UI : Konfirmasi Transaksi Selesai
+    end
 end
 
-App -> DB: Kurangi stok produk
-App -> DB: Catat arus keluar barang
-App -> DB: Perbarui catatan saldo/piutang pelanggan
-App --> Admin: Tampilkan bukti transaksi
+== 3. Monitoring & Output ==
+UI --> Admin : Cetak Struk & Monitoring Stok Menipis (Dynamic)
+deactivate Controller
+
 @enduml

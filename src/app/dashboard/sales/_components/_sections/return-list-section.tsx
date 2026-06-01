@@ -13,7 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AppPagination } from "@/components/app-pagination";
 import { Button } from "@/components/ui/button";
 import {
-  Trash2,
   Eye,
   PrinterIcon,
   ListIcon,
@@ -21,17 +20,39 @@ import {
   Banknote,
   RefreshCcw,
   CreditCard,
+  Check,
+  X,
+  Loader2,
 } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { Badge } from "@/components/ui/badge";
 
-import {
-  useCustomerReturnList,
-  useDeleteCustomerReturn,
-} from "@/hooks/customer-returns/use-customer-return";
+import { useCustomerReturnList } from "@/hooks/customer-returns/use-customer-return";
 import { useState } from "react";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { usePrintReceipt } from "../../_hooks/use-print-receipt";
+import { ReturnReceipt } from "../_ui/return-receipt";
+import {
+  CustomerReturnResponse,
+  updateReturnStatus,
+} from "@/services/customerReturnService";
+import { ReturnResult } from "../../_hooks/use-return-form";
+import { Separator } from "@/components/ui/separator";
+import { FilterWrap } from "@/components/filter-wrap";
+import { ReturnFilterForm } from "../_ui/return-filter-form";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,26 +64,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { ApiResponse } from "@/services/productService";
-import { usePrintReceipt } from "../../_hooks/use-print-receipt";
-import { ReturnReceipt } from "../_ui/return-receipt";
-import { CustomerReturnResponse } from "@/services/customerReturnService";
-import { ReturnResult } from "../../_hooks/use-return-form";
-import { Separator } from "@/components/ui/separator";
-import { FilterWrap } from "@/components/filter-wrap";
-import { ReturnFilterForm } from "../_ui/return-filter-form";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 import BarcodeScannerCamera from "@/components/barcode-scanner-camera";
 
@@ -94,18 +95,6 @@ export function ReturnListSection() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const { receiptRef, handlePrint } = usePrintReceipt();
 
-  const deleteMutation = useDeleteCustomerReturn();
-
-  const handleDelete = async (id: number) => {
-    const deletePromise = deleteMutation.mutateAsync(id);
-
-    toast.promise(deletePromise, {
-      loading: "Membatalkan retur...",
-      success: "Retur berhasil dibatalkan",
-      error: (err: ApiResponse) => err.error || "Gagal membatalkan retur",
-    });
-  };
-
   const openReceipt = (ret: CustomerReturnResponse) => {
     setSelectedReturn(ret);
     setIsReceiptOpen(true);
@@ -119,6 +108,42 @@ export function ReturnListSection() {
     setPage(1);
     setIsScannerOpen(false);
     toast.success("Barcode berhasil dipindai");
+  };
+
+  const [isUpdatingStatusId, setIsUpdatingStatusId] = useState<number | null>(
+    null,
+  );
+
+  const handleStatusUpdate = async (
+    returnId: number,
+    action: "complete" | "cancel",
+  ) => {
+    setIsUpdatingStatusId(returnId);
+    const toastId = toast.loading(
+      action === "complete"
+        ? "Menandai retur selesai..."
+        : "Membatalkan retur...",
+    );
+    try {
+      const res = await updateReturnStatus(returnId, action);
+      if (res.success) {
+        toast.success(
+          action === "complete"
+            ? "Retur berhasil ditandai selesai"
+            : "Retur berhasil dibatalkan",
+          { id: toastId },
+        );
+        resetFilters();
+      } else {
+        toast.error(res.message || "Gagal memperbarui status retur", {
+          id: toastId,
+        });
+      }
+    } catch (err) {
+      toast.error("Terjadi kesalahan saat memperbarui status", { id: toastId });
+    } finally {
+      setIsUpdatingStatusId(null);
+    }
   };
 
   const getCompensationName = (type: string) => {
@@ -394,6 +419,62 @@ export function ReturnListSection() {
                       </TableCell>
                       <TableCell className="px-2 sm:px-4 py-2">
                         <div className="flex justify-end gap-1">
+                          {/* @ts-ignore status exists in the response from backend */}
+                          {ret.status === "pending" && (
+                            <>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                                onClick={() =>
+                                  handleStatusUpdate(ret.id, "complete")
+                                }
+                                disabled={isUpdatingStatusId === ret.id}
+                                title="Tandai Selesai"
+                              >
+                                {isUpdatingStatusId === ret.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Check className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="text-destructive hover:bg-destructive/10"
+                                    disabled={isUpdatingStatusId === ret.id}
+                                    title="Batalkan Retur"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>
+                                      Batalkan retur ini?
+                                    </AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Stok akan disesuaikan kembali dan retur
+                                      akan ditandai sebagai dibatalkan.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Tidak</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        handleStatusUpdate(ret.id, "cancel")
+                                      }
+                                      className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                      Ya, Batalkan
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
                           <Button
                             size="icon"
                             variant="ghost"
@@ -401,38 +482,6 @@ export function ReturnListSection() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Batalkan Retur?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tindakan ini akan membatalkan retur,
-                                  mengembalikan stok (rollback), dan membatalkan
-                                  mutasi saldo. Data tidak dapat dipulihkan.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Batal</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(ret.id!)}
-                                  className="bg-destructive hover:bg-destructive/90"
-                                >
-                                  Batalkan Retur
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -521,45 +570,70 @@ export function ReturnListSection() {
                 </div>
 
                 <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 flex justify-between items-center gap-1.5 sm:gap-2 mt-auto">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openReceipt(ret)}
-                    className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs"
-                  >
-                    <Eye className="mr-1 h-3.5 w-3.5" />
-                    Detail
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
+                  {/* @ts-ignore status exists in backend response */}
+                  {ret.status === "pending" ? (
+                    <div className="flex w-full gap-2">
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => handleStatusUpdate(ret.id, "complete")}
+                        disabled={isUpdatingStatusId === ret.id}
+                        className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs border-emerald-400 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 flex-1"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        {isUpdatingStatusId === ret.id ? (
+                          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Check className="mr-1 h-3.5 w-3.5" />
+                        )}
+                        Selesai
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Batalkan Retur?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Tindakan ini akan membatalkan retur, mengembalikan
-                          stok (rollback), dan membatalkan mutasi saldo. Data
-                          tidak dapat dipulihkan.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Batal</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => handleDelete(ret.id!)}
-                          className="bg-destructive hover:bg-destructive/90"
-                        >
-                          Batalkan Retur
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={isUpdatingStatusId === ret.id}
+                            className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs border-destructive/50 text-destructive hover:bg-destructive/10 flex-1"
+                          >
+                            <X className="mr-1 h-3.5 w-3.5" />
+                            Batal
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Batalkan retur ini?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Stok akan disesuaikan kembali dan retur akan
+                              ditandai sebagai dibatalkan.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Tidak</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() =>
+                                handleStatusUpdate(ret.id, "cancel")
+                              }
+                              className="bg-destructive hover:bg-destructive/90"
+                            >
+                              Ya, Batalkan
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openReceipt(ret)}
+                      className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs w-full"
+                    >
+                      <Eye className="mr-1 h-3.5 w-3.5" />
+                      Detail
+                    </Button>
+                  )}
                 </div>
               </Card>
             ))}

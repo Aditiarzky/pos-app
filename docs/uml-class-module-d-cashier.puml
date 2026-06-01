@@ -1,0 +1,95 @@
+@startuml Modul_D_Pengelolaan_Kasir
+
+' Pengaturan visual agar profesional dan fungsional
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
+
+title Pengelolaan Kasir
+
+package "Domain Model: Sale" {
+    class Sale {
+        - id: Integer
+        - invoiceNumber: String
+        - customerId: Integer
+        - userId: Integer
+        - totalPrice: Decimal
+        - totalPaid: Decimal
+        - totalReturn: Decimal
+        - totalBalanceUsed: Decimal
+        - status: SaleStatus
+        - paymentMethod: PaymentMethod
+        - qrisOrderId: String
+        - qrisPaymentNumber: String
+        - qrisExpiredAt: DateTime
+        + addItem(item: SaleItem): void
+        + calculateTotal(): Decimal
+        + processPayment(paidAmount: Decimal): void
+        + confirmQRIS(orderId: String): Boolean
+        + cancel(): void
+        + generateDigitalReceipt(): String
+    }
+
+    class SaleItem {
+        - id: Integer
+        - saleId: Integer
+        - productId: Integer
+        - variantId: Integer
+        - qty: Decimal
+        - priceAtSale: Decimal
+        - subtotal: Decimal
+        - costAtSale: Decimal
+        - unitFactorAtSale: Decimal
+        + calculateSubtotal(): Decimal
+        + validateStockAvailability(): Boolean
+        + getVariant(): ProductVariant
+    }
+
+    enum SaleStatus {
+        PENDING_PAYMENT
+        DEBT
+        COMPLETED
+        REFUNDED
+        CANCELLED
+    }
+
+    enum PaymentMethod {
+        CASH
+        QRIS
+    }
+
+    ' Relationships
+    Sale "1" *-- "1..*" SaleItem : contains >
+    Sale ..> SaleStatus : has status >
+    Sale ..> PaymentMethod : uses method >
+    Sale "0..*" -- "0..1" Customer : performed by >
+    SaleItem "0..*" -- "1" ProductVariant : refers to >
+}
+
+package "External Reference" {
+    class Customer <<external>> {
+        + updateSaldo(nominal: Decimal): void
+        + cekLimitKredit(): Decimal
+    }
+    class ProductVariant <<external>> {
+        + updateStock(amount: Decimal): void
+    }
+    class User <<external>>
+}
+
+' Catatan Fungsional
+note top of Sale
+  Jantung dari sistem transaksi POS.
+  Mengelola state pembayaran (Pending -> Completed/Debt).
+end note
+
+note right of SaleItem
+  Snapshot rincian item saat transaksi terjadi.
+  Menyimpan harga & HPP saat itu untuk akurasi laporan.
+end note
+
+@enduml

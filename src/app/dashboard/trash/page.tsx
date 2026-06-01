@@ -76,9 +76,12 @@ function getTypeLabel(type: TrashListItem["type"]) {
     case "sale":
       return "Penjualan";
     case "purchase":
+    case "purchase_order":
       return "Pembelian";
     case "customer":
       return "Pelanggan";
+    case "supplier":
+      return "Supplier";
     default:
       return type;
   }
@@ -134,7 +137,7 @@ function TrashContent() {
   const cleanupTrashMutation = useCleanupTrash();
   const { roles } = useAuth();
   const isSystemAdmin = (roles as string[]).includes("admin sistem");
-  
+
   const { settings, updateInterval, isUpdating } = useTrashSettings();
   const [tempInterval, setTempInterval] = useState<string>("");
 
@@ -184,10 +187,9 @@ function TrashContent() {
       return;
     }
     window.sessionStorage.setItem(autoCleanupKey, "1");
-    runCleanupExpired({ rethrow: true })
-      .catch(() => {
-        window.sessionStorage.removeItem(autoCleanupKey);
-      });
+    runCleanupExpired({ rethrow: true }).catch(() => {
+      window.sessionStorage.removeItem(autoCleanupKey);
+    });
     return;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoCleanupKey, isSystemAdmin]);
@@ -207,13 +209,17 @@ function TrashContent() {
       const skippedCount = res.data?.skippedCount || 0;
 
       if (deletedCount > 0) {
-        toast.success(`${deletedCount} data lama di trash berhasil dibersihkan`);
+        toast.success(
+          `${deletedCount} data lama di trash berhasil dibersihkan`,
+        );
       } else if (options?.showNoopToast) {
         toast.info("Tidak ada data trash yang perlu dibersihkan");
       }
 
       if (skippedCount > 0) {
-        toast.info(`${skippedCount} data batal dihapus karena ada dependency aktif`);
+        toast.info(
+          `${skippedCount} data batal dihapus karena ada dependency aktif`,
+        );
       }
     } catch (error) {
       toast.error("Gagal menjalankan cleanup trash");
@@ -397,6 +403,16 @@ function TrashContent() {
                 >
                   Pelanggan
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTypeFilter("supplier");
+                    setPage(1);
+                  }}
+                  className={`w-full flex items-center justify-center rounded-md border px-3 py-1.5 text-xs cursor-pointer hover:bg-muted ${typeFilter === "supplier" ? "bg-muted" : "bg-muted/50"}`}
+                >
+                  Supplier
+                </button>
               </div>
             </FilterWrap>
 
@@ -413,13 +429,17 @@ function TrashContent() {
                 <PopoverContent align="end" className="w-80 p-4">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <h4 className="font-medium leading-none">Pengaturan Cleanup</h4>
+                      <h4 className="font-medium leading-none">
+                        Pengaturan Cleanup
+                      </h4>
                       <p className="text-sm text-muted-foreground">
                         Atur seberapa sering sistem mengecek data expired.
                       </p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="interval">Interval Pengecekan (Menit)</Label>
+                      <Label htmlFor="interval">
+                        Interval Pengecekan (Menit)
+                      </Label>
                       <div className="flex gap-2">
                         <Input
                           id="interval"
@@ -429,17 +449,22 @@ function TrashContent() {
                           className="h-9"
                           min={1}
                         />
-                        <Button 
-                          size="sm" 
+                        <Button
+                          size="sm"
                           onClick={handleUpdateInterval}
                           disabled={isUpdating}
                         >
-                          {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : "Simpan"}
+                          {isUpdating ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            "Simpan"
+                          )}
                         </Button>
                       </div>
                       {settings?.lastCleanupAt && (
                         <p className="text-[10px] text-muted-foreground mt-2">
-                          Terakhir dijalankan: {formatDate(settings.lastCleanupAt)}
+                          Terakhir dijalankan:{" "}
+                          {formatDate(settings.lastCleanupAt)}
                         </p>
                       )}
                     </div>

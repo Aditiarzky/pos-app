@@ -1,0 +1,69 @@
+@startuml Modul_F_Pembayaran_Piutang
+
+' Pengaturan visual agar profesional dan fungsional
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
+
+title Pembayaran Piutang
+
+package "Domain Model: Finance (Debt)" {
+    class Debt {
+        - id: Integer
+        - saleId: Integer
+        - customerId: Integer
+        - originalAmount: Decimal
+        - remainingAmount: Decimal
+        - status: DebtStatus
+        - isActive: Boolean
+        - createdAt: DateTime
+        + makePayment(amount: Decimal, note: String): DebtPayment
+        + checkPaidStatus(): Boolean
+        + getRemainingLiability(): Decimal
+        + deactivate(): void
+    }
+
+    class DebtPayment {
+        - id: Integer
+        - debtId: Integer
+        - amountPaid: Decimal
+        - paymentDate: DateTime
+        - note: String
+        + getPaymentReceipt(): String
+    }
+
+    enum DebtStatus {
+        UNPAID
+        PARTIAL
+        PAID
+        CANCELLED
+    }
+
+    ' Relationships
+    Debt "1" *-- "0..*" DebtPayment : has history >
+    Debt ..> DebtStatus : has status >
+    Debt "0..*" -- "1" Customer : liability of >
+}
+
+package "External Reference" {
+    class Sale <<external>>
+    class Customer <<external>>
+    class User <<external>>
+}
+
+' Catatan Fungsional
+note top of Debt
+  Mencatat kewajiban pembayaran Customer dari transaksi kredit (Sale).
+  Status berubah secara otomatis berdasarkan sisa saldo (remainingAmount).
+end note
+
+note right of DebtPayment
+  Merekam setiap nominal yang dibayarkan oleh Customer.
+  Dapat terjadi berkali-kali untuk satu objek Debt (cicilan).
+end note
+
+@enduml

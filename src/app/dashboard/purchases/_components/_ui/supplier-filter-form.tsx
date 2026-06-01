@@ -39,7 +39,7 @@ export const SupplierFilterForm = ({
           <Select
             value={orderBy}
             onValueChange={(v) => {
-              setOrderBy(v as "createdAt" | "name" | "phone" | undefined);
+              setOrderBy(v as "createdAt" | "name" | "phone");
               setPage(1);
             }}
           >
@@ -54,8 +54,8 @@ export const SupplierFilterForm = ({
           </Select>
           <Select
             value={order}
-            onValueChange={(v: "asc" | "desc") => {
-              setOrder(v);
+            onValueChange={(v) => {
+              setOrder(v as "asc" | "desc");
               setPage(1);
             }}
           >

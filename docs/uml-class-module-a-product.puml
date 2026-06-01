@@ -1,0 +1,94 @@
+@startuml Modul_A_Pengelolaan_Produk
+
+' Pengaturan visual agar profesional dan fungsional
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
+
+title Pengelolaan Produk
+
+package "Domain Model: Product" {
+    class Product {
+        - id: Integer
+        - categoryId: Integer
+        - baseUnitId: Integer
+        - sku: String
+        - name: String
+        - image: String
+        - minStock: Decimal
+        - stock: Decimal
+        - averageCost: Decimal
+        - lastPurchaseCost: Decimal
+        - isActive: Boolean
+        + updateStock(amount: Decimal): void
+        + calculateHPP(): Decimal
+        + checkLowStock(): Boolean
+        + deactivate(): void
+        + updateInfo(name: String, sku: String, minStock: Decimal): void
+    }
+
+    class ProductVariant {
+        - id: Integer
+        - productId: Integer
+        - unitId: Integer
+        - name: String
+        - sku: String
+        - conversionToBase: Decimal
+        - sellPrice: Decimal
+        - isActive: Boolean
+        + updateSellPrice(newPrice: Decimal): void
+        + calculateBaseUnitQty(amount: Decimal): Decimal
+        + getActivePrice(): Decimal
+    }
+
+    class Category {
+        - id: Integer
+        - name: String
+        - isActive: Boolean
+        + getProductList(): List<Product>
+    }
+
+    class Unit {
+        - id: Integer
+        - name: String
+        - isActive: Boolean
+        + getLabel(): String
+    }
+
+    class ProductBarcode {
+        - id: Integer
+        - productId: Integer
+        - barcode: String
+        + getProduct(): Product
+    }
+
+    ' Relationships
+    Product "1" *-- "0..*" ProductVariant : has >
+    Product "1" *-- "0..*" ProductBarcode : identified by >
+    Product "0..*" -- "1" Category : belongs to >
+    Product "0..*" -- "1" Unit : base unit >
+    ProductVariant "0..*" -- "1" Unit : variant unit >
+}
+
+package "External Reference" {
+    class User <<external>> {
+        ' Digunakan sebagai aktor/creator
+    }
+}
+
+' Catatan Fungsional
+note top of Product
+  Berfungsi sebagai blueprint utama Product. 
+  Mencakup logika stok dan kalkulasi HPP.
+end note
+
+note right of ProductVariant
+  Mengelola variasi satuan dan harga jual.
+  Mendukung multi-satuan per Product.
+end note
+
+@enduml
