@@ -63,7 +63,6 @@ function PurchasesContent() {
     setOrder,
     hasActiveFilters,
     resetFilters,
-    handleDelete,
   } = usePurchaseList();
 
   // Purchase form state
@@ -87,6 +86,11 @@ function PurchasesContent() {
 
   const handleOpenNewPurchase = () => {
     setEditingPurchase(null);
+    setIsPurchaseFormOpen(true);
+  };
+
+  const handleEditPurchase = (purchase: PurchaseResponse) => {
+    setEditingPurchase(purchase);
     setIsPurchaseFormOpen(true);
   };
 
@@ -189,7 +193,7 @@ function PurchasesContent() {
               setOrder={setOrder}
               hasActiveFilters={hasActiveFilters}
               resetFilters={resetFilters}
-              onDelete={handleDelete}
+              onEdit={handleEditPurchase}
             />
           </TabsContent>
 

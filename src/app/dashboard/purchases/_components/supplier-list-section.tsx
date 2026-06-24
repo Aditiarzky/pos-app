@@ -39,12 +39,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format";
 import { useSupplierList } from "../_hooks/use-supplier-list";
+import { RelationAwareDeleteDialog } from "@/components/relation-aware-delete-dialog";
 import { SupplierListSectionProps, SupplierResponse } from "../_types/supplier";
 import { FilterWrap } from "@/components/filter-wrap";
 import { SupplierFilterForm } from "./_ui/supplier-filter-form";
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
+import { useAuth } from "@/hooks/use-auth";
 
 // ============================================
 // MAIN COMPONENT
@@ -55,6 +57,8 @@ export function SupplierListSection({
   onAddNew,
 }: SupplierListSectionProps) {
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
+  const { roles } = useAuth();
+  const isSystemAdmin = (roles as string[]).includes("admin sistem");
 
   const {
     // Data
@@ -83,7 +87,10 @@ export function SupplierListSection({
     resetFilters,
 
     // Actions
-    handleDelete,
+    deleteTarget,
+    setDeleteTarget,
+    handleConfirmDelete,
+    isDeleting,
   } = useSupplierList();
 
   return (
@@ -164,7 +171,8 @@ export function SupplierListSection({
                     idx={idx + 1}
                     supplier={supplier}
                     onEdit={onEdit}
-                    onDelete={handleDelete}
+                    onDelete={setDeleteTarget}
+                    canEdit={isSystemAdmin}
                   />
                 ))
               )}
@@ -224,14 +232,16 @@ export function SupplierListSection({
                 >
                   <Edit className="h-3.5 w-3.5 mr-1" /> Edit
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 sm:h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => handleDelete(supplier)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {isSystemAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 sm:h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setDeleteTarget(supplier)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </Card>
           ))}
@@ -250,6 +260,16 @@ export function SupplierListSection({
           />
         </div>
       )}
+
+      {/* Delete Dialog */}
+      <RelationAwareDeleteDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        itemName={deleteTarget?.name ?? ""}
+        relationsUrl={`/api/master/suppliers/${deleteTarget?.id}/relations`}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
@@ -316,11 +336,12 @@ function EmptyState() {
 interface SupplierRowProps {
   supplier: SupplierResponse;
   onEdit: (supplier: SupplierResponse) => void;
-  onDelete: (supplier: SupplierResponse) => Promise<void>;
+  onDelete: (supplier: SupplierResponse) => void;
   idx: number;
+  canEdit?: boolean;
 }
 
-function SupplierRow({ supplier, onEdit, onDelete, idx }: SupplierRowProps) {
+function SupplierRow({ supplier, onEdit, onDelete, idx, canEdit = false }: SupplierRowProps) {
   return (
     <TableRow className="hover:bg-muted/30 transition-colors border-b border-border/30 last:border-none group">
       <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
@@ -361,13 +382,17 @@ function SupplierRow({ supplier, onEdit, onDelete, idx }: SupplierRowProps) {
             >
               <Edit className="h-4 w-4" /> Edit
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => onDelete(supplier)}
-              className="gap-2 text-destructive focus:text-destructive cursor-pointer"
-            >
-              <Trash2 className="h-4 w-4" /> Hapus
-            </DropdownMenuItem>
+            {canEdit && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onDelete(supplier)}
+                  className="gap-2 text-destructive focus:text-destructive cursor-pointer"
+                >
+                  <Trash2 className="h-4 w-4" /> Hapus
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>

@@ -1,58 +1,55 @@
-@startuml
+@startuml Sales_Transaction_Sequence
 autonumber
 
-skinparam BoxPadding 10
-skinparam ParticipantPadding 10
-skinparam defaultFontSize 20
-skinparam maxMessageSize 400
+skinparam BoxPadding 5
+skinparam ParticipantPadding 8
+skinparam defaultFontSize 16
+skinparam maxMessageSize 300
+skinparam sequenceMessageAlign center
 
-actor "Admin / Kasir" as Admin
+actor "Admin Sistem /\nAdmin Toko" as Admin
 boundary "UI Kasir" as UI
-control "Controller" as Controller
-database "DB" as DB
+control "Sale Controller" as Ctrl
+database "sales" as s
+database "sale_items" as si
+database "products" as p
+box "Pelanggan" #F5F5F5
+    database "customers" as c
+    database "cust. balance\nmutations" as bm
+end box
+database "debts" as d
 
-== 1. Persiapan Keranjang & Pelanggan ==
-Admin -> UI : Scan/Input Produk & Pilih Pelanggan
-UI -> Controller : Ambil data pelanggan(id)
-Controller -> DB : Cek Saldo & Piutang pelanggan
-DB --> UI : Data Pelanggan & Sisa Saldo
+== 1. Persiapan & Validasi ==
+Admin -> UI : Scan produk & pilih pelanggan
+UI -> Ctrl : Ambil data pelanggan
+Ctrl -> c : Cek creditBalance (saldo kredit)
+c --> UI : Data pelanggan & sisa saldo
 
-== 2. Eksekusi Pembayaran ==
-Admin -> UI : Pilih Metode & Proses Transaksi
-UI -> Controller : Kirim data transaksi penjualan
+== 2. Proses Transaksi ==
+Admin -> UI : Pilih metode bayar & proses
+UI -> Ctrl : Kirim data transaksi
+activate Ctrl
 
-activate Controller
-Controller -> DB : Validasi ketersediaan stok
-alt Stok Kurang
-    Controller --> UI : Notifikasi Stok Tidak Mencukupi
-    note right: Operator dapat melakukan penyesuaian stok jika perlu
-else Stok Cukup
-    Controller -> DB : Perbarui saldo pelanggan & stok produk
-    Controller -> DB : Simpan mutasi stok & saldo pelanggan
-    
-    alt Kondisi: Pembayaran Kurang
-        Controller -> DB : Simpan data piutang baru
-    end
+Ctrl -> s : Insert sales (status: pending_payment)
 
-    alt Metode: QRIS
-        Controller -> Controller : Request pembuatan kode QRIS
-        Controller -> DB : Set status menunggu pembayaran
-        Controller --> UI : Tampilkan QR Code & Waktu Kedaluwarsa
-        
-        alt User Batal / QR Expired
-            UI -> Controller : Batalkan transaksi
-            Controller -> DB : Kembalikan stok, saldo, & data piutang
-        else Konfirmasi Berhasil (Webhook)
-            Controller -> DB : Update status transaksi selesai
-        end
-    else Metode: Tunai
-        Controller -> DB : Simpan data penjualan & rincian item
-        Controller --> UI : Konfirmasi Transaksi Selesai
-    end
+loop Per Item
+    Ctrl -> p : Cek stok (stock >= qty × conversion)
+    Ctrl -> p : UPDATE stok (kurangi qty base unit)
+    Ctrl -> si : Insert sale_items (priceAtSale, costAtSale)
 end
 
-== 3. Monitoring & Output ==
-UI --> Admin : Cetak Struk & Monitoring Stok Menipis (Dynamic)
-deactivate Controller
+alt Penggunaan Saldo Pelanggan
+    Ctrl -> c : UPDATE creditBalance (kurangi balanceUsed)
+    Ctrl -> bm : Insert balance_mutation (sale_balance_used)
+end
+
+alt Pembayaran Kurang & Piutang
+    Ctrl -> d : Insert debts (originalAmount, status: unpaid)
+end
+
+== 3. Finalisasi (Tunai) ==
+Ctrl -> s : UPDATE totalPrice, totalReturn, invoice final
+Ctrl --> UI : Konfirmasi & cetak struk
+deactivate Ctrl
 
 @enduml

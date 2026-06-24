@@ -48,17 +48,3 @@ export const deleteUnit = async (
   const response = await axiosInstance.delete(`/units/${id}`);
   return response.data;
 };
-
-export const restoreUnit = async (
-  id: number,
-): Promise<ApiResponse<UnitResponse>> => {
-  const response = await axiosInstance.post(`/units/${id}/restore`);
-  return response.data;
-};
-
-export const forceDeleteUnit = async (
-  id: number,
-): Promise<ApiResponse<UnitResponse>> => {
-  const response = await axiosInstance.delete(`/units/${id}/force`);
-  return response.data;
-};

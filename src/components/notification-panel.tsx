@@ -2,12 +2,13 @@
 
 import React, { useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   Check,
   Loader2,
   PackageSearch,
-  Trash2,
+  // Trash2, // [REMOVED: trash feature]
   TriangleAlert,
   CreditCard,
   HandCoins,
@@ -37,7 +38,8 @@ const getNotificationIcon = (notification: NotificationItem) => {
   if (notification.type === "restock") return <PackageSearch className="h-4 w-4 text-blue-500" />;
   if (notification.type === "debt_overdue") return <HandCoins className="h-4 w-4 text-rose-500" />;
   if (notification.type === "qris_pending") return <CreditCard className="h-4 w-4 text-indigo-500" />;
-  if (notification.category === "trash") return <Trash2 className="h-4 w-4 text-emerald-500" />;
+  // [REMOVED: trash feature] — uncomment to restore or delete permanently
+  // if (notification.category === "trash") return <Trash2 className="h-4 w-4 text-emerald-500" />;
   return <Bell className="h-4 w-4 text-muted-foreground" />;
 };
 
@@ -57,7 +59,8 @@ const getTypeLabel = (notification: NotificationItem) => {
     case "restock": return "Restock";
     case "debt_overdue": return "Piutang";
     case "qris_pending": return "QRIS";
-    case "trash_cleanup": return "Trash";
+    // [REMOVED: trash feature] — uncomment to restore or delete permanently
+    // case "trash_cleanup": return "Trash";
     default: return notification.category;
   }
 };
@@ -87,6 +90,7 @@ const formatTimeAgo = (createdAt: string) => {
 
 export function NotificationPanel() {
   const [isOpen, setIsOpen] = React.useState(false);
+  const router = useRouter();
   const notificationsQuery = useNotifications({
     params: { limit: 60 },
   });
@@ -218,8 +222,13 @@ export function NotificationPanel() {
                     : "hover:bg-muted/50"
                     }`}
                   onClick={() => {
-                    if (isNotificationRead(notification)) return;
-                    markManyAsReadMutation.mutate([notification.id]);
+                    if (!isNotificationRead(notification)) {
+                      markManyAsReadMutation.mutate([notification.id]);
+                    }
+                    if (notification.action?.href) {
+                      setIsOpen(false);
+                      router.push(notification.action.href);
+                    }
                   }}
                 >
                   <div className="flex items-start gap-3">
@@ -244,21 +253,11 @@ export function NotificationPanel() {
                         {notification.message}
                       </p>
 
-                      <div className="flex items-center justify-between gap-2 mt-2">
+                      <div className="flex items-center mt-2">
                         <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <History className="h-2.5 w-3.5" />
                           {formatTimeAgo(notification.createdAt)}
                         </p>
-
-                        {notification.action?.href ? (
-                          <Link
-                            href={notification.action.href}
-                            className="text-[10px] font-bold text-primary hover:underline bg-primary/10 py-0.5 px-2 rounded-md"
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            LIHAT
-                          </Link>
-                        ) : null}
                       </div>
                     </div>
                   </div>

@@ -52,7 +52,6 @@ export async function GET() {
 
     const activeDebtFilter = and(
       eq(debts.isActive, true),
-      sql`${debts.deletedAt} is null`,
       not(eq(debts.status, "paid")),
       not(eq(debts.status, "cancelled")),
     );

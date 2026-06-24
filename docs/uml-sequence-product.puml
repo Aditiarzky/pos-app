@@ -1,42 +1,61 @@
 @startuml Product_Management_Sequence
 autonumber
 
-skinparam BoxPadding 10
-skinparam ParticipantPadding 10
-skinparam defaultFontSize 20
-skinparam maxMessageSize 400
+skinparam BoxPadding 5
+skinparam ParticipantPadding 8
+skinparam defaultFontSize 16
+skinparam maxMessageSize 300
+skinparam sequenceMessageAlign center
 
+actor "Admin Toko" as Viewer
 actor "Admin Sistem" as Admin
 boundary "UI Produk" as UI
-control "Product Controller" as Controller
-database "DB" as DB
+control "Product Controller" as Ctrl
+database "products" as p
+database "product_variants" as v
+database "product_barcodes" as b
+database "categories" as c
 
-== 1. Pengambilan Data ==
-Admin -> UI : Buka list produk (Cari/Filter)
-UI -> Controller : Ambil daftar produk
-Controller -> DB : Query data produk & varian aktif
-DB --> UI : List Produk & Detail Stok
+== 1. Tampil Data Produk ==
+Viewer -> UI : Buka halaman produk
+UI -> Ctrl : Fetch list produk
+Ctrl -> p : Query (+ fulltext search, barcode subquery)
+Ctrl -> v : Fetch variants per produk
+Ctrl -> b : Fetch barcodes per produk
+Ctrl -> c : Join categories
+p --> UI : Tampilkan tabel produk
 
-== 2. Tambah Produk Baru ==
-Admin -> UI : Input data produk & multi-varian
-UI -> Controller : Simpan data produk baru
-activate Controller
-Controller -> DB : Simpan data produk, varian, & HPP awal
-DB --> UI : Konfirmasi Berhasil Simpan
-deactivate Controller
-
-== 3. Update & Soft Delete ==
-Admin -> UI : Edit data atau Delete
-alt Aksi: Edit Produk
-    UI -> Controller : Perbarui data produk
-    activate Controller
-    Controller -> Controller : Validasi & Cek HPP sebelumnya
-    Controller -> DB : Perbarui data produk & Hitung ulang Average Cost (HPP)
-    deactivate Controller
-else Aksi: Hapus Produk
-    UI -> Controller : Request penghapusan produk
-    Controller -> DB : Ubah status produk menjadi tidak aktif (Soft Delete)
+== 2. Tambah Produk ==
+Admin -> UI : Isi form (kategori, varian, barcode)
+UI -> Ctrl : Insert produk
+activate Ctrl
+Ctrl -> p : Insert products (name, stock, category, unit)
+Ctrl -> c : Baca category untuk generate SKU
+Ctrl -> b : Insert product_barcodes (1 atau banyak barcode)
+loop Per Varian (ukuran, warna, dll)
+    Ctrl -> v : Insert product_variants (additionalCost, priceOverride)
 end
-Controller --> UI : Konfirmasi Berhasil
+Ctrl --> UI : Konfirmasi berhasil
+deactivate Ctrl
+
+== 3. Edit Produk ==
+Admin -> UI : Edit form produk
+UI -> Ctrl : Update produk
+activate Ctrl
+Ctrl -> p : UPDATE produk (name, stock, category, unit)
+Ctrl -> b : Delete & re-insert barcodes
+Ctrl -> v : Update varian lama (soft delete)
+loop Per Varian Baru
+    Ctrl -> v : Insert product_variants
+end
+Ctrl --> UI : Konfirmasi berhasil
+deactivate Ctrl
+
+== 4. Hapus Produk ==
+Admin -> UI : Klik hapus
+UI -> Ctrl : Delete produk
+Ctrl -> p : DELETE products (hard delete)
+note right: Cascade: variant & barcode terhapus
+Ctrl --> UI : Konfirmasi berhasil
 
 @enduml

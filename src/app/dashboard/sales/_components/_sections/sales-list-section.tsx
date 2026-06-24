@@ -663,7 +663,7 @@ export function SalesListSection({
           <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0">
             <DialogTitle>Nota Penjualan</DialogTitle>
           </DialogHeader>
-          <div className="px-4 pb-4 overflow-y-auto flex-grow custom-scrollbar">
+          <div className="px-4 bg-white pb-4 overflow-y-auto flex-grow custom-scrollbar">
             {selectedSale && (
               <SaleReceipt
                 ref={receiptRef}

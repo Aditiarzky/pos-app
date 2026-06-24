@@ -32,6 +32,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
 
     const fontSans = "'Courier New', Courier, monospace";
 
+    // ── Shared styles (thermal-safe: only black text, no bg, no radius) ──
     const flexBetween: React.CSSProperties = {
       display: "flex",
       justifyContent: "space-between",
@@ -40,10 +41,16 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
 
     const labelStyle: React.CSSProperties = {
       fontSize: "8px",
-      color: "#999",
+      fontWeight: 700,
       textTransform: "uppercase",
-      letterSpacing: "1.5px",
+      letterSpacing: "1px",
       margin: "0 0 2px 0",
+    };
+
+    const divider: React.CSSProperties = {
+      borderTop: "1px dashed #000",
+      width: "100%",
+      margin: "6px 0",
     };
 
     return (
@@ -53,78 +60,60 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
         style={{
           margin: "0 auto",
           backgroundColor: "#fff",
-          color: "#111",
+          color: "#000",
           fontFamily: fontSans,
           fontSize: "11px",
           lineHeight: "1.45",
           boxSizing: "border-box",
-          borderRadius: "12px",
-          overflow: "hidden",
         }}
       >
+        {/* ── Header ── */}
         <div
           style={{
-            padding: "16px 16px 14px",
-            borderBottom: "1px solid #ebebeb",
+            paddingBottom: "6px",
             textAlign: "center",
           }}
         >
           {setting?.logoUrl ? (
-            <div
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={setting.logoUrl}
+              alt="Logo toko"
               style={{
                 width: "48px",
                 height: "48px",
-                backgroundImage: `url(${setting.logoUrl})`,
-                backgroundSize: "contain",
-                backgroundPosition: "center",
-                backgroundRepeat: "no-repeat",
-                margin: "0 auto 8px",
+                objectFit: "contain",
+                margin: "0 auto 6px",
+                display: "block",
               }}
-              aria-label="Logo toko"
             />
           ) : null}
 
-          <p
-            style={{
-              fontSize: "8px",
-              letterSpacing: "3px",
-              color: "#bbb",
-              textTransform: "uppercase",
-              margin: "0 0 5px 0",
-            }}
-          >
-            Point of Sale
-          </p>
-
           <h2
             style={{
-              fontSize: "16px",
-              fontWeight: 800,
+              fontSize: "14px",
+              fontWeight: 900,
               textTransform: "uppercase",
-              letterSpacing: "0.8px",
-              margin: "0 0 5px 0",
+              letterSpacing: "0.5px",
+              margin: "0 0 3px 0",
               lineHeight: 1.2,
-              color: "#111",
             }}
           >
             {storeName}
           </h2>
 
-          <p style={{ fontSize: "9px", margin: "1px 0", color: "#999" }}>
+          <p style={{ fontSize: "9px", margin: "1px 0" }}>
             {storeAddress}
           </p>
-          <p style={{ fontSize: "9px", margin: "1px 0", color: "#999" }}>
+          <p style={{ fontSize: "9px", margin: "1px 0" }}>
             Telp: {storePhone}
           </p>
         </div>
 
-        <div
-          style={{
-            padding: "12px 16px",
-            background: "#fafafa",
-            borderBottom: "1px solid #ebebeb",
-          }}
-        >
+        <div style={divider} />
+
+        {/* ── Info Retur ── */}
+        <div style={{ paddingBottom: "4px" }}>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
             <div>
               <p style={labelStyle}>No. Retur</p>
@@ -133,7 +122,6 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
                   fontWeight: 700,
                   fontSize: "11px",
                   margin: 0,
-                  letterSpacing: "0.3px",
                 }}
               >
                 {result.returnNumber}
@@ -151,7 +139,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
             style={{
               display: "flex",
               justifyContent: "space-between",
-              marginTop: "10px",
+              marginTop: "6px",
             }}
           >
             <div>
@@ -168,19 +156,20 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
             </div>
           </div>
 
-          <div style={{ marginTop: "10px" }}>
+          <div style={{ marginTop: "6px" }}>
             <p style={labelStyle}>Kompensasi</p>
             <p style={{ fontSize: "10px", margin: 0 }}>{compensationLabel}</p>
           </div>
         </div>
 
+        <div style={divider} />
+
+        {/* ── Barcode ── */}
         <div
           style={{
-            background: "#f5f5f5",
-            borderBottom: "1px solid #ebebeb",
             display: "flex",
             justifyContent: "center",
-            padding: "6px 0 2px",
+            padding: "4px 0",
           }}
         >
           <Barcode
@@ -189,21 +178,23 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
             width={1.5}
             height={38}
             fontSize={8}
-            lineColor="#111"
-            background="#f5f5f5"
+            lineColor="#000"
+            background="#fff"
             textMargin={3}
             renderer="svg"
           />
         </div>
 
-        <div style={{ padding: "12px 16px 8px" }}>
+        <div style={divider} />
+
+        <div style={{ paddingBottom: "4px" }}>
           <p
             style={{
               fontSize: "8px",
-              color: "#999",
+              fontWeight: 700,
               textTransform: "uppercase",
-              letterSpacing: "2px",
-              margin: "0 0 10px 0",
+              letterSpacing: "1px",
+              margin: "0 0 6px 0",
             }}
           >
             Item Retur
@@ -214,7 +205,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
               key={`${item.variantId}-${idx}`}
               style={{
                 marginBottom:
-                  idx < (result.returnItems?.length || 0) - 1 ? "9px" : "0",
+                  idx < (result.returnItems?.length || 0) - 1 ? "6px" : "0",
               }}
             >
               <div style={flexBetween}>
@@ -228,21 +219,20 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
                 </span>
               </div>
               <div
-                style={{ fontSize: "9.5px", color: "#999", marginTop: "1px" }}
+                style={{ fontSize: "9.5px", marginTop: "1px" }}
               >
                 {Number(item.qty).toFixed(0)} pcs &times;{" "}
                 {formatCurrency(item.priceAtSale || item.priceAtReturn || 0)}
                 {item.variantName && (
                   <span style={{ fontStyle: "italic" }}>
                     {" "}
-                    &nbsp;&middot;&nbsp; {item.variantName}
+                    &middot; {item.variantName}
                   </span>
                 )}
               </div>
               <div
                 style={{
                   fontSize: "9px",
-                  color: "#777",
                   marginTop: "1px",
                   fontStyle: "italic",
                 }}
@@ -259,10 +249,10 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
               <p
                 style={{
                   fontSize: "8px",
-                  color: "#999",
+                  fontWeight: 700,
                   textTransform: "uppercase",
-                  letterSpacing: "2px",
-                  margin: "12px 0 10px 0",
+                  letterSpacing: "1px",
+                  margin: "8px 0 6px 0",
                 }}
               >
                 Item Pengganti
@@ -274,7 +264,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
                   style={{
                     marginBottom:
                       idx < (result.exchangeItems?.length || 0) - 1
-                        ? "9px"
+                        ? "6px"
                         : "0",
                   }}
                 >
@@ -289,7 +279,6 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
                   <div
                     style={{
                       fontSize: "9.5px",
-                      color: "#999",
                       marginTop: "1px",
                     }}
                   >
@@ -298,7 +287,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
                     {item.variantName && (
                       <span style={{ fontStyle: "italic" }}>
                         {" "}
-                        &nbsp;&middot;&nbsp; {item.variantName}
+                        &middot; {item.variantName}
                       </span>
                     )}
                   </div>
@@ -308,19 +297,18 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           )}
         </div>
 
+        {/* ── Subtotal ── */}
         <div
           style={{
-            margin: "0 16px",
-            borderTop: "1px solid #ebebeb",
-            padding: "9px 0",
+            borderTop: "1px dashed #000",
+            padding: "6px 0",
           }}
         >
           <div
             style={{
               ...flexBetween,
               fontSize: "10px",
-              color: "#888",
-              marginBottom: "4px",
+              marginBottom: "3px",
             }}
           >
             <span>Subtotal</span>
@@ -328,19 +316,19 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           </div>
 
           {result.exchangeItems.length > 0 && (
-            <div style={{ ...flexBetween, fontSize: "10px", color: "#888" }}>
+            <div style={{ ...flexBetween, fontSize: "10px" }}>
               <span>Potongan Tukar Barang</span>
               <span>- {formatCurrency(result.totalValueExchange)}</span>
             </div>
           )}
         </div>
 
-        <div style={{ padding: "0 16px 10px" }}>
+        {/* ── TOTAL box ── */}
+        <div style={{ padding: "6px 0" }}>
           <div
             style={{
-              border: "2px solid #111",
-              borderRadius: "8px",
-              padding: "10px 14px",
+              border: "2px solid #000",
+              padding: "8px 10px",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
@@ -349,19 +337,18 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
             <span
               style={{
                 fontSize: "9px",
-                letterSpacing: "2px",
+                letterSpacing: "1px",
                 textTransform: "uppercase",
-                color: "#888",
+                fontWeight: 700,
               }}
             >
               {isRefundPositive ? "Sisa Refund" : "Kekurangan"}
             </span>
             <span
               style={{
-                fontSize: "16px",
-                fontWeight: 800,
+                fontSize: "15px",
+                fontWeight: 900,
                 letterSpacing: "0.5px",
-                color: "#111",
               }}
             >
               {formatCurrency(totalAfterExchange)}
@@ -369,13 +356,13 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           </div>
         </div>
 
-        <div style={{ padding: "0 16px 12px" }}>
+        {/* ── Kompensasi Info ── */}
+        <div style={{ paddingBottom: "6px" }}>
           <div
             style={{
               ...flexBetween,
               fontSize: "10px",
-              color: "#888",
-              marginBottom: "4px",
+              marginBottom: "3px",
             }}
           >
             <span>Kompensasi</span>
@@ -383,11 +370,12 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           </div>
         </div>
 
+        <div style={divider} />
+
+        {/* ── Footer ── */}
         <div
           style={{
-            background: "#f5f5f5",
-            borderTop: "1px solid #ebebeb",
-            padding: "12px 16px",
+            paddingTop: "4px",
             textAlign: "center",
           }}
         >
@@ -396,8 +384,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
               fontWeight: 800,
               fontSize: "11px",
               letterSpacing: "0.5px",
-              margin: "0 0 4px 0",
-              color: "#111",
+              margin: "0 0 3px 0",
             }}
           >
             {footerMessage}
@@ -405,9 +392,8 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           <p
             style={{
               fontSize: "8.5px",
-              color: "#999",
               lineHeight: "1.5",
-              margin: "0 0 8px 0",
+              margin: "0 0 6px 0",
             }}
           >
             {receiptNote}
@@ -415,7 +401,6 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           <p
             style={{
               fontSize: "8px",
-              color: "#ccc",
               letterSpacing: "0.5px",
               margin: 0,
             }}

@@ -150,59 +150,19 @@ export async function DELETE(
 ) {
   try {
     const session = await verifySession();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 },
-      );
-    }
-
-    if (
-      !session.roles.includes("admin sistem") &&
-      !session.roles.includes("admin toko")
-    ) {
-      return NextResponse.json(
-        { success: false, error: "Forbidden: Unauthorized role" },
-        { status: 403 },
-      );
+    if (!session) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    if (!session.roles.includes("admin sistem")) {
+      return NextResponse.json({ success: false, error: "Forbidden: Admin Sistem role required" }, { status: 403 });
     }
 
     const supplierId = parseInt((await params).supplierId);
+    if (isNaN(supplierId)) return NextResponse.json({ success: false, error: "Invalid supplier ID" }, { status: 400 });
 
-    if (isNaN(supplierId)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid supplier ID" },
-        { status: 400 },
-      );
-    }
+    await db.delete(suppliers).where(eq(suppliers.id, supplierId));
 
-    // Soft delete: update deletedAt and isActive
-    const [supplier] = await db
-      .update(suppliers)
-      .set({
-        deletedAt: new Date(),
-        isActive: false,
-      })
-      .where(eq(suppliers.id, supplierId))
-      .returning();
-
-    if (!supplier) {
-      return NextResponse.json(
-        { success: false, error: "Supplier not found" },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: supplier,
-      message: "Supplier moved to trash successfully",
-    });
+    return NextResponse.json({ success: true, message: "Supplier berhasil dihapus" });
   } catch (error) {
     console.error("delete supplier error:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to delete supplier" },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: "Failed to delete supplier" }, { status: 500 });
   }
 }

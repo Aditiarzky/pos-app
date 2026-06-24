@@ -116,7 +116,7 @@ export async function PATCH(
       if (existingDebt) {
         await tx
           .update(debts)
-          .set({ isActive: false, deletedAt: new Date(), status: "cancelled" })
+          .set({ isActive: false, status: "cancelled" })
           .where(eq(debts.id, existingDebt.id));
       }
 
@@ -129,7 +129,7 @@ export async function PATCH(
 
       const [cancelled] = await tx
         .update(sales)
-        .set({ isArchived: true, status: "cancelled", deletedAt: new Date() })
+        .set({ isArchived: true, status: "cancelled" })
         .where(eq(sales.id, saleId))
         .returning();
       return cancelled;

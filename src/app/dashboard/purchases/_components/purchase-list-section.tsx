@@ -53,10 +53,10 @@ export function PurchaseListSection({
   setOrder: injectedSetOrder,
   hasActiveFilters: injectedHasActiveFilters,
   resetFilters: injectedResetFilters,
-  onDelete: injectedOnDelete,
+  onEdit: injectedOnEdit,
 }: PurchaseListSectionProps &
   Partial<ReturnType<typeof usePurchaseList>> & {
-    onDelete?: (p: PurchaseResponse) => void;
+    onEdit?: (p: PurchaseResponse) => void;
   }) {
   const internalData = usePurchaseList();
 
@@ -77,7 +77,7 @@ export function PurchaseListSection({
   const hasActiveFilters =
     injectedHasActiveFilters ?? internalData.hasActiveFilters;
   const resetFilters = injectedResetFilters ?? internalData.resetFilters;
-  const handleDelete = injectedOnDelete ?? internalData.handleDelete;
+  const handleEdit = injectedOnEdit;
 
   const { roles } = useAuth();
   const userRoles = roles as string[];
@@ -268,9 +268,9 @@ export function PurchaseListSection({
                         key={purchase.id}
                         purchase={purchase}
                         onView={openReceipt}
-                        onDelete={handleDelete}
+                        onEdit={handleEdit}
                         idx={idx + 1}
-                        canDelete={canManage}
+                        canEdit={canManage}
                       />
                     ))}
                   </TableBody>
@@ -285,8 +285,8 @@ export function PurchaseListSection({
                 key={purchase.id}
                 purchase={purchase}
                 onView={openReceipt}
-                onDelete={handleDelete}
-                canDelete={canManage}
+                onEdit={handleEdit}
+                canEdit={canManage}
               />
             ))}
           </div>

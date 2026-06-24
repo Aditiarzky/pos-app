@@ -7,12 +7,15 @@ interface AnimatedNumberProps {
   value: number;
   duration?: number;
   className?: string;
+  /** Custom formatter for the displayed value. Defaults to compact notation. */
+  formatter?: (value: number) => string;
 }
 
 export function AnimatedNumber({
   value,
   duration = 1000,
   className,
+  formatter = formatCompactNumber,
 }: AnimatedNumberProps) {
   const [displayValue, setDisplayValue] = useState(0);
   const startValueRef = useRef(displayValue);
@@ -49,5 +52,5 @@ export function AnimatedNumber({
     };
   }, [value, duration]);
 
-  return <span className={className}>{formatCompactNumber(displayValue)}</span>;
+  return <span className={className}>{formatter(displayValue)}</span>;
 }

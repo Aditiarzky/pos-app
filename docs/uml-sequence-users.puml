@@ -1,34 +1,47 @@
 @startuml
 autonumber
 
-skinparam BoxPadding 10
-skinparam ParticipantPadding 10
-skinparam defaultFontSize 20
-skinparam maxMessageSize 400
+skinparam BoxPadding 5
+skinparam ParticipantPadding 8
+skinparam defaultFontSize 16
+skinparam maxMessageSize 300
+skinparam sequenceMessageAlign center
 
 actor "Admin Sistem" as Admin
-boundary "UI Kelola Pengguna" as UI
-control "User Controller" as Controller
-database "DB" as DB
+boundary "UI Manajemen User" as UI
+control "User Controller" as Ctrl
+database "users" as u
+database "user_roles" as r
 
-== 1. Pengelolaan Data Pengguna ==
-Admin -> UI : Pilih Aksi (Tambah / Edit / Hapus)
+== Manajemen Pengguna (CRUD) ==
 
-alt Aksi: Tambah User
-    Admin -> UI : Input data & password
-    UI -> Controller : Kirim data pengguna baru
-    Controller -> Controller : Hash Password & Validasi
-    Controller -> DB : Simpan data pengguna & role
-else Aksi: Edit User
-    Admin -> UI : Ubah data / password
-    UI -> Controller : Kirim pembaruan data pengguna
-    Controller -> DB : Perbarui data pengguna
-else Aksi: Hapus User
-    Admin -> UI : Klik Hapus
-    UI -> Controller : Request hapus pengguna
-    Controller -> DB : Hapus data pengguna
+alt CREATE - Tambah User Baru
+    Admin -> UI : Input data user (nama, email, telepon, role)
+    UI -> Ctrl : Insert user baru
+    activate Ctrl
+    Ctrl -> u : INSERT users (name, email, phone, password, imageUrl)
+    Ctrl -> r : INSERT user_roles (userId, roleId, storeId)
+    u --> UI : Konfirmasi berhasil
+    deactivate Ctrl
+
+else UPDATE - Perbarui User
+    Admin -> UI : Edit data user (termasuk role)
+    UI -> Ctrl : Update user (id)
+    activate Ctrl
+    Ctrl -> u : UPDATE users (nama, email, telepon, password)
+    Ctrl -> r : DELETE user_roles lama
+    Ctrl -> r : INSERT user_roles baru (sync role terbaru)
+    u --> UI : Konfirmasi berhasil
+    deactivate Ctrl
+
+else DELETE - Hapus User
+    Admin -> UI : Klik hapus user
+    UI -> Ctrl : Delete user (id)
+    activate Ctrl
+    Ctrl -> u : DELETE users (hard delete, cascade)
+    note right: user_roles terhapus otomatis
+    u --> UI : Konfirmasi berhasil
+    deactivate Ctrl
 end
 
-Controller --> UI : Konfirmasi Berhasil
-UI --> Admin : Refresh list pengguna
 @enduml

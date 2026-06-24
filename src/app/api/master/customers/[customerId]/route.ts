@@ -6,6 +6,7 @@ import {
 } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { validateCustomerUpdateData } from "@/lib/validations/customer";
+import { verifySession } from "@/lib/auth";
 import { and, desc, eq, not, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -146,45 +147,21 @@ export async function DELETE(
   { params }: { params: Promise<{ customerId: string }> },
 ) {
   try {
+    const session = await verifySession();
+    if (!session) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    if (!session.roles.includes("admin sistem")) {
+      return NextResponse.json({ success: false, error: "Forbidden: Admin Sistem role required" }, { status: 403 });
+    }
+
     const { customerId: rawId } = await params;
     const customerId = Number(rawId);
+    if (isNaN(customerId)) return NextResponse.json({ success: false, error: "Invalid customer ID" }, { status: 400 });
 
-    if (isNaN(customerId)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid customer ID format" },
-        { status: 400 },
-      );
-    }
+    await db.delete(customers).where(eq(customers.id, customerId));
 
-    const [updatedCustomer] = await db
-      .update(customers)
-      .set({
-        isActive: false,
-        deletedAt: new Date(),
-      })
-      .where(and(eq(customers.id, customerId), eq(customers.isActive, true)))
-      .returning();
-
-    if (!updatedCustomer) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Customer not found or already deactivated",
-        },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: updatedCustomer,
-      message: "Customer successfully deactivated",
-    });
+    return NextResponse.json({ success: true, message: "Customer berhasil dihapus" });
   } catch (error) {
     console.error("Delete customer error:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }

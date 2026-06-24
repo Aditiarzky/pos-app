@@ -427,12 +427,12 @@ export function ReturnListSection() {
                                 variant="ghost"
                                 className="text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
                                 onClick={() =>
-                                  handleStatusUpdate(ret.id, "complete")
+                                  handleStatusUpdate(ret.id!, "complete")
                                 }
-                                disabled={isUpdatingStatusId === ret.id}
+                                disabled={isUpdatingStatusId === ret.id!}
                                 title="Tandai Selesai"
                               >
-                                {isUpdatingStatusId === ret.id ? (
+                                {isUpdatingStatusId === ret.id! ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
                                   <Check className="h-4 w-4" />
@@ -444,7 +444,7 @@ export function ReturnListSection() {
                                     size="icon"
                                     variant="ghost"
                                     className="text-destructive hover:bg-destructive/10"
-                                    disabled={isUpdatingStatusId === ret.id}
+                                    disabled={isUpdatingStatusId === ret.id!}
                                     title="Batalkan Retur"
                                   >
                                     <X className="h-4 w-4" />
@@ -464,7 +464,7 @@ export function ReturnListSection() {
                                     <AlertDialogCancel>Tidak</AlertDialogCancel>
                                     <AlertDialogAction
                                       onClick={() =>
-                                        handleStatusUpdate(ret.id, "cancel")
+                                        handleStatusUpdate(ret.id!, "cancel")
                                       }
                                       className="bg-destructive hover:bg-destructive/90"
                                     >
@@ -576,11 +576,11 @@ export function ReturnListSection() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleStatusUpdate(ret.id, "complete")}
-                        disabled={isUpdatingStatusId === ret.id}
+                        onClick={() => handleStatusUpdate(ret.id!, "complete")}
+                        disabled={isUpdatingStatusId === ret.id!}
                         className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs border-emerald-400 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 flex-1"
                       >
-                        {isUpdatingStatusId === ret.id ? (
+                        {isUpdatingStatusId === ret.id! ? (
                           <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
                         ) : (
                           <Check className="mr-1 h-3.5 w-3.5" />
@@ -592,7 +592,7 @@ export function ReturnListSection() {
                           <Button
                             variant="outline"
                             size="sm"
-                            disabled={isUpdatingStatusId === ret.id}
+                            disabled={isUpdatingStatusId === ret.id!}
                             className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs border-destructive/50 text-destructive hover:bg-destructive/10 flex-1"
                           >
                             <X className="mr-1 h-3.5 w-3.5" />
@@ -613,7 +613,7 @@ export function ReturnListSection() {
                             <AlertDialogCancel>Tidak</AlertDialogCancel>
                             <AlertDialogAction
                               onClick={() =>
-                                handleStatusUpdate(ret.id, "cancel")
+                                handleStatusUpdate(ret.id!, "cancel")
                               }
                               className="bg-destructive hover:bg-destructive/90"
                             >
@@ -657,7 +657,7 @@ export function ReturnListSection() {
             <DialogTitle>Nota Retur</DialogTitle>
           </DialogHeader>
 
-          <div className="px-4 pb-4 overflow-y-auto flex-grow custom-scrollbar">
+          <div className="px-4 pb-4 bg-white overflow-y-auto flex-grow custom-scrollbar">
             {returnDataResult && (
               <ReturnReceipt ref={receiptRef} result={returnDataResult} />
             )}

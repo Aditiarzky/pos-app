@@ -21,6 +21,7 @@ package "Domain Model: Sale" {
         - totalPaid: Decimal
         - totalReturn: Decimal
         - totalBalanceUsed: Decimal
+        - shouldPayOldDebt: Boolean
         - status: SaleStatus
         - paymentMethod: PaymentMethod
         - qrisOrderId: String
@@ -29,6 +30,7 @@ package "Domain Model: Sale" {
         + addItem(item: SaleItem): void
         + calculateTotal(): Decimal
         + processPayment(paidAmount: Decimal): void
+        + allocateChangeToDebts(surplus: Decimal): Decimal
         + confirmQRIS(orderId: String): Boolean
         + cancel(): void
         + generateDigitalReceipt(): String
@@ -85,6 +87,8 @@ package "External Reference" {
 note top of Sale
   Jantung dari sistem transaksi POS.
   Mengelola state pembayaran (Pending -> Completed/Debt).
+  shouldPayOldDebt = auto-bayar hutang dari kembalian tunai.
+  allocateChangeToDebts() mengalokasikan kembalian ke hutang aktif pelanggan.
 end note
 
 note right of SaleItem

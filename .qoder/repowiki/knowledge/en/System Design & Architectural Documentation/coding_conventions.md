@@ -1,0 +1,2 @@
+- Module-specific UML diagrams are segregated by type and domain, following the naming pattern `uml-{type}-{module}.puml` (e.g., `uml-class-module-a-product.puml`).
+- Functional documentation adopts a bilingual approach, using Indonesian for primary system descriptions and English for technical implementation plans and code-level terminology.

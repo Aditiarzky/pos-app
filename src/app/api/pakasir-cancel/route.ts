@@ -146,7 +146,6 @@ export async function POST(request: NextRequest) {
         .set({
           isArchived: true,
           status: "cancelled",
-          deletedAt: new Date(),
         })
         .where(eq(sales.id, saleId))
         .returning();

@@ -15,6 +15,7 @@ import {
   Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/format";
 import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 import { ReportSummary } from "@/services/reportService";
 import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
@@ -79,11 +80,8 @@ export function OverviewSection({
             ) : (
               <div className="flex flex-col">
                 <div className="flex items-center justify-between">
-                  <div className="text-2xl font-bold flex items-baseline gap-1">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Rp
-                    </span>
-                    <AnimatedNumber value={summary?.totalSales || 0} />
+                  <div className="text-2xl font-bold">
+                    <AnimatedNumber value={summary?.totalSales || 0} formatter={formatCurrency} />
                   </div>
                   <PercentageBadge
                     value={calcChange(
@@ -116,11 +114,8 @@ export function OverviewSection({
             ) : (
               <div className="flex flex-col">
                 <div className="flex items-center justify-between">
-                  <div className="text-2xl font-bold flex items-baseline gap-1">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Rp
-                    </span>
-                    <AnimatedNumber value={netCashFlow} />
+                  <div className="text-2xl font-bold">
+                    <AnimatedNumber value={netCashFlow} formatter={formatCurrency} />
                   </div>
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-1 font-medium">
@@ -181,11 +176,8 @@ export function OverviewSection({
             ) : (
               <div className="flex flex-col">
                 <div className="flex items-center justify-between">
-                  <div className="text-2xl font-bold flex items-baseline gap-1">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      Rp
-                    </span>
-                    <AnimatedNumber value={summary?.netProfit || 0} />
+                  <div className="text-2xl font-bold">
+                    <AnimatedNumber value={summary?.netProfit || 0} formatter={formatCurrency} />
                   </div>
                 </div>
                 <div className="text-[10px] text-muted-foreground mt-1 font-medium">

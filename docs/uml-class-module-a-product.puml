@@ -27,7 +27,7 @@ package "Domain Model: Product" {
         + updateStock(amount: Decimal): void
         + calculateHPP(): Decimal
         + checkLowStock(): Boolean
-        + deactivate(): void
+        + delete(): void
         + updateInfo(name: String, sku: String, minStock: Decimal): void
     }
 
@@ -87,8 +87,10 @@ note top of Product
 end note
 
 note right of ProductVariant
-  Mengelola variasi satuan dan harga jual.
-  Mendukung multi-satuan per Product.
+  Mengelola variasi satuan 
+  dan harga jual.
+  Mendukung multi-satuan 
+  per Product.
 end note
 
 @enduml

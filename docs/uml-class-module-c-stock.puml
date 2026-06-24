@@ -27,8 +27,16 @@ package "Domain Model: Inventory" {
         + getVariantDetail(): ProductVariant
     }
 
+    class StockOpnameWorksheet {
+        - generatedAt: DateTime
+        - items: List<WorksheetItem>
+        + generate(products: List<Product>): String
+        + processResult(variantId: Integer, physicalQty: Decimal): void
+    }
+
     enum StockMutationType {
         PURCHASE
+        PURCHASE_CANCEL
         SALE
         WASTE
         ADJUSTMENT
@@ -41,6 +49,7 @@ package "Domain Model: Inventory" {
     StockMutation "0..*" -- "1" Product : records change on >
     StockMutation "0..*" -- "1" ProductVariant : via variant >
     StockMutation ..> StockMutationType : using >
+    StockOpnameWorksheet ..> StockMutation : triggers >
 }
 
 package "External Reference" {
@@ -52,12 +61,23 @@ package "External Reference" {
 }
 
 ' Catatan Fungsional
-note top of StockMutation
-  Objek ini merepresentasikan setiap perubahan stok.
-  Data ini menjadi acuan utama untuk audit log stok.
+note bottom of StockMutation
+  Objek ini merepresentasikan 
+  setiap perubahan stok.
+  Data ini menjadi acuan 
+  utama untuk audit log stok.
+  PURCHASE_CANCEL digunakan 
+  saat edit/hapus purchase.
 end note
 
-note right of StockMutationType
+note bottom of StockOpnameWorksheet
+  Lembar kerja cetak 
+  untuk stock opname offline.
+  Admin Toko cetak, 
+  Admin Sistem input hasil.
+end note
+
+note bottom of StockMutationType
   Mendefinisikan sumber perubahan stok
   (Sale, Purchase, Stock Adjustment, dll).
 end note

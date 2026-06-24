@@ -518,7 +518,31 @@ export async function POST(request: NextRequest) {
           );
       }
 
-      // --- F. RETURN RESPONSE MESSAGES ---
+      // --- F. CEK APAKAH SEMUA ITEM SUDAH DIRETUR PENUH ---
+      const allFullyReturned = existingSale.items.every((saleItem) => {
+        const prevReturnedQty = existingSale.customerReturns.reduce(
+          (sum, ret) => {
+            const itemMatch = ret.items.find(
+              (i) => i.variantId === saleItem.variantId,
+            );
+            return sum + (itemMatch ? Number(itemMatch.qty) : 0);
+          },
+          0,
+        );
+        const thisReturnQty = returnItemsToInsert
+          .filter((i) => i.variantId === saleItem.variantId)
+          .reduce((sum, i) => sum + Number(i.qty), 0);
+        return prevReturnedQty + thisReturnQty >= Number(saleItem.qty);
+      });
+
+      if (allFullyReturned) {
+        await tx
+          .update(sales)
+          .set({ status: "refunded" })
+          .where(eq(sales.id, saleId));
+      }
+
+      // --- G. RETURN RESPONSE MESSAGES ---
       let message = "";
       const formattedTotalReturn = new Intl.NumberFormat("id-ID", {
         style: "currency",

@@ -34,8 +34,8 @@ import {
   Tag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useConfirm } from "@/contexts/ConfirmDialog";
 import { formatCompactNumber } from "@/lib/format";
+import { RelationAwareDeleteDialog } from "@/components/relation-aware-delete-dialog";
 import { calculateVariantMargin } from "@/lib/product-utils";
 import { ProductResponse } from "@/services/productService";
 
@@ -247,6 +247,27 @@ function ProductDetailModal({
                           </div>
                         </div>
 
+                        {/* Stok per unit varian */}
+                        <div className="mt-3 pt-3 border-t border-border/30 flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+                              Stok Tersedia
+                            </span>
+                          </div>
+                          <span className={cn(
+                            "text-xs sm:text-sm font-black",
+                            Math.floor(stockNum / Number(v.conversionToBase)) < 1
+                              ? "text-destructive"
+                              : "text-foreground"
+                          )}>
+                            {Math.floor(stockNum / Number(v.conversionToBase))}{" "}
+                            <span className="text-[10px] font-medium text-muted-foreground">
+                              {v.unit?.name || product.unit?.name}
+                            </span>
+                          </span>
+                        </div>
+
                         {isSystemAdmin && margin.hpp > 0 && (
                           <div className="mt-4 pt-3 border-t border-dashed border-border/60 flex items-center justify-between gap-4">
                             <div className="flex items-center gap-2">
@@ -384,8 +405,9 @@ export function ProductCard({
   onAdjust,
   isSystemAdmin = false,
 }: ProductCardProps) {
-  const confirm = useConfirm();
   const [modalOpen, setModalOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const stockNum = Number(product.stock);
   const minStockNum = Number(product.minStock);
   const isLowStock = stockNum < minStockNum && minStockNum > 0;
@@ -396,26 +418,33 @@ export function ProductCard({
     return `Rp ${min.toLocaleString("id-ID")}`;
   }, [product.variants]);
 
-  const handleDeleteClick = async () => {
+  const handleDeleteClick = () => {
     if (!onDelete) return;
-    const isConfirmed = await confirm({
-      title: "Hapus Produk?",
-      description: (
-        <span>
-          Apakah Anda yakin ingin menghapus <strong>{product.name}</strong>?
-          Data akan dipindahkan ke tempat sampah.
-        </span>
-      ),
-      confirmText: "Ya, Hapus",
-      cancelText: "Batal",
-    });
-    if (isConfirmed) {
-      onDelete(product.id);
+    setDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!onDelete) return;
+    setIsDeleting(true);
+    try {
+      await onDelete(product.id);
+      setDeleteOpen(false);
+      setModalOpen(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   return (
     <>
+      <RelationAwareDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        itemName={product.name}
+        relationsUrl={`/api/products/${product.id}/relations`}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+      />
       <ProductDetailModal
         handleDeleteClick={handleDeleteClick}
         product={product}

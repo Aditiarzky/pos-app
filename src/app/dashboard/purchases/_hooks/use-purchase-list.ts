@@ -10,7 +10,6 @@ import {
   usePurchases,
   useDeletePurchase,
 } from "@/hooks/purchases/use-purchases";
-import { useConfirm } from "@/contexts/ConfirmDialog";
 import { toast } from "sonner";
 import {
   PurchasesQueryParams,
@@ -60,7 +59,7 @@ export interface UsePurchaseListReturn {
     todayItemsQty?: number;
   };
   // Actions
-  handleDelete: (purchase: PurchaseResponse) => Promise<void>;
+  handleDelete: (purchaseId: number) => Promise<void>;
   isDeleting: boolean;
 }
 
@@ -110,7 +109,6 @@ export function usePurchaseList(): UsePurchaseListReturn {
 
   // Delete mutation
   const deleteMutation = useDeletePurchase();
-  const confirm = useConfirm();
 
   // Check if filters are active
   const hasActiveFilters = orderBy !== "createdAt" || order !== "desc";
@@ -122,24 +120,15 @@ export function usePurchaseList(): UsePurchaseListReturn {
     setPage(1);
   };
 
-  // Delete handler
-  const handleDelete = async (purchase: PurchaseResponse) => {
-    const ok = await confirm({
-      title: "Hapus Pembelian",
-      description: `Apakah Anda yakin ingin menghapus transaksi ${purchase.orderNumber}? Stok produk akan dikembalikan dan data akan diarsipkan.`,
-      confirmText: "Ya, Hapus",
-      cancelText: "Batal",
-    });
-
-    if (ok) {
-      try {
-        await deleteMutation.mutateAsync(purchase.id);
-        toast.success("Transaksi berhasil dihapus");
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Gagal menghapus transaksi";
-        toast.error(errorMessage);
-      }
+  // Delete handler (no confirm dialog — modal in form handles confirmation)
+  const handleDelete = async (purchaseId: number) => {
+    try {
+      await deleteMutation.mutateAsync(purchaseId);
+      toast.success("Transaksi berhasil dihapus permanen");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Gagal menghapus transaksi";
+      toast.error(errorMessage);
     }
   };
 

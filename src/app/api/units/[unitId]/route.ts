@@ -93,41 +93,16 @@ export async function DELETE(
 ) {
   try {
     const authError = await requireSystemAdmin();
-
-    if (authError) {
-      return authError;
-    }
+    if (authError) return authError;
 
     const unitId = await getUnitId(params);
-
     if (Number.isNaN(unitId)) {
-      return NextResponse.json(
-        { success: false, error: "Invalid unit ID" },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, error: "Invalid unit ID" }, { status: 400 });
     }
 
-    const [unit] = await db
-      .update(units)
-      .set({
-        isActive: false,
-        deletedAt: new Date(),
-      })
-      .where(eq(units.id, unitId))
-      .returning();
+    await db.delete(units).where(eq(units.id, unitId));
 
-    if (!unit) {
-      return NextResponse.json(
-        { success: false, error: "Unit not found" },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: unit,
-      message: "Satuan dipindahkan ke trash",
-    });
+    return NextResponse.json({ success: true, message: "Satuan berhasil dihapus" });
   } catch (error) {
     return handleApiError(error);
   }

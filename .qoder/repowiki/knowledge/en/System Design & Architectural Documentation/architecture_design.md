@@ -1,0 +1,4 @@
+- **Specification Layer**: High-level system descriptions (`deskripsi-sistem.md`) and functional requirements (`kebutuhan-fungsional.md`) define Role-Based Access Control (RBAC) boundaries between 'Store Admin' and 'System Admin'.
+- **Modeling Layer**: Extensive PlantUML artifacts (`uml-*.puml`) covering Class, Use Case, Sequence, and Activity diagrams for core modules (Product, Purchase, Sales, Debt, Return, Stock).
+- **Process Logic**: Detailed system flow documentation (`system-flow-uml.md`) maps actor interactions to backend logic, including weighted average cost calculations and soft-delete trash mechanics.
+- **Audit & Planning**: Strategic documents (`ui-standardization-phase-1-audit.md`, `pwa-implementation-plan.md`) track UI consistency tokens and Progressive Web App migration feasibility.

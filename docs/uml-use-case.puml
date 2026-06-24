@@ -12,9 +12,9 @@ actor "Admin Sistem" as SystemAdmin
 StoreAdmin <|-- SystemAdmin
 
 rectangle "Modul Sistem POS" {
-    
+
     package "Modul A: Pengelolaan Produk" {
-        usecase "Kelola Produk & Kategori" as UC_Product
+        usecase "Kelola Produk, Varian & Kategori" as UC_Product
     }
 
     package "Modul B: Pengelolaan Pembelian" {
@@ -38,41 +38,38 @@ rectangle "Modul Sistem POS" {
     }
 
     package "Modul G: Laporan & Keuangan" {
-        usecase "Lihat Laporan Keuangan" as UC_Report
+        usecase "Lihat Laporan Laba Rugi (Single-Step)" as UC_Report
         usecase "Konfigurasi Biaya Operasional & Pajak" as UC_Finance
     }
 
-    package "Modul H: Pengelolaan Sampah Data" {
-        usecase "Pulihkan / Hapus Permanen Data" as UC_Trash
-    }
-
     package "Modul I: Pengelolaan Pengguna" {
-        usecase "Kelola Pengguna Sistem" as UC_User
+        usecase "Kelola Pengguna & Hak Akses" as UC_User
     }
 }
 
-' Hak Akses Admin Toko (Operasional Garis Depan)
+' ── Hak Akses Admin Toko (Operasional Garis Depan) ──
+StoreAdmin --> UC_Product
+StoreAdmin --> UC_Purchase
 StoreAdmin --> UC_Sale
 StoreAdmin --> UC_Return
 StoreAdmin --> UC_Debt
 
-' Hak Akses Admin Sistem (Manajerial & Back-office)
-SystemAdmin --> UC_Product
-SystemAdmin --> UC_Purchase
-SystemAdmin --> UC_Stock
+' ── Hak Akses Admin Sistem (Manajerial & Back-office) ──
 SystemAdmin --> UC_Report
 SystemAdmin --> UC_Finance
-SystemAdmin --> UC_Trash
+SystemAdmin --> UC_Stock
 SystemAdmin --> UC_User
 
-' Ketergantungan Fungsional
+' ── Ketergantungan Fungsional ──
+UC_Stock ..> UC_Product : <<include>> Update Stok Produk
 UC_Sale ..> UC_Stock : <<include>> Update Stok
 UC_Purchase ..> UC_Stock : <<include>> Update Stok
-UC_Return ..> UC_Sale : <<extend>> Validasi Nota
 UC_Purchase ..> UC_Product : <<include>> Update HPP
+UC_Return ..> UC_Sale : <<extend>> Validasi Nota
+UC_Return ..> UC_Stock : <<include>> Restok / Tukar
 UC_Debt ..> UC_Sale : <<extend>> Dipicu Penjualan Kredit
-UC_Report ..> UC_Sale : <<include>> Agregasi Data
-UC_Report ..> UC_Purchase : <<include>> Agregasi Data
-UC_Trash ..> UC_Product : <<extend>> Arsip/Pulihkan
+UC_Report ..> UC_Sale : <<include>> Agregasi Penjualan
+UC_Report ..> UC_Purchase : <<include>> Agregasi Pembelian
+UC_Report ..> UC_Finance : <<include>> Biaya & Pajak
 
 @enduml

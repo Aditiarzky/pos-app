@@ -87,6 +87,8 @@ export function usePurchaseForm({
           price: Number(item.price) || 0,
           productName: item.product?.name ?? null,
           variantName: item.productVariant?.name ?? null,
+          image: item.product?.image ?? null,
+          lastPurchaseCost: Number(item.product?.lastPurchaseCost || 0),
         })) || [],
     },
   });
@@ -120,6 +122,8 @@ export function usePurchaseForm({
               price: Number(item.price),
               productName: item.product?.name ?? null,
               variantName: item.productVariant?.name ?? null,
+              image: item.product?.image ?? null,
+              lastPurchaseCost: Number(item.product?.lastPurchaseCost || 0),
             })) || [],
         });
       } else {

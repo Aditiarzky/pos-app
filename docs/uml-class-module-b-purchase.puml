@@ -22,8 +22,9 @@ package "Domain Model: Purchase" {
         - createdAt: DateTime
         + calculateTotal(): Decimal
         + addItem(item: PurchaseItem): void
-        + archive(): void
-        + cancel(): void
+        + editNote(items: List<PurchaseItem>): void
+        + hardDelete(): void
+        + reverseAverageCost(item: PurchaseItem): void
         + getSupplierDetail(): Supplier
     }
 
@@ -70,7 +71,9 @@ package "External Reference" {
 ' Catatan Fungsional
 note top of PurchaseOrder
   Mengelola data transaksi masuk dari Supplier.
-  Penting untuk pembaruan stok dan HPP.
+  editNote() = "Data Salah" (Revert & Re-apply, Admin Sistem & Admin Toko).
+  hardDelete() = "Data Tidak Berguna" (Admin Sistem only, hard delete).
+  reverseAverageCost() membatalkan pengaruh HPP item pada stok produk.
 end note
 
 note right of PurchaseItem

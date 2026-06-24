@@ -126,6 +126,7 @@ export async function GET(request: NextRequest) {
             and(
               not(sales.isArchived),
               not(eq(sales.status, "cancelled")),
+              not(eq(sales.status, "refunded")),
               sql`${sales.createdAt} >= ${todayStart}`,
               sql`${sales.createdAt} <= ${todayEnd}`,
             ),
@@ -140,6 +141,7 @@ export async function GET(request: NextRequest) {
             and(
               not(sales.isArchived),
               not(eq(sales.status, "cancelled")),
+              not(eq(sales.status, "refunded")),
               sql`${sales.createdAt} >= ${todayStart}`,
               sql`${sales.createdAt} <= ${todayEnd}`,
             ),
@@ -179,6 +181,7 @@ export async function GET(request: NextRequest) {
             and(
               not(sales.isArchived),
               not(eq(sales.status, "cancelled")),
+              not(eq(sales.status, "refunded")),
               sql`${sales.createdAt} >= ${yesterdayStart}`,
               sql`${sales.createdAt} <= ${yesterdayEnd}`,
             ),
@@ -193,6 +196,7 @@ export async function GET(request: NextRequest) {
             and(
               not(sales.isArchived),
               not(eq(sales.status, "cancelled")),
+              not(eq(sales.status, "refunded")),
               sql`${sales.createdAt} >= ${yesterdayStart}`,
               sql`${sales.createdAt} <= ${yesterdayEnd}`,
             ),
@@ -608,7 +612,7 @@ export async function POST(request: NextRequest) {
         // Revert sale
         await db
           .update(sales)
-          .set({ isArchived: true, status: "cancelled", deletedAt: new Date() })
+          .set({ isArchived: true, status: "cancelled" })
           .where(eq(sales.id, result.id));
 
         // Revert stok

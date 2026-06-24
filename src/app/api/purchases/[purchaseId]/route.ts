@@ -44,6 +44,8 @@ export async function GET(
                 name: true,
                 stock: true,
                 averageCost: true,
+                lastPurchaseCost: true,
+                image: true,
               },
             },
             productVariant: {
@@ -147,30 +149,22 @@ export async function PUT(
           const currentAvgCost = Number(product.averageCost);
 
           // LOGIKA REVERSE WEIGHTED AVERAGE
-          // Total Nilai Aset Sekarang = Stok * AvgCost
           const currentTotalAssetValue = currentStock * currentAvgCost;
-
-          // Nilai Pembelian yang mau dihapus = QtyLama * HargaBeliLama
           const valueToRemove = oldQtyBase * oldPriceBase;
 
-          // Hitung Stok dan Nilai Aset setelah dikurangi pembelian ini
           const revertedStock = currentStock - oldQtyBase;
           const revertedTotalAssetValue =
             currentTotalAssetValue - valueToRemove;
 
           let revertedAvgCost = 0;
           if (revertedStock <= 0) {
-            // Jika stok habis setelah direvert, kembalikan ke costBefore (Initial HPP)
-            // Ini menjaga agar jika nanti diisi stok baru, mulainya dari harga modal terakhir yang relevan
             revertedAvgCost = Number(oldItem.costBefore);
           } else {
             revertedAvgCost = revertedTotalAssetValue / revertedStock;
           }
 
-          // Hindari AvgCost negatif karena floating point error
           if (revertedAvgCost < 0) revertedAvgCost = 0;
 
-          // Update Product (State Sementara sebelum item baru dimasukkan)
           await tx
             .update(products)
             .set({
@@ -178,19 +172,22 @@ export async function PUT(
               averageCost: revertedAvgCost.toFixed(4),
             })
             .where(eq(products.id, oldItem.productId));
+
+          // Insert mutasi pembatalan (audit trail untuk item lama)
+          await tx.insert(stockMutations).values({
+            productId: oldItem.productId,
+            variantId: oldItem.variantId,
+            type: "purchase_cancel",
+            qtyBaseUnit: (-oldQtyBase).toFixed(4),
+            unitFactorAtMutation: variant.conversionToBase,
+            reference: `EDIT-PO-${poId.toString().padStart(6, "0")}`,
+            userId: existingOrder.userId,
+          });
         }
       }
 
-      // Hapus Item & Mutasi Lama
+      // Hapus Item Lama (mutasi lama tetap disimpan sebagai audit trail)
       await tx.delete(purchaseItems).where(eq(purchaseItems.purchaseId, poId));
-      await tx
-        .delete(stockMutations)
-        .where(
-          eq(
-            stockMutations.reference,
-            `PO-${poId.toString().padStart(6, "0")}`,
-          ),
-        );
 
       // --- STEP 2: APPLY NEW ITEMS (Sama persis seperti POST) ---
       let grandTotal = 0;
@@ -295,7 +292,7 @@ export async function PUT(
   }
 }
 
-// --- DELETE: ARCHIVE PURCHASE (REVERSE LOGIC) ---
+// --- DELETE: HARD DELETE PURCHASE (REVERSE WAC + CASCADE) ---
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ purchaseId: string }> },
@@ -309,12 +306,9 @@ export async function DELETE(
       );
     }
 
-    if (
-      !session.roles.includes("admin sistem") &&
-      !session.roles.includes("admin toko")
-    ) {
+    if (!session.roles.includes("admin sistem")) {
       return NextResponse.json(
-        { success: false, error: "Forbidden: Admin role required" },
+        { success: false, error: "Forbidden: Admin Sistem role required" },
         { status: 403 },
       );
     }
@@ -326,18 +320,18 @@ export async function DELETE(
         { status: 400 },
       );
 
-    const result = await db.transaction(async (tx) => {
+    await db.transaction(async (tx) => {
       const existingOrder = await tx.query.purchaseOrders.findFirst({
         where: eq(purchaseOrders.id, poId),
       });
       if (!existingOrder) throw new Error("Purchase Order not found");
-      if (existingOrder.isArchived) throw new Error("Already archived");
 
       const oldItems = await tx
         .select()
         .from(purchaseItems)
         .where(eq(purchaseItems.purchaseId, poId));
 
+      // STEP 1: Reverse WAC per item + insert cancel mutation
       for (const item of oldItems) {
         const product = await tx.query.products.findFirst({
           where: eq(products.id, item.productId),
@@ -354,7 +348,6 @@ export async function DELETE(
           const currentStock = Number(product.stock);
           const currentAvgCost = Number(product.averageCost);
 
-          // LOGIKA REVERSE YANG SAMA DENGAN PUT
           const currentTotalValue = currentStock * currentAvgCost;
           const valueToRemove = qtyToRemove * pricePaidBase;
 
@@ -363,7 +356,6 @@ export async function DELETE(
 
           let newAvgCost = 0;
           if (newStock <= 0) {
-            // Jika stok habis, kembalikan ke history costBefore
             newAvgCost = Number(item.costBefore);
           } else {
             newAvgCost = newTotalValue / newStock;
@@ -379,7 +371,7 @@ export async function DELETE(
             })
             .where(eq(products.id, item.productId));
 
-          // Catat Mutasi Void/Adjustment
+          // Catat mutasi pembatalan (audit trail)
           await tx.insert(stockMutations).values({
             productId: item.productId,
             variantId: item.variantId,
@@ -392,19 +384,14 @@ export async function DELETE(
         }
       }
 
-      const [archivedOrder] = await tx
-        .update(purchaseOrders)
-        .set({ isArchived: true, deletedAt: new Date() })
-        .where(eq(purchaseOrders.id, poId))
-        .returning();
-
-      return archivedOrder;
+      // STEP 2: Hard-delete purchase_items, then purchase_orders
+      await tx.delete(purchaseItems).where(eq(purchaseItems.purchaseId, poId));
+      await tx.delete(purchaseOrders).where(eq(purchaseOrders.id, poId));
     });
 
     return NextResponse.json({
       success: true,
-      message: "Archived successfully",
-      data: result,
+      message: "Pembelian berhasil dihapus permanen",
     });
   } catch (error) {
     return handleApiError(error);

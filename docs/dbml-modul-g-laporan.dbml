@@ -1,0 +1,67 @@
+// ═══════════════════════════════════════════════════
+// Modul G: Pengelolaan Laporan
+// Paste ke https://dbdiagram.io untuk generate diagram
+// ═══════════════════════════════════════════════════
+
+enum cost_category {
+  utilities
+  salary
+  rent
+  logistics
+  marketing
+  maintenance
+  other
+}
+
+enum cost_period {
+  daily
+  weekly
+  monthly
+  yearly
+  one_time
+}
+
+enum tax_type {
+  percentage
+  fixed
+}
+
+enum tax_applies_to {
+  revenue
+  gross_profit
+}
+
+Table operational_costs {
+  id serial [pk, increment]
+  name varchar(150) [not null]
+  category cost_category [not null, default: 'other']
+  amount decimal(14,2) [not null]
+  period cost_period [not null, default: 'monthly']
+  effective_from date [not null]
+  effective_to date
+  is_active boolean [default: true]
+  notes text
+  created_at timestamp
+  updated_at timestamp
+  created_by integer [ref: > users.id]
+}
+
+Table tax_configs {
+  id serial [pk, increment]
+  name varchar(150) [not null]
+  type tax_type [not null, default: 'percentage']
+  rate decimal(6,4)
+  fixed_amount decimal(14,2)
+  applies_to tax_applies_to
+  period cost_period [default: 'monthly']
+  effective_from date [not null]
+  effective_to date
+  is_active boolean [default: true]
+  notes text
+  created_at timestamp
+  updated_at timestamp
+  created_by integer [ref: > users.id]
+}
+
+// External reference
+Table users { id serial [pk] }

@@ -19,6 +19,7 @@ import { SaleResponse } from "../../_types/sale-type";
 import { usePrintReceipt } from "../../_hooks/use-print-receipt";
 import { useUpdateSaleStatus } from "@/hooks/sales/use-sale";
 import { toast } from "sonner";
+import { useRef, useEffect } from "react";
 
 interface SaleSuccessModalProps {
   isOpen: boolean;
@@ -37,13 +38,20 @@ export function SaleSuccessModal({
     usePrintReceipt();
 
   const updateStatus = useUpdateSaleStatus();
+  const isProcessing = useRef(false);
+
+  // Reset processing flag saat sale baru dibuka
+  useEffect(() => {
+    if (sale?.id) isProcessing.current = false;
+  }, [sale?.id]);
 
   if (!sale) return null;
 
   const isPending = sale.status === "pending_payment";
 
   const handleComplete = async () => {
-    if (!sale.id) return;
+    if (!sale.id || isProcessing.current) return;
+    isProcessing.current = true;
     toast.promise(
       updateStatus.mutateAsync({ id: sale.id, action: "complete" }),
       {
@@ -56,7 +64,8 @@ export function SaleSuccessModal({
   };
 
   const handleCancel = async () => {
-    if (!sale.id) return;
+    if (!sale.id || isProcessing.current) return;
+    isProcessing.current = true;
     toast.promise(
       updateStatus.mutateAsync({ id: sale.id, action: "cancel" }),
       {
@@ -68,13 +77,27 @@ export function SaleSuccessModal({
     onNewTransaction();
   };
 
+  // Auto-complete saat modal ditutup (X, klik luar, Escape) saat masih pending
+  const handleModalClose = (open: boolean) => {
+    if (!open) {
+      if (isPending && sale.id && !isProcessing.current) {
+        isProcessing.current = true;
+        updateStatus.mutateAsync(
+          { id: sale.id, action: "complete" },
+          {
+            onSuccess: () => toast.success("Transaksi otomatis diselesaikan"),
+            onError: () => toast.error("Gagal menyelesaikan transaksi"),
+          },
+        );
+      }
+      onNewTransaction();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !isPending) onClose(); }}>
+    <Dialog open={isOpen} onOpenChange={handleModalClose}>
       <DialogContent
         className="max-w-xl max-h-[90vh] overflow-y-auto overflow-x-hidden p-0 gap-0 border-none sm:rounded-3xl"
-        // Cegah close via Escape/overlay saat masih pending
-        onInteractOutside={(e) => { if (isPending) e.preventDefault(); }}
-        onEscapeKeyDown={(e) => { if (isPending) e.preventDefault(); }}
       >
         <div className="p-6 md:p-8 space-y-6">
           <DialogHeader className="items-center text-center space-y-4">
@@ -92,7 +115,7 @@ export function SaleSuccessModal({
           </DialogHeader>
 
           {/* Receipt Preview */}
-          <div className="bg-muted/30 p-2 md:p-4 rounded-2xl border border-dashed border-muted-foreground/20">
+          <div className="bg-muted/30 bg-white p-2 md:p-4 rounded-2xl border border-dashed border-muted-foreground/20">
             <SaleReceipt ref={receiptRef} sale={sale} />
           </div>
 

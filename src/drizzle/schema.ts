@@ -25,10 +25,7 @@ export const saleStatus = p.pgEnum("sale_status", [
   "cancelled",
 ]);
 
-export const paymentMethod = p.pgEnum("payment_method", [
-  "cash",
-  "qris",
-]);
+export const paymentMethod = p.pgEnum("payment_method", ["cash", "qris"]);
 
 export const debtStatusEnum = p.pgEnum("debt_status", [
   "unpaid",
@@ -108,11 +105,18 @@ export const taxType = p.pgEnum("tax_type", [
 
 export const storeSettings = p.pgTable("store_settings", {
   id: p.serial("id").primaryKey(),
-  storeName: p.varchar("store_name", { length: 255 }).notNull().default("Nama Toko"),
+  storeName: p
+    .varchar("store_name", { length: 255 })
+    .notNull()
+    .default("Nama Toko"),
   address: p.text("address").default("Alamat Lengkap Toko"),
   phone: p.varchar("phone", { length: 50 }).default("0812-xxxx-xxxx"),
-  footerMessage: p.text("footer_message").default("Terima kasih telah berbelanja!"),
-  receiptNote: p.text("receipt_note").default("Barang yang sudah dibeli tidak dapat ditukar."),
+  footerMessage: p
+    .text("footer_message")
+    .default("Terima kasih telah berbelanja!"),
+  receiptNote: p
+    .text("receipt_note")
+    .default("Barang yang sudah dibeli tidak dapat ditukar."),
   logoUrl: p.text("logo_url"),
   updatedAt: p.timestamp("updated_at").defaultNow().notNull(),
 });
@@ -334,7 +338,6 @@ export const customers = p.pgTable("customers", {
     .timestamp("updated_at")
     .defaultNow()
     .$onUpdateFn(() => new Date()),
-  deletedAt: p.timestamp("deleted_at"),
 });
 
 export const products = p.pgTable(
@@ -492,11 +495,15 @@ export const purchaseItems = p.pgTable("purchase_items", {
 export const sales = p.pgTable("sales", {
   id: p.serial("id").primaryKey(),
   invoiceNumber: p.varchar("invoice_number", { length: 60 }).notNull().unique(),
-  customerId: p.integer("customer_id").references(() => customers.id, { onDelete: "cascade" }),
+  customerId: p
+    .integer("customer_id")
+    .references(() => customers.id, { onDelete: "cascade" }),
   totalPrice: p.decimal("total_price", { precision: 12, scale: 2 }).notNull(),
   totalPaid: p.decimal("total_paid", { precision: 12, scale: 2 }).notNull(),
   totalReturn: p.decimal("total_return", { precision: 12, scale: 2 }).notNull(),
-  totalBalanceUsed: p.decimal("total_balance_used", { precision: 12, scale: 2 }).notNull(),
+  totalBalanceUsed: p
+    .decimal("total_balance_used", { precision: 12, scale: 2 })
+    .notNull(),
   status: saleStatus("status").default("completed"),
   paymentMethod: paymentMethod("payment_method").notNull().default("cash"),
   isArchived: p.boolean("is_archived").default(false),
@@ -504,9 +511,14 @@ export const sales = p.pgTable("sales", {
   qrisExpiredAt: p.timestamp("qris_expired_at"),
   qrisOrderId: p.varchar("qris_order_id", { length: 100 }),
   createdAt: p.timestamp("created_at").defaultNow(),
-  updatedAt: p.timestamp("updated_at").defaultNow().$onUpdateFn(() => new Date()),
-  userId: p.integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-  deletedAt: p.timestamp("deleted_at"),
+  updatedAt: p
+    .timestamp("updated_at")
+    .defaultNow()
+    .$onUpdateFn(() => new Date()),
+  userId: p
+    .integer("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
 });
 
 export const saleItems = p.pgTable("sale_items", {
@@ -564,7 +576,6 @@ export const debts = p.pgTable("debts", {
 
   status: debtStatusEnum("status").default("unpaid").notNull(),
   isActive: p.boolean("is_active").default(true).notNull(),
-  deletedAt: p.timestamp("deleted_at"),
   createdAt: p.timestamp("created_at").defaultNow(),
   updatedAt: p
     .timestamp("updated_at")
@@ -693,7 +704,6 @@ export const customerReturns = p.pgTable("customer_returns", {
     .integer("user_id")
     .references(() => users.id, { onDelete: "cascade" })
     .notNull(),
-  deletedAt: p.timestamp("deleted_at"),
 });
 
 export const customerReturnItems = p.pgTable("customer_return_items", {
@@ -824,49 +834,56 @@ export const notificationStates = p.pgTable(
       .notNull(),
   },
   (t) => [
-    p.uniqueIndex("notification_states_user_notification_uidx").on(
-      t.userId,
-      t.notificationId,
-    ),
+    p
+      .uniqueIndex("notification_states_user_notification_uidx")
+      .on(t.userId, t.notificationId),
     p.index("notification_states_user_idx").on(t.userId),
   ],
 );
 
-export const trashSettings = p.pgTable("trash_settings", {
-  id: p.serial("id").primaryKey(),
-  lastCheckAt: p.timestamp("last_check_at"), // Untuk throttling pengecekan
-  lastCleanupAt: p.timestamp("last_cleanup_at"), // Untuk UI & Notifikasi (hanya jika hapus berhasil)
-  cleanupIntervalMinutes: p.integer("cleanup_interval_minutes").default(360).notNull(),
-  updatedAt: p.timestamp("updated_at").defaultNow().$onUpdateFn(() => new Date()),
-});
+// [REMOVED: trash feature] — uncomment to restore or delete permanently
+// export const trashSettings = p.pgTable("trash_settings", {
+//   id: p.serial("id").primaryKey(),
+//   lastCheckAt: p.timestamp("last_check_at"),
+//   lastCleanupAt: p.timestamp("last_cleanup_at"),
+//   cleanupIntervalMinutes: p
+//     .integer("cleanup_interval_minutes")
+//     .default(360)
+//     .notNull(),
+//   updatedAt: p
+//     .timestamp("updated_at")
+//     .defaultNow()
+//     .$onUpdateFn(() => new Date()),
+// });
 
-export const productAuditAction = p.pgEnum("product_audit_action", [
-  "create",
-  "update",
-  "delete",
-  "hard_delete",
-  "restore",
-  "stock_adjustment",
-]);
+// [REMOVED: product audit feature] — uncomment to restore or delete permanently
+// export const productAuditAction = p.pgEnum("product_audit_action", [
+//   "create",
+//   "update",
+//   "delete",
+//   "hard_delete",
+//   "restore",
+//   "stock_adjustment",
+// ]);
 
-export const productAuditLogs = p.pgTable(
-  "product_audit_logs",
-  {
-    id: p.serial("id").primaryKey(),
-    productId: p
-      .integer("product_id")
-      .references(() => products.id, { onDelete: "set null" }),
-    userId: p
-      .integer("user_id")
-      .references(() => users.id, { onDelete: "set null" }),
-    action: productAuditAction("action").notNull(),
-    changes: p.jsonb("changes"),
-    snapshot: p.jsonb("snapshot"),
-    createdAt: p.timestamp("created_at").defaultNow().notNull(),
-  },
-  (t) => [
-    p.index("product_audit_logs_product_id_idx").on(t.productId),
-    p.index("product_audit_logs_user_id_idx").on(t.userId),
-    p.index("product_audit_logs_created_at_idx").on(t.createdAt),
-  ],
-);
+// export const productAuditLogs = p.pgTable(
+//   "product_audit_logs",
+//   {
+//     id: p.serial("id").primaryKey(),
+//     productId: p
+//       .integer("product_id")
+//       .references(() => products.id, { onDelete: "set null" }),
+//     userId: p
+//       .integer("user_id")
+//       .references(() => users.id, { onDelete: "set null" }),
+//     action: productAuditAction("action").notNull(),
+//     changes: p.jsonb("changes"),
+//     snapshot: p.jsonb("snapshot"),
+//     createdAt: p.timestamp("created_at").defaultNow().notNull(),
+//   },
+//   (t) => [
+//     p.index("product_audit_logs_product_id_idx").on(t.productId),
+//     p.index("product_audit_logs_user_id_idx").on(t.userId),
+//     p.index("product_audit_logs_created_at_idx").on(t.createdAt),
+//   ],
+// );

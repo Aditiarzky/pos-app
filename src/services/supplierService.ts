@@ -21,7 +21,8 @@ export interface SupplierQueryParams {
   search?: string;
   orderBy?: string;
   order?: "asc" | "desc";
-  trash?: boolean;
+  // [REMOVED: trash feature] — uncomment to restore or delete permanently
+  // trash?: boolean;
 }
 
 export const getSuppliers = async (

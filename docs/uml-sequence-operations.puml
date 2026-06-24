@@ -1,32 +1,64 @@
 @startuml
 autonumber
 
-skinparam BoxPadding 10
-skinparam ParticipantPadding 10
-skinparam defaultFontSize 20
-skinparam maxMessageSize 400
+skinparam BoxPadding 5
+skinparam ParticipantPadding 8
+skinparam defaultFontSize 16
+skinparam maxMessageSize 300
+skinparam sequenceMessageAlign center
 
 actor "Admin Sistem" as Admin
 boundary "UI Keuangan" as UI
-control "Finance Controller" as Controller
-database "DB" as DB
+control "Finance Controller" as Ctrl
+box "Konfigurasi" #F5F5F5
+    database "operational_costs" as oc
+    database "tax_configs" as tc
+end box
+box "Data Transaksi" #F5F5F5
+    database "sales" as s
+    database "sale_items" as si
+    database "purchase_orders" as po
+end box
+box "Data Referensi" #F5F5F5
+    database "products" as p
+    database "categories" as cat
+end box
 
 == 1. Pengelolaan Pengeluaran ==
-Admin -> UI : Masukkan biaya (Operasional / Pajak)
-UI -> Controller : Simpan data biaya operasional
-activate Controller
-Controller -> DB : Simpan rincian biaya operasional & konfigurasi pajak
-Controller -> DB : Sinkronisasi pengeluaran periode berjalan
-Controller --> UI : Konfirmasi Berhasil (Data ter-update)
-deactivate Controller
+Admin -> UI : Input biaya operasional / pajak
+UI -> Ctrl : Simpan data
+activate Ctrl
+Ctrl -> oc : Insert/Update operational_costs (name, amount, period)
+Ctrl -> tc : Insert/Update tax_configs (name, percentage, isActive)
+Ctrl --> UI : Konfirmasi berhasil
+deactivate Ctrl
 
-== 2. Laporan Performa (Omset & Laba) ==
-Admin -> UI : Pilih Periode Laporan
-UI -> Controller : Ambil data laporan performa
-activate Controller
-Controller -> DB : Kumpulkan data pendapatan & pengeluaran
-DB --> Controller : Data Transaksi
-Controller -> Controller : Hitung Laba Kotor & Laba Bersih
-Controller --> UI : Tampilkan visualisasi grafik & ringkasan laba
-deactivate Controller
+== 2. Laporan Performa ==
+Admin -> UI : Pilih periode laporan
+UI -> Ctrl : Ambil data laporan
+activate Ctrl
+
+group Pendapatan
+    Ctrl -> s : SUM totalPrice, COUNT transaksi (filter periode)
+    Ctrl -> si : SUM gross profit (subtotal - costAtSale × qty)
+end
+
+group Pengeluaran
+    Ctrl -> po : SUM total pembelian (filter periode)
+end
+
+group Produk Terlaris
+    Ctrl -> si : Join sales, GROUP BY product
+    Ctrl -> p : SUM qty & revenue per produk
+    Ctrl -> cat : SUM qty & revenue per kategori
+end
+
+group Kalkulasi Laba Bersih
+    Ctrl -> oc : Fetch biaya aktif (normalisasi per periode)
+    Ctrl -> tc : Fetch pajak aktif
+    Ctrl -> Ctrl : Net Profit = Gross - Ops - Tax
+end
+
+Ctrl --> UI : Grafik & ringkasan laba
+deactivate Ctrl
 @enduml

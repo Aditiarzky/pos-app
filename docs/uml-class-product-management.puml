@@ -17,7 +17,8 @@ class ProductController {
 
 class ProductService {
   - productRepository: ProductRepository
-  - auditRepository: ProductAuditLogRepository
+  ' [REMOVED: product audit feature]
+  ' - auditRepository: ProductAuditLogRepository
   + listActiveProducts(keyword: String, categoryId: Integer): List<Product>
   + registerProduct(request: ProductCreateRequest, actorId: Integer): Product
   + reviseProduct(productId: Integer, request: ProductUpdateRequest, actorId: Integer): Product
@@ -33,11 +34,12 @@ class ProductRepository {
   + softDelete(productId: Integer): Boolean
 }
 
-class ProductAuditLogRepository {
-  + logCreate(productId: Integer, actorId: Integer, snapshot: String): Boolean
-  + logUpdate(productId: Integer, actorId: Integer, changes: String): Boolean
-  + logSoftDelete(productId: Integer, actorId: Integer): Boolean
-}
+' [REMOVED: product audit feature]
+' class ProductAuditLogRepository {
+'   + logCreate(productId: Integer, actorId: Integer, snapshot: String): Boolean
+'   + logUpdate(productId: Integer, actorId: Integer, changes: String): Boolean
+'   + logSoftDelete(productId: Integer, actorId: Integer): Boolean
+' }
 
 class Product {
   - id: Integer
@@ -132,7 +134,8 @@ class User <<external>>
 
 ProductController --> ProductService
 ProductService --> ProductRepository
-ProductService --> ProductAuditLogRepository
+' [REMOVED: product audit feature]
+' ProductService --> ProductAuditLogRepository
 ProductService ..> User : actor
 Product "1" *-- "0..*" ProductVariant
 Product "1" *-- "0..*" ProductBarcode

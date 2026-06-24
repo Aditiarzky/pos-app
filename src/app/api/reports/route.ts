@@ -1,64 +1,98 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, desc, eq, gte, lte, not, sql } from "drizzle-orm";
+import { and, desc, eq, not, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { categories, products, purchaseOrders, saleItems, sales } from "@/drizzle/schema";
 import { handleApiError } from "@/lib/api-utils";
 import {
+  MS_DAY,
   normalizeTimezone,
   getLocalMidnightUtc,
-  getUtcFromLocalDate,
 } from "@/lib/timezone";
 import { calculateNetProfit } from "@/lib/net-profit-helper";
 
 type ReportType = "overview" | "sales" | "purchase";
 
-// ── Timezone-aware date grouping ──────────────────────────────────────────────
-// Bug lama: to_char(col, 'YYYY-MM-DD') pakai timezone server (UTC).
-// Fix: konversi ke timezone lokal user sebelum format.
-//
-// PENTING: PostgreSQL AT TIME ZONE tidak bisa menerima parameter binding ($1).
-// Harus di-interpolate sebagai string literal langsung ke query.
-// Pakai sql.raw() — aman karena timezone sudah divalidasi oleh normalizeTimezone()
-// yang hanya menerima string dari Intl.DateTimeFormat (tidak dari user input bebas).
-const localDateExpr = (col: import("drizzle-orm").SQL, timezone: string) =>
-  sql<string>`to_char(${col} AT TIME ZONE 'UTC' AT TIME ZONE ${sql.raw(`'${timezone}'`)}, 'YYYY-MM-DD')`;
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
-const parseDateRange = (request: NextRequest) => {
-  const searchParams = request.nextUrl.searchParams;
-  const startDate = searchParams.get("startDate");
-  const endDate = searchParams.get("endDate");
-  const timezone = normalizeTimezone(searchParams.get("timezone") ?? undefined);
-
-  if (startDate && endDate) {
-    const start = getUtcFromLocalDate(startDate, "00:00:00.000", timezone);
-    const end = getUtcFromLocalDate(endDate, "23:59:59.999", timezone);
-    return { start, end, startDate, endDate, timezone };
-  }
-
-  const todayMidnight = getLocalMidnightUtc(timezone);
-  const formatter = new Intl.DateTimeFormat("en-US", {
+// Format Date → "YYYY-MM-DD" di timezone target (untuk SQL date literal)
+const toLocalDateStr = (date: Date, timezone: string): string => {
+  const f = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     year: "numeric",
-    month: "numeric",
-    day: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   });
-  const parts = Object.fromEntries(
-    formatter
-      .formatToParts(todayMidnight)
-      .filter((p) => p.type !== "literal")
-      .map((p) => [p.type, p.value]),
-  );
+  const parts: Record<string, string> = {};
+  for (const p of f.formatToParts(date)) {
+    if (p.type !== "literal") parts[p.type] = p.value;
+  }
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
 
-  const year = Number(parts.year);
-  const month = String(parts.month).padStart(2, "0");
-  const day = String(parts.day).padStart(2, "0");
-  const firstDayStr = `${year}-${month}-01`;
-  const todayStr = `${year}-${month}-${day}`;
+// ── Timezone-aware date grouping ──────────────────────────────────────────────
+// to_char(col, 'YYYY-MM-DD') memformat timestamp dalam session timezone DB.
+// Ini konsisten dengan filter yang juga cast ke ::date (session timezone).
+const localDateExpr = (col: import("drizzle-orm").SQL) =>
+  sql<string>`to_char(${col}, 'YYYY-MM-DD')`;
 
-  const start = getUtcFromLocalDate(firstDayStr, "00:00:00.000", timezone);
-  const end = getUtcFromLocalDate(todayStr, "23:59:59.999", timezone);
+// ── Date range parsing ──────────────────────────────────────────────────────────
+// Mengembalikan date STRING (YYYY-MM-DD) untuk SQL ::date cast, dan juga
+// Date object (untuk hitung durasi & previous period).
+//
+// BUG FIX: Neon/pg driver serialize Date pakai LOCAL time methods (bukan UTC).
+// Akibatnya perbandingan timestamp != session timezone DB.
+// Solusi: gunakan SQL `col::date >= 'YYYY-MM-DD'::date` agar kedua sisi
+// diinterpretasi dalam session timezone yang SAMA (konsisten dengan to_char).
+const parseDateRange = (request: NextRequest) => {
+  const searchParams = request.nextUrl.searchParams;
+  const reqStartDate = searchParams.get("startDate");
+  const reqEndDate = searchParams.get("endDate");
+  const timezone = normalizeTimezone(searchParams.get("timezone") ?? undefined);
 
-  return { start, end, startDate: firstDayStr, endDate: todayStr, timezone };
+  const todayMidnight = getLocalMidnightUtc(timezone);
+  const dayMs = MS_DAY;
+
+  let startStr: string;
+  let endStr: string;
+
+  if (reqStartDate && reqEndDate) {
+    startStr = reqStartDate;
+    endStr = reqEndDate;
+  } else {
+    // Default: bulan ini (dari tanggal 1 sampai hari ini)
+    const f = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    });
+    const parts = Object.fromEntries(
+      f.formatToParts(todayMidnight)
+        .filter((p) => p.type !== "literal")
+        .map((p) => [p.type, p.value]),
+    );
+    const year = parts.year;
+    const month = parts.month.padStart(2, "0");
+    const day = Number(parts.day);
+    startStr = `${year}-${month}-01`;
+    endStr = `${year}-${month}-${String(day).padStart(2, "0")}`;
+  }
+
+  // Date objects untuk hitung durasi & previous period
+  const [sY, sM, sD] = startStr.split("-").map(Number);
+  const [eY, eM, eD] = endStr.split("-").map(Number);
+  const start = new Date(sY, sM - 1, sD);
+  const end = new Date(eY, eM - 1, eD);
+  const durationMs = end.getTime() - start.getTime() + dayMs; // inclusive
+
+  const prevEnd = new Date(start.getTime() - 1);
+  const prevStart = new Date(prevEnd.getTime() - (durationMs - dayMs));
+
+  // Format previous period dates ke timezone target
+  const prevStartStr = toLocalDateStr(prevStart, timezone);
+  const prevEndStr = toLocalDateStr(prevEnd, timezone);
+
+  return { startStr, endStr, prevStartStr, prevEndStr, timezone };
 };
 
 const parseType = (request: NextRequest): ReportType => {
@@ -69,53 +103,59 @@ const parseType = (request: NextRequest): ReportType => {
 
 export async function GET(request: NextRequest) {
   try {
-    const { start, end, startDate, endDate, timezone } = parseDateRange(request);
+    const { startStr, endStr, prevStartStr, prevEndStr, timezone } = parseDateRange(request);
     const type = parseType(request);
 
-    const durationMs = end.getTime() - start.getTime();
-    const prevEnd = new Date(start.getTime() - 1);
-    const prevStart = new Date(prevEnd.getTime() - durationMs);
+    // Date objects for calculateNetProfit (range days calculation)
+    const [sY, sM, sD] = startStr.split("-").map(Number);
+    const [eY, eM, eD] = endStr.split("-").map(Number);
+    const start = new Date(sY, sM - 1, sD);
+    const end = new Date(eY, eM - 1, eD);
 
+    // ── SQL date filter ─────────────────────────────────────────────────────────
+    // Gunakan ::date cast agar perbandingan konsisten dengan to_char() yang
+    // dipakai di daily chart. Kedua sisi diinterpretasi dalam session timezone
+    // DB yang sama, sehingga data hari ini tidak bergeser ke kemarin.
     const salesFilter = and(
       not(sales.isArchived),
       not(eq(sales.status, "cancelled")),
       not(eq(sales.status, "refunded")),
-      gte(sales.createdAt, start),
-      lte(sales.createdAt, end),
+      sql`${sales.createdAt}::date >= ${startStr}::date`,
+      sql`${sales.createdAt}::date <= ${endStr}::date`,
     );
 
     const prevSalesFilter = and(
       not(sales.isArchived),
       not(eq(sales.status, "cancelled")),
       not(eq(sales.status, "refunded")),
-      gte(sales.createdAt, prevStart),
-      lte(sales.createdAt, prevEnd),
+      sql`${sales.createdAt}::date >= ${prevStartStr}::date`,
+      sql`${sales.createdAt}::date <= ${prevEndStr}::date`,
     );
 
     const purchaseFilter = and(
       not(purchaseOrders.isArchived),
-      gte(purchaseOrders.createdAt, start),
-      lte(purchaseOrders.createdAt, end),
+      sql`${purchaseOrders.createdAt}::date >= ${startStr}::date`,
+      sql`${purchaseOrders.createdAt}::date <= ${endStr}::date`,
     );
 
     const prevPurchaseFilter = and(
       not(purchaseOrders.isArchived),
-      gte(purchaseOrders.createdAt, prevStart),
-      lte(purchaseOrders.createdAt, prevEnd),
+      sql`${purchaseOrders.createdAt}::date >= ${prevStartStr}::date`,
+      sql`${purchaseOrders.createdAt}::date <= ${prevEndStr}::date`,
     );
 
     const dailySalesFilter = and(
       not(sales.isArchived),
       not(eq(sales.status, "cancelled")),
       not(eq(sales.status, "refunded")),
-      gte(sales.createdAt, prevStart),
-      lte(sales.createdAt, end),
+      sql`${sales.createdAt}::date >= ${prevStartStr}::date`,
+      sql`${sales.createdAt}::date <= ${endStr}::date`,
     );
 
     const dailyPurchaseFilter = and(
       not(purchaseOrders.isArchived),
-      gte(purchaseOrders.createdAt, prevStart),
-      lte(purchaseOrders.createdAt, end),
+      sql`${purchaseOrders.createdAt}::date >= ${prevStartStr}::date`,
+      sql`${purchaseOrders.createdAt}::date <= ${endStr}::date`,
     );
 
     const getSalesTotals = (filter: ReturnType<typeof and>) =>
@@ -199,14 +239,14 @@ export async function GET(request: NextRequest) {
           .limit(10),
         db
           .select({
-            date: localDateExpr(sql`${sales.createdAt}`, timezone),
+            date: localDateExpr(sql`${sales.createdAt}`),
             totalSales: sql<string>`coalesce(sum(${sales.totalPrice}), 0)`,
             totalTransactions: sql<number>`count(*)`,
           })
           .from(sales)
           .where(dailySalesFilter)
-          .groupBy(localDateExpr(sql`${sales.createdAt}`, timezone))
-          .orderBy(localDateExpr(sql`${sales.createdAt}`, timezone)),
+          .groupBy(localDateExpr(sql`${sales.createdAt}`))
+          .orderBy(localDateExpr(sql`${sales.createdAt}`)),
       ]);
 
       const revenue = Number(salesBaseTotals[0]?.totalSales || 0);
@@ -242,7 +282,7 @@ export async function GET(request: NextRequest) {
           })),
           daily: dailySales,
         },
-        filter: { startDate, endDate },
+        filter: { startDate: startStr, endDate: endStr },
       });
     }
 
@@ -254,14 +294,14 @@ export async function GET(request: NextRequest) {
           getPurchaseTotals(prevPurchaseFilter),
           db
             .select({
-              date: localDateExpr(sql`${purchaseOrders.createdAt}`, timezone),
+              date: localDateExpr(sql`${purchaseOrders.createdAt}`),
               totalPurchases: sql<string>`coalesce(sum(${purchaseOrders.total}), 0)`,
               totalTransactions: sql<number>`count(*)`,
             })
             .from(purchaseOrders)
             .where(dailyPurchaseFilter)
-            .groupBy(localDateExpr(sql`${purchaseOrders.createdAt}`, timezone))
-            .orderBy(localDateExpr(sql`${purchaseOrders.createdAt}`, timezone)),
+            .groupBy(localDateExpr(sql`${purchaseOrders.createdAt}`))
+            .orderBy(localDateExpr(sql`${purchaseOrders.createdAt}`)),
         ]);
 
       return NextResponse.json({
@@ -275,7 +315,7 @@ export async function GET(request: NextRequest) {
           },
           daily: dailyPurchases,
         },
-        filter: { startDate, endDate },
+        filter: { startDate: startStr, endDate: endStr },
       });
     }
 
@@ -335,22 +375,22 @@ export async function GET(request: NextRequest) {
         .limit(5),
       db
         .select({
-          date: localDateExpr(sql`${sales.createdAt}`, timezone),
+          date: localDateExpr(sql`${sales.createdAt}`),
           totalSales: sql<string>`coalesce(sum(${sales.totalPrice}), 0)`,
         })
         .from(sales)
         .where(dailySalesFilter)
-        .groupBy(localDateExpr(sql`${sales.createdAt}`, timezone))
-        .orderBy(localDateExpr(sql`${sales.createdAt}`, timezone)),
+        .groupBy(localDateExpr(sql`${sales.createdAt}`))
+        .orderBy(localDateExpr(sql`${sales.createdAt}`)),
       db
         .select({
-          date: localDateExpr(sql`${purchaseOrders.createdAt}`, timezone),
+          date: localDateExpr(sql`${purchaseOrders.createdAt}`),
           totalPurchases: sql<string>`coalesce(sum(${purchaseOrders.total}), 0)`,
         })
         .from(purchaseOrders)
         .where(dailyPurchaseFilter)
-        .groupBy(localDateExpr(sql`${purchaseOrders.createdAt}`, timezone))
-        .orderBy(localDateExpr(sql`${purchaseOrders.createdAt}`, timezone)),
+        .groupBy(localDateExpr(sql`${purchaseOrders.createdAt}`))
+        .orderBy(localDateExpr(sql`${purchaseOrders.createdAt}`)),
     ]);
 
     const revenue = Number(salesBaseTotals[0]?.totalSales || 0);
@@ -426,7 +466,7 @@ export async function GET(request: NextRequest) {
           a.date.localeCompare(b.date),
         ),
       },
-      filter: { startDate, endDate },
+      filter: { startDate: startStr, endDate: endStr },
     });
   } catch (error) {
     return handleApiError(error);

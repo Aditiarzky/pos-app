@@ -18,9 +18,7 @@ export type GetCategoriesParams = {
 
 export const getCategories = async (
   params?: GetCategoriesParams,
-): Promise<
-  ApiResponse<CategoryResponse[]>
-> => {
+): Promise<ApiResponse<CategoryResponse[]>> => {
   const response = await axiosInstance.get("/categories", { params });
   return response.data;
 };
@@ -47,19 +45,5 @@ export const deleteCategory = async (
   id: number,
 ): Promise<ApiResponse<CategoryResponse>> => {
   const response = await axiosInstance.delete(`/categories/${id}`);
-  return response.data;
-};
-
-export const restoreCategory = async (
-  id: number,
-): Promise<ApiResponse<CategoryResponse>> => {
-  const response = await axiosInstance.post(`/categories/${id}/restore`);
-  return response.data;
-};
-
-export const forceDeleteCategory = async (
-  id: number,
-): Promise<ApiResponse<CategoryResponse>> => {
-  const response = await axiosInstance.delete(`/categories/${id}/force`);
   return response.data;
 };

@@ -70,7 +70,7 @@ export function ReturnSuccessModal({
             </div>
           </div>
           {/* Receipt Preview */}
-          <div className="bg-muted/30 p-2 md:p-4 rounded-2xl border border-dashed border-muted-foreground/20">
+          <div className="bg-white p-2 md:p-4 rounded-2xl border border-dashed border-muted-foreground/20">
             <ReturnReceipt ref={receiptRef} result={result} />
           </div>
 

@@ -43,8 +43,9 @@ export function SearchResultsDropdown({
               {product.name}
             </div>
             {product.variants?.map((variant) => {
-              const variantStock =
-                Number(product.stock) / Number(variant.conversionToBase);
+              const variantStock = Math.floor(
+                Number(product.stock) / Number(variant.conversionToBase),
+              );
 
               return (
                 <button

@@ -296,47 +296,12 @@ export async function DELETE(
     const productId = (await params).productId;
 
     if (!productId) {
-      return NextResponse.json(
-        { success: false, error: "Product ID is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, error: "Product ID is required" }, { status: 400 });
     }
 
-    const product = await db.query.products.findFirst({
-      where: eq(products.id, Number(productId)),
-    });
-    if (!product) {
-      return NextResponse.json(
-        { success: false, error: "Product not found" },
-        { status: 404 },
-      );
-    }
+    await db.delete(products).where(eq(products.id, Number(productId)));
 
-    const deletedProduct = await db.transaction(async (tx) => {
-      const [deleted] = await tx
-        .update(products)
-        .set({
-          isActive: false,
-          deletedAt: new Date(),
-        })
-        .where(eq(products.id, Number(productId)))
-        .returning();
-
-      // await recordProductAudit(tx, {
-      //   productId: Number(productId),
-      //   userId: session.userId,
-      //   action: "delete",
-      //   changes: null,
-      // });
-
-      return deleted;
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: deletedProduct,
-      message: "Produk berhasil dipindahkan ke tempat sampah",
-    });
+    return NextResponse.json({ success: true, message: "Produk berhasil dihapus" });
   } catch (error) {
     return handleApiError(error);
   }

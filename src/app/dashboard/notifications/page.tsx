@@ -1,11 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Bell,
   CheckCheck,
-  CircleAlert,
   Loader2,
   PackageSearch,
   Trash2,
@@ -125,6 +124,7 @@ function NotificationsContent() {
   const { roles } = useAuth();
   const userRoles = roles as string[];
   const isSystemAdmin = userRoles.includes("admin sistem");
+  const router = useRouter();
 
   const [filter, setFilter] = useQueryState<FilterValue>("filter", "all");
   const [page, setPage] = useQueryState<number>("page", 1);
@@ -312,10 +312,18 @@ function NotificationsContent() {
                 {group.items.map((notification) => (
                   <Card
                     key={notification.id}
-                    className={`relative p-0 overflow-hidden transition-all duration-200 hover:shadow-md ${isNotificationRead(notification)
+                    className={`relative p-0 overflow-hidden transition-all duration-200 hover:shadow-md cursor-pointer ${isNotificationRead(notification)
                       ? "opacity-80"
                       : "border-l-4 border-l-primary bg-primary/5 shadow-sm ring-1 ring-primary/10"
                       }`}
+                    onClick={() => {
+                      if (!isNotificationRead(notification)) {
+                        markManyAsReadMutation.mutate([notification.id]);
+                      }
+                      if (notification.action?.href) {
+                        router.push(notification.action.href);
+                      }
+                    }}
                   >
                     <div className="p-3 sm:p-4">
                       <div className="flex items-start gap-4">
@@ -343,21 +351,11 @@ function NotificationsContent() {
                             {notification.message}
                           </p>
 
-                          <div className="flex items-center justify-between gap-4 pt-1">
+                          <div className="flex items-center pt-1">
                             <p className="text-[11px] text-muted-foreground flex items-center gap-1">
                               <History className="h-3 w-3" />
                               {formatDateTime(notification.createdAt)}
                             </p>
-
-                            {notification.action?.href && (
-                              <Link
-                                href={notification.action.href}
-                                className="text-xs font-bold text-primary flex items-center gap-1.5 hover:underline py-1 px-3 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors"
-                              >
-                                {notification.action.label}
-                                <CircleAlert className="h-3.5 w-3.5" />
-                              </Link>
-                            )}
                           </div>
                         </div>
                       </div>

@@ -39,7 +39,6 @@ export function ProductListSection({
 
   const [searchInput, setSearchInput] = useQueryState<string>("q", "", {
     debounce: 500,
-    syncWithUrl: false,
   });
 
   const [filters, setFilters] = useQueryStates({

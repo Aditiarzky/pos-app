@@ -89,7 +89,7 @@ note top of CustomerReturn
   Mendukung kompensasi berupa uang, saldo, atau tukar barang.
 end note
 
-note right of CustomerReturnItem
+note bottom of CustomerReturnItem
   Data barang yang dibawa balik oleh pelanggan (Customer).
   Status 'returnedToStock' menentukan apakah stok aktif bertambah.
 end note

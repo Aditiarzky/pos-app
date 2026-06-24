@@ -2,8 +2,10 @@ import { axiosInstance } from "@/lib/axios";
 import { ApiResponse } from "./productService";
 
 export type NotificationSeverity = "info" | "warning" | "critical";
-export type NotificationCategory = "stock" | "trash" | "system" | "finance" | "payment";
-export type NotificationType = "low_stock" | "restock" | "trash_cleanup" | "debt_overdue" | "qris_pending";
+// [REMOVED: trash feature] — "trash" category removed
+export type NotificationCategory = "stock" | "system" | "finance" | "payment"; // originally also had "trash"
+// [REMOVED: trash feature] — "trash_cleanup" type removed
+export type NotificationType = "low_stock" | "restock" | "debt_overdue" | "qris_pending"; // originally also had "trash_cleanup"
 export type NotificationActionIntent = "view" | "restock" | "cleanup";
 
 export type NotificationItem = {
@@ -65,9 +67,10 @@ export type NotificationsResponse = {
   items: NotificationItem[];
   lowStock: LowStockNotification[];
   restockRecommendations: RestockRecommendation[];
-  trashCleanupInfo: {
-    expiredCount: number;
-  };
+  // [REMOVED: trash feature] — uncomment to restore or delete permanently
+  // trashCleanupInfo: {
+  //   expiredCount: number;
+  // };
   notifications: NotificationItem[];
   unreadCount: number;
 };

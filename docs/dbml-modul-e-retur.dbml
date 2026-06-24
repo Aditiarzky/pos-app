@@ -1,0 +1,83 @@
+// ═══════════════════════════════════════════════════
+// Modul E: Pengelolaan Retur
+// Paste ke https://dbdiagram.io untuk generate diagram
+// ═══════════════════════════════════════════════════
+
+enum compensation_type {
+  exchange
+  credit_note
+  refund
+}
+
+enum surplus_strategy_type {
+  cash
+  credit_balance
+}
+
+Table customer_returns {
+  id serial [pk, increment]
+  return_number varchar(60) [not null, unique]
+  sale_id integer [not null, ref: > sales.id]
+  customer_id integer [ref: > customers.id]
+  user_id integer [not null, ref: > users.id]
+  total_value_returned decimal(12,2)
+  total_refund decimal(12,2) [not null]
+  compensation_type compensation_type [not null]
+  surplus_strategy surplus_strategy_type
+  is_archived boolean [default: false]
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    return_number [unique, name: 'customer_returns_return_number_key']
+  }
+}
+
+Table customer_return_items {
+  id serial [pk, increment]
+  return_id integer [not null, ref: > customer_returns.id]
+  product_id integer [not null, ref: > products.id]
+  variant_id integer [not null, ref: > product_variants.id]
+  user_id integer [not null, ref: > users.id]
+  qty decimal(12,3) [not null]
+  price_at_return decimal(12,2) [not null]
+  unit_factor_at_return decimal(12,3) [not null]
+  reason text
+  returned_to_stock boolean [default: false]
+  is_archived boolean [default: false]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table customer_exchange_items {
+  id serial [pk, increment]
+  return_id integer [not null, ref: > customer_returns.id]
+  product_id integer [not null, ref: > products.id]
+  variant_id integer [not null, ref: > product_variants.id]
+  qty decimal(12,3) [not null]
+  price_at_exchange decimal(12,2) [not null]
+  unit_factor_at_exchange decimal(12,3) [not null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table customer_balance_mutations {
+  id serial [pk, increment]
+  customer_id integer [not null]
+  amount decimal(15,2) [not null]
+  balance_before decimal(15,2) [not null]
+  balance_after decimal(15,2) [not null]
+  type text [not null]
+  reference_id integer
+  reference_type text
+  note text
+  created_at timestamp
+  user_id integer
+}
+
+// External references
+Table sales { id serial [pk] }
+Table products { id serial [pk] }
+Table product_variants { id serial [pk] }
+Table customers { id serial [pk] }
+Table users { id serial [pk] }

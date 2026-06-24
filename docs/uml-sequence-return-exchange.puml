@@ -1,0 +1,54 @@
+@startuml Return_Exchange_Flow
+autonumber
+
+skinparam BoxPadding 5
+skinparam ParticipantPadding 8
+skinparam defaultFontSize 16
+skinparam maxMessageSize 200
+skinparam sequenceMessageAlign center
+
+actor "Admin Sistem /\nAdmin Toko" as Admin
+boundary "UI Retur" as UI
+control "Return Controller" as Ctrl
+database "products" as p
+database "stock_mutations" as sm
+database "customer_returns" as cr
+database "customer_return\n_items" as ri
+database "customer_exchange\n_items" as ei
+box "Surplus" #F5F5F5
+    database "customers" as c
+    database "balance_mutations" as bm
+end box
+
+title Alur Retur: Tukar Barang / Exchange (Lanjutan)
+
+
+== 1. Proses Barang Pengganti ==
+loop Per Barang Pengganti
+    Admin -> UI : Pilih barang pengganti & qty
+    Ctrl -> p : Validasi stok barang pengganti
+    Ctrl -> p : UPDATE stok (kurangi qty × conversion)
+    Ctrl -> sm : Insert stock_mutations (type: exchange, qty negatif)
+end
+note right: totalRefund = totalValueReturned - totalValueExchange
+
+== 2. Penanganan Selisih ==
+alt totalRefund > 0 (ada sisa uang)
+    alt strategy = credit_balance
+        Ctrl -> c : UPDATE creditBalance (tambah sisa)
+        Ctrl -> bm : Insert balance_mutation (exchange_surplus)
+    else strategy = cash
+        note right: Kasir kembalikan uang tunai
+    end
+else totalRefund < 0 (customer harus bayar tambahan)
+    note right: Tagih kekurangan dari pelanggan
+end
+
+== 3. Simpan Data Retur ==
+Ctrl -> cr : Insert customer_returns (compensationType: exchange)
+Ctrl -> ri : Insert customer_return_items
+Ctrl -> ei : Insert customer_exchange_items (qty, priceAtExchange)
+
+Ctrl --> UI : Konfirmasi (tampilkan nota retur)
+
+@enduml

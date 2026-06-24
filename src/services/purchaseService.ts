@@ -18,6 +18,8 @@ export interface PurchaseResponse extends PurchaseOrderType {
       name: string;
       stock?: string;
       averageCost?: string;
+      lastPurchaseCost?: string;
+      image?: string | null;
     };
     productVariant?: { id?: number; name: string; conversionToBase: string };
   }>;

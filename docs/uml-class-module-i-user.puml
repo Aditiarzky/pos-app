@@ -24,7 +24,7 @@ package "Domain Model: Authentication & Authorization" {
         + logout(): void
         + changePassword(newPassword: String): void
         + updateProfile(name: String, email: String): void
-        + deactivate(): void
+        + delete(): void
         + getRoles(): List<UserRole>
     }
 
@@ -33,17 +33,6 @@ package "Domain Model: Authentication & Authorization" {
         - role: RoleType
         + getRoleLabel(): String
         + checkAccess(resource: String): Boolean
-    }
-
-    class PasswordResetRequest {
-        - id: Integer
-        - userId: Integer
-        - email: String
-        - status: ResetStatus
-        - requestedAt: DateTime
-        - resolvedAt: DateTime
-        + approve(adminId: Integer): void
-        + reject(adminId: Integer): void
     }
 
     class SessionToken {
@@ -60,18 +49,10 @@ package "Domain Model: Authentication & Authorization" {
         SYSTEM_ADMIN
     }
 
-    enum ResetStatus {
-        PENDING
-        COMPLETED
-        REJECTED
-    }
-
     ' Relationships
     User "1" *-- "1..*" UserRoleMapping : has >
-    User "1" -- "0..*" PasswordResetRequest : requests >
     User "1" -- "0..*" SessionToken : has active sessions >
     UserRoleMapping ..> RoleType : role type >
-    PasswordResetRequest ..> ResetStatus : reset status >
 }
 
 ' Catatan Fungsional
@@ -80,7 +61,7 @@ note top of User
   Mengelola logika keamanan dasar.
 end note
 
-note right of UserRoleMapping
+note bottom of UserRoleMapping
   Mendukung Role-Based Access Control (RBAC).
   Memisahkan hak akses Admin Toko dan Admin Sistem.
 end note

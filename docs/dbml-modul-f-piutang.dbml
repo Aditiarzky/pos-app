@@ -1,0 +1,35 @@
+// ═══════════════════════════════════════════════════
+// Modul F: Pembayaran Piutang
+// Paste ke https://dbdiagram.io untuk generate diagram
+// ═══════════════════════════════════════════════════
+
+enum debt_status {
+  unpaid
+  partial
+  paid
+  cancelled
+}
+
+Table debts {
+  id serial [pk, increment]
+  sale_id integer [not null, ref: > sales.id]
+  customer_id integer [not null, ref: > customers.id]
+  original_amount decimal(12,2) [not null]
+  remaining_amount decimal(12,2) [not null]
+  status debt_status [not null, default: 'unpaid']
+  is_active boolean [not null, default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table debt_payments {
+  id serial [pk, increment]
+  debt_id integer [not null, ref: > debts.id]
+  amount_paid decimal(12,2) [not null]
+  payment_date timestamp [default: `now()`]
+  note text
+}
+
+// External references
+Table sales { id serial [pk] }
+Table customers { id serial [pk] }
