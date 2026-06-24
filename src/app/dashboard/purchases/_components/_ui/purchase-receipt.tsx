@@ -153,7 +153,6 @@ export const PurchaseReceipt = forwardRef<HTMLDivElement, PurchaseReceiptProps>(
                   style={{
                     fontSize: "9px",
                     fontStyle: "italic",
-                    opacity: 0.7,
                   }}
                 >
                   Var: {item.productVariant.name}

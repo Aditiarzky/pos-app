@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   applyNotificationState,
   buildLowStockId,
-  buildExpiredTrashId,
+  // buildExpiredTrashId, // [REMOVED: trash feature]
   buildRestockId,
   deduplicateRestockSignals,
   PRIORITY_BY_SEVERITY,
-  resolveStableTrashCreatedAt,
+  // resolveStableTrashCreatedAt, // [REMOVED: trash feature]
   sortNotificationsByPriority,
 } from "./notification-logic";
 
@@ -27,10 +27,11 @@ describe("notification-logic", () => {
     expect(id).toBe("low_stock:99");
   });
 
-  it("builds dynamic expired trash id", () => {
-    const id = buildExpiredTrashId(5, "2026-04-10T10:00:00.000Z");
-    expect(id).toBe("trash_cleanup:expired_items:5:2026-04-10");
-  });
+  // [REMOVED: trash feature] — uncomment to restore or delete permanently
+  // it("builds dynamic expired trash id", () => {
+  //   const id = buildExpiredTrashId(5, "2026-04-10T10:00:00.000Z");
+  //   expect(id).toBe("trash_cleanup:expired_items:5:2026-04-10");
+  // });
 
   it("builds dynamic restock id from occurrence fingerprint", () => {
     const id = buildRestockId(7, "2026-04-20T08:00:00.000Z", 12, 7);
@@ -48,13 +49,14 @@ describe("notification-logic", () => {
     expect(deduped.find((item) => item.productId === 1)?.urgencyScore).toBe(45);
   });
 
-  it("returns stable trash createdAt based on oldest source timestamp", () => {
-    const stable = resolveStableTrashCreatedAt(
-      "2026-03-10T10:00:00.000Z",
-      new Date("2026-04-17T00:00:00.000Z"),
-    );
-    expect(stable).toBe("2026-03-10T10:00:00.000Z");
-  });
+  // [REMOVED: trash feature] — uncomment to restore or delete permanently
+  // it("returns stable trash createdAt based on oldest source timestamp", () => {
+  //   const stable = resolveStableTrashCreatedAt(
+  //     "2026-03-10T10:00:00.000Z",
+  //     new Date("2026-04-17T00:00:00.000Z"),
+  //   );
+  //   expect(stable).toBe("2026-03-10T10:00:00.000Z");
+  // });
 
   it("keeps low_stock createdAt from current event even when state exists", () => {
     const item = {

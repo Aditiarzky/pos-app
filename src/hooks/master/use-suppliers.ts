@@ -4,6 +4,7 @@ import {
   createSupplier,
   updateSupplier,
   deleteSupplier,
+  restoreSupplier,
   SupplierQueryParams,
 } from "@/services/supplierService";
 
@@ -41,6 +42,17 @@ export const useDeleteSupplier = () => {
 
   return useMutation({
     mutationFn: deleteSupplier,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+    },
+  });
+};
+
+export const useRestoreSupplier = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: restoreSupplier,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
     },

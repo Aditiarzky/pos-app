@@ -1,0 +1,46 @@
+@startuml Sales_QRIS_Flow
+autonumber
+
+skinparam BoxPadding 5
+skinparam ParticipantPadding 8
+skinparam defaultFontSize 16
+skinparam maxMessageSize 300
+skinparam sequenceMessageAlign center
+
+actor "Admin Sistem /\nAdmin Toko" as Admin
+boundary "UI Kasir" as UI
+control "Sale Controller" as Ctrl
+database "sales" as s
+database "products" as p
+
+title Alur Pembayaran QRIS (Lanjutan dari Transaksi Penjualan)
+
+
+== 1. Pembuatan QR Code ==
+Admin -> UI : Pilih metode QRIS & proses
+UI -> Ctrl : Request pembayaran QRIS
+activate Ctrl
+Ctrl -> Ctrl : Generate QRIS via Pakasir API
+Ctrl -> s : UPDATE qrisOrderId, qrisPaymentNumber, qrisExpiredAt
+Ctrl --> UI : Tampilkan QR Code & waktu kedaluwarsa
+deactivate Ctrl
+
+== 2. Menunggu Pembayaran ==
+alt User Batal / QR Expired
+    Admin -> UI : Batalkan transaksi
+    UI -> Ctrl : Request pembatalan
+    activate Ctrl
+    Ctrl -> s : UPDATE status = cancelled, isArchived = true
+    Ctrl -> p : Kembalikan stok (revert qty per item)
+    Ctrl --> UI : Transaksi dibatalkan
+    deactivate Ctrl
+
+else Pembayaran Berhasil (Webhook dari Pakasir)
+    UI -> Ctrl : Terima webhook pembayaran berhasil
+    activate Ctrl
+    Ctrl -> s : UPDATE status = completed, totalPaid
+    Ctrl --> UI : Transaksi selesai
+    deactivate Ctrl
+end
+
+@enduml

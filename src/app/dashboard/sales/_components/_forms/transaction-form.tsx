@@ -158,6 +158,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
       <SaleSuccessModal
         isOpen={!!lastSale}
         onClose={() => setLastSale(null)}
+        onNewTransaction={() => setLastSale(null)}
         sale={lastSale}
       />
 
@@ -433,9 +434,18 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
               {!isQris && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
                   <div className="space-y-2 pt-1">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
-                      Uang Diterima
-                    </Label>
+                    <div className="flex justify-between items-center mb-1">
+                      <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+                        Uang Diterima
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => form.setValue("totalPaid", combinedTotal)}
+                        className="text-xs font-bold text-primary hover:text-primary-foreground bg-primary/10 hover:bg-primary px-2.5 py-1 rounded-lg border border-primary/20 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                      >
+                        Uang Pas: {formatCurrency(combinedTotal)}
+                      </button>
+                    </div>
                     <div className="relative">
                       <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/30" />
                       <CurrencyInput
@@ -519,7 +529,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                   disabled={!canSubmit}
                 >
                   {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-                  {isQris ? "Bayar QRIS" : "Selesaikan Transaksi"}
+                  {isQris ? "Bayar QRIS" : "Selesaikan"}
                 </Button>
               </div>
             </div>

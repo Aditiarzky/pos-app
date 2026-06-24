@@ -1,0 +1,73 @@
+// ═══════════════════════════════════════════════════
+// Modul A: Pengelolaan Produk
+// Paste ke https://dbdiagram.io untuk generate diagram
+// ═══════════════════════════════════════════════════
+
+Table categories {
+  id serial [pk, increment]
+  name varchar(100) [not null]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+}
+
+Table units {
+  id serial [pk, increment]
+  name varchar(50) [not null]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+}
+
+Table products {
+  id serial [pk, increment]
+  category_id integer [ref: > categories.id]
+  base_unit_id integer [not null, ref: > units.id]
+  sku varchar(50) [not null, unique]
+  name varchar(150) [not null]
+  image text
+  min_stock decimal(12,3) [default: 0]
+  stock decimal(12,3) [default: 0]
+  average_cost decimal(12,4)
+  last_purchase_cost decimal(12,4)
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+
+  Indexes {
+    sku [unique, name: 'products_sku_key']
+  }
+}
+
+Table product_variants {
+  id serial [pk, increment]
+  product_id integer [not null, ref: > products.id]
+  unit_id integer [not null, ref: > units.id]
+  name varchar(100) [not null]
+  sku varchar(60) [not null, unique]
+  conversion_to_base decimal(12,4) [not null]
+  sell_price decimal(12,2) [not null]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+
+  Indexes {
+    sku [unique, name: 'product_variants_sku_key']
+  }
+}
+
+Table product_barcodes {
+  id serial [pk, increment]
+  product_id integer [not null, ref: > products.id]
+  barcode varchar(100) [not null, unique]
+  created_at timestamp
+  updated_at timestamp
+
+  Indexes {
+    barcode [unique, name: 'product_barcodes_barcode_key']
+  }
+}

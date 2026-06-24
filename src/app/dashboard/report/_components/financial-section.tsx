@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -28,34 +27,17 @@ export function FinancialSection({
 }: FinancialSectionProps) {
   const [showBreakdown, setShowBreakdown] = useState(false);
 
+  const totalSales = summary?.totalSales ?? 0;
   const grossProfit = summary?.grossProfit ?? 0;
   const totalOperationalCost = summary?.totalOperationalCost ?? 0;
   const totalTax = summary?.totalTax ?? 0;
   const netProfit = summary?.netProfit ?? 0;
 
-  const rows = [
-    {
-      label: "Laba Kotor",
-      value: grossProfit,
-      color: "text-emerald-600",
-      prefix: "",
-      note: "Pendapatan − HPP",
-    },
-    {
-      label: "Biaya Operasional",
-      value: totalOperationalCost,
-      color: "text-rose-500",
-      prefix: "−",
-      note: `${breakdown?.operationalCosts?.length ?? 0} pos biaya`,
-    },
-    {
-      label: "Pajak",
-      value: totalTax,
-      color: "text-rose-500",
-      prefix: "−",
-      note: `${breakdown?.taxes?.length ?? 0} jenis pajak`,
-    },
-  ];
+  // HPP = Pendapatan − Laba Kotor
+  const hpp = totalSales - grossProfit;
+
+  // Total beban = HPP + Biaya Operasional + Pajak
+  const totalBeban = hpp + totalOperationalCost + totalTax;
 
   return (
     <div className="space-y-6">
@@ -67,34 +49,94 @@ export function FinancialSection({
           </CardTitle>
         </CardHeader>
         <CardContent className="p-5 space-y-4">
-          {/* Layer 1: Financial Rows */}
-          {rows.map((row) => (
-            <div
-              key={row.label}
-              className="flex items-start justify-between gap-2"
-            >
+          {/* ── Laba Kotor ── */}
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Laba Kotor
+            </p>
+
+            {/* Penjualan */}
+            <div className="flex items-start justify-between gap-2">
               <div>
-                <p className="text-sm font-medium">{row.label}</p>
-                <p className="text-[11px] text-muted-foreground">{row.note}</p>
+                <p className="text-sm font-medium">Penjualan</p>
+                <p className="text-[11px] text-muted-foreground">
+                  Omset periode ini
+                </p>
               </div>
-              <span
-                className={cn(
-                  "font-bold text-sm tabular-nums shrink-0",
-                  row.color,
-                )}
-              >
-                {row.prefix}
-                {formatCurrency(row.value)}
+              <span className="font-bold text-sm tabular-nums text-emerald-600 shrink-0">
+                {formatCurrency(totalSales)}
               </span>
             </div>
-          ))}
 
+            {/* HPP */}
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">
+                  Harga Pokok Penjualan (HPP)
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Biaya modal barang terjual
+                </p>
+              </div>
+              <span className="font-bold text-sm tabular-nums text-rose-500 shrink-0">
+                −{formatCurrency(hpp)}
+              </span>
+            </div>
+
+            {/* Subtotal Laba Kotor */}
+            <div className="flex items-center justify-between border-t border-border/50 pt-2">
+              <p className="text-sm font-semibold">Laba Kotor</p>
+              <span
+                className={cn(
+                  "font-bold text-sm tabular-nums",
+                  grossProfit >= 0 ? "text-emerald-600" : "text-rose-500",
+                )}
+              >
+                {formatCurrency(grossProfit)}
+              </span>
+            </div>
+          </div>
+
+          {/* ── Beban ── */}
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Beban
+            </p>
+
+            {/* Biaya Operasional */}
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">Biaya Operasional</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {breakdown?.operationalCosts?.length ?? 0} pos biaya
+                </p>
+              </div>
+              <span className="font-bold text-sm tabular-nums text-rose-500 shrink-0">
+                −{formatCurrency(totalOperationalCost)}
+              </span>
+            </div>
+
+            {/* Pajak */}
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">Pajak</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {breakdown?.taxes?.length ?? 0} jenis pajak
+                </p>
+              </div>
+              <span className="font-bold text-sm tabular-nums text-rose-500 shrink-0">
+                −{formatCurrency(totalTax)}
+              </span>
+            </div>
+          </div>
+
+          {/* ── Laba/Rugi Bersih ── */}
           <div className="border-t border-dashed pt-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-bold">Laba Bersih Akhir</p>
+                <p className="text-sm font-bold">Laba/Rugi Bersih</p>
                 <p className="text-[11px] text-muted-foreground">
-                  Estimasi setelah semua potongan
+                  Laba Kotor − Beban
                 </p>
               </div>
               <Badge
@@ -177,28 +219,29 @@ export function FinancialSection({
               </Collapsible>
             )}
 
-          {/* Layer 3: Interpretation */}
+          {/* Analisis Margin */}
           {!isLoading && summary && (
             <div className="flex items-start gap-2 rounded-xl bg-primary/5 border border-primary/10 p-4 mt-6">
               <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <div className="text-xs space-y-1">
                 <p className="font-bold text-primary">Analisis Margin</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  Margin Laba Kotor Anda adalah{" "}
+                  Dari total pendapatan{" "}
+                  {formatCurrency(totalSales)}, beban usaha sebesar{" "}
+                  {formatCurrency(totalBeban)} ({" "}
                   {(
-                    (summary.grossProfit / (summary.totalSales || 1)) *
+                    (totalBeban / (totalSales || 1)) *
                     100
                   ).toFixed(1)}
-                  %. Setelah dikurangi operasional and pajak, margin laba bersih
-                  menjadi{" "}
+                  %). Margin laba bersih Anda adalah{" "}
                   {(
-                    (summary.netProfit / (summary.totalSales || 1)) *
+                    (netProfit / (totalSales || 1)) *
                     100
                   ).toFixed(1)}
                   %.
                   {netProfit > 0
                     ? " Bisnis Anda menghasilkan keuntungan yang sehat periode ini."
-                    : " Perhatian diperlukan untuk menyeimbangkan pengeluaran and pendapatan."}
+                    : " Perhatian diperlukan untuk menyeimbangkan pengeluaran dan pendapatan."}
                 </p>
               </div>
             </div>

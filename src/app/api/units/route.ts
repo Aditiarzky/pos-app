@@ -8,7 +8,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 const ADMIN_ROLES = ["admin toko", "admin sistem"] as const;
 
-function canAccessMasterData(session: Awaited<ReturnType<typeof verifySession>>) {
+function canAccessMasterData(
+  session: Awaited<ReturnType<typeof verifySession>>,
+) {
   return !!session && ADMIN_ROLES.some((role) => session.roles.includes(role));
 }
 

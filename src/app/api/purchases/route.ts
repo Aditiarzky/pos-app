@@ -79,12 +79,15 @@ export async function GET(request: NextRequest) {
                 columns: {
                   id: true,
                   name: true,
+                  image: true,
+                  lastPurchaseCost: true,
                 },
               },
               productVariant: {
                 columns: {
                   id: true,
                   name: true,
+                  conversionToBase: true,
                 },
               },
             },

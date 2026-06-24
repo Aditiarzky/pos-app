@@ -21,6 +21,8 @@ export interface SupplierQueryParams {
   search?: string;
   orderBy?: string;
   order?: "asc" | "desc";
+  // [REMOVED: trash feature] — uncomment to restore or delete permanently
+  // trash?: boolean;
 }
 
 export const getSuppliers = async (
@@ -51,5 +53,14 @@ export const deleteSupplier = async (
   id: number,
 ): Promise<ApiResponse<void>> => {
   const response = await axiosInstance.delete(`/master/suppliers/${id}`);
+  return response.data;
+};
+
+export const restoreSupplier = async (
+  id: number,
+): Promise<ApiResponse<SupplierResponse>> => {
+  const response = await axiosInstance.patch(`/master/suppliers/${id}`, {
+    restore: true,
+  });
   return response.data;
 };

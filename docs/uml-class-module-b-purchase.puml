@@ -1,0 +1,84 @@
+@startuml Modul_B_Pengelolaan_Pembelian
+
+' Pengaturan visual agar profesional dan fungsional
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
+
+title Pengelolaan Pembelian
+
+package "Domain Model: Purchase" {
+    class PurchaseOrder {
+        - id: Integer
+        - orderNumber: String
+        - supplierId: Integer
+        - userId: Integer
+        - total: Decimal
+        - isArchived: Boolean
+        - createdAt: DateTime
+        + calculateTotal(): Decimal
+        + addItem(item: PurchaseItem): void
+        + editNote(items: List<PurchaseItem>): void
+        + hardDelete(): void
+        + reverseAverageCost(item: PurchaseItem): void
+        + getSupplierDetail(): Supplier
+    }
+
+    class PurchaseItem {
+        - id: Integer
+        - purchaseId: Integer
+        - productId: Integer
+        - variantId: Integer
+        - qty: Decimal
+        - price: Decimal
+        - costBefore: Decimal
+        - subtotal: Decimal
+        - unitFactorAtPurchase: Decimal
+        + calculateSubtotal(): Decimal
+        + calculateHPAllocation(): Decimal
+        + getRelatedVariant(): ProductVariant
+    }
+
+    class Supplier {
+        - id: Integer
+        - name: String
+        - phone: String
+        - email: String
+        - address: String
+        + updateContact(phone: String, email: String): void
+        + getPurchaseHistory(): List<PurchaseOrder>
+    }
+
+    ' Relationships
+    PurchaseOrder "1" *-- "1..*" PurchaseItem : contains >
+    PurchaseOrder "0..*" -- "1" Supplier : directed to >
+    PurchaseItem "0..*" -- "1" ProductVariant : refers to >
+}
+
+package "External Reference" {
+    class ProductVariant <<external>> {
+        ' Digunakan untuk update stok dan HPP
+        + updateStock(amount: Decimal): void
+        + recalculateHPP(newCost: Decimal, newQty: Decimal): void
+    }
+    class User <<external>>
+}
+
+' Catatan Fungsional
+note top of PurchaseOrder
+  Mengelola data transaksi masuk dari Supplier.
+  editNote() = "Data Salah" (Revert & Re-apply, Admin Sistem & Admin Toko).
+  hardDelete() = "Data Tidak Berguna" (Admin Sistem only, hard delete).
+  reverseAverageCost() membatalkan pengaruh HPP item pada stok produk.
+end note
+
+note right of PurchaseItem
+  Mendata rincian item per baris dalam nota.
+  Menyimpan kondisi HPP (costBefore) sebelum transaksi.
+end note
+
+@enduml

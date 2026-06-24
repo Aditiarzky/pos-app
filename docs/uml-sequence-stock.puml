@@ -1,19 +1,60 @@
 @startuml
-actor "Admin Toko" as Admin
-participant "Sistem POS" as App
-database "Sistem Penyimpanan" as DB
+autonumber
 
-== Monitoring Mutasi Stok ==
-Admin -> App: Tarik laporan mutasi stok
-App -> DB: Ambil histori perubahan barang
-DB --> App: Berikan data histori mutasi
-App --> Admin: Tampilkan daftar perubahan stok
+skinparam BoxPadding 5
+skinparam ParticipantPadding 8
+skinparam defaultFontSize 16
+skinparam maxMessageSize 300
+skinparam sequenceMessageAlign center
 
-== Penyesuaian Stok Manual ==
-Admin -> App: Input data stok fisik terbaru
-App -> DB: Cek stok sistem saat ini
-App -> App: Hitung besar selisih stok
-App -> DB: Perbarui stok ke nilai terbaru
-App -> DB: Catat peristiwa penyesuaian manual
-App --> Admin: Konfirmasi data berhasil diperbarui
+actor "Admin Toko" as Toko
+actor "Admin Sistem" as Admin
+boundary "UI Stok" as UI
+control "Stock Controller" as Ctrl
+database "products" as p
+database "product_variants" as v
+database "stock_mutations" as sm
+
+== 1. Cetak Lembar Kerja Stock Opname ==
+Toko -> UI : Buka halaman stok, klik cetak
+UI -> Ctrl : Fetch data produk & varian
+Ctrl -> p : SELECT produk (+ kategori, satuan)
+Ctrl -> v : SELECT varian (+ currentStock, conversionToBase)
+Ctrl --> UI : Render lembar kerja (PDF/print)
+note right: Lembar kerja berisi daftar produk,\nvarian, stok sistem, dan kolom stok fisik\nuntuk diisi secara offline
+
+== 2. Input Hasil Stock Opname (dari Lembar Kerja) ==
+Admin -> UI : Pilih produk, input qty fisik dari lembar kerja
+UI -> Ctrl : Request penyesuaian stok
+activate Ctrl
+Ctrl -> v : Hitung selisih: qty fisik − currentStock
+alt Selisih < 0 (Berkurang)
+    Ctrl -> sm : Insert stock_mutations (adjustment, qty negatif)
+    
+else Selisih > 0 (Bertambah)
+    Ctrl -> sm : Insert stock_mutations (adjustment, qty positif)
+    
+end
+Ctrl -> v : UPDATE varian.stock (currentStock + selisih)
+Ctrl -> p : UPDATE produk.stock (sum ulang varian)
+sm --> UI : Konfirmasi berhasil
+deactivate Ctrl
+
+== 3. Penyesuaian Langsung dari Sistem ==
+Admin -> UI : Pilih produk & varian, input qty fisik langsung
+UI -> Ctrl : Request penyesuaian stok
+activate Ctrl
+Ctrl -> v : Hitung selisih: qty fisik − currentStock
+alt Selisih < 0 (Berkurang)
+    Ctrl -> sm : Insert stock_mutations (adjustment, qty negatif)
+    
+else Selisih > 0 (Bertambah)
+    Ctrl -> sm : Insert stock_mutations (adjustment, qty positif)
+    
+end
+Ctrl -> v : UPDATE varian.stock (currentStock + selisih)
+Ctrl -> p : UPDATE produk.stock (sum ulang varian)
+sm --> UI : Konfirmasi berhasil
+deactivate Ctrl
+
 @enduml

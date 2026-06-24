@@ -1,19 +1,74 @@
 @startuml
-actor "Admin Toko" as Admin
-participant "Sistem POS" as App
-database "Sistem Penyimpanan" as DB
+autonumber
 
-== Proses Pembayaran Tagihan ==
-Admin -> App: Input data pelanggan dan nominal bayar
-App -> DB: Tarik data tagihan aktif pelanggan
-App -> App: Verifikasi rincian pembayaran
+skinparam BoxPadding 5
+skinparam ParticipantPadding 8
+skinparam defaultFontSize 16
+skinparam maxMessageSize 300
+skinparam sequenceMessageAlign center
 
-alt Pembayaran Penuh
-  App -> DB: Update status tagihan lunas
-else Pembayaran Sebagian
-  App -> DB: Kurangi sisa saldo tagihan
+actor "Admin Sistem /\nAdmin Toko" as Admin
+boundary "UI Pembayaran" as UI
+control "Debt Controller" as Ctrl
+database "debts" as d
+database "debt_payments" as dp
+database "sales" as s
+
+== 1. Pembayaran dari Daftar Hutang ==
+Admin -> UI : Pilih pelanggan & list hutang
+UI -> Ctrl : Fetch hutang aktif
+Ctrl -> d : SELECT debts (remainingAmount, status)
+Ctrl --> UI : List hutang pelanggan
+
+Admin -> UI : Pilih hutang & input nominal
+UI -> Ctrl : Proses pembayaran
+activate Ctrl
+
+Ctrl -> d : Hitung: remainingAmount - nominal
+
+alt Lunas (nominal >= remainingAmount)
+    Ctrl -> dp : Insert debt_payments (paymentAmount)
+    Ctrl -> d : UPDATE remainingAmount = 0, status = paid
+    Ctrl -> s : UPDATE status = completed (jika ada sale terkait)
+    note right: Transaksi = completed, hutang = paid
+else Cicilan (nominal < remainingAmount)
+    Ctrl -> dp : Insert debt_payments (paymentAmount)
+    Ctrl -> d : UPDATE remainingAmount -= nominal, status = partial
+    note right: Transaksi tetap pending_payment, hutang = partial
 end
 
-App -> DB: Catat histori pembayaran tagihan
-App --> Admin: Tampilkan bukti pembayaran
+Ctrl --> UI : Konfirmasi berhasil
+deactivate Ctrl
+
+== 2. Bayar Hutang dari Kembalian Penjualan ==
+note over UI : Terjadi saat transaksi penjualan tunai\n(shouldPayOldDebt = true)
+
+Admin -> UI : Proses penjualan, ada kembalian
+UI -> Ctrl : Request penjualan + bayar hutang
+activate Ctrl
+
+Ctrl -> s : Insert sales, proses item & stok
+Ctrl -> Ctrl : Hitung kembalian (totalPaid + balanceUsed - totalSale)
+
+alt Kembalian > 0 & shouldPayOldDebt
+    Ctrl -> d : Fetch hutang aktif pelanggan (urut tertua)
+    loop Per Hutang Aktif
+        Ctrl -> d : payAmount = min(remainingAmount, sisaKembalian)
+        Ctrl -> dp : Insert debt_payments (payAmount, note: auto)
+        Ctrl -> d : UPDATE remainingAmount -= payAmount
+        alt remainingAmount = 0
+            Ctrl -> d : UPDATE status = paid
+            Ctrl -> s : UPDATE status = completed
+        else remainingAmount > 0
+            Ctrl -> d : UPDATE status = partial
+        end
+        Ctrl -> Ctrl : sisaKembalian -= payAmount
+    end
+    Ctrl -> s : UPDATE finalReturn = sisaKembalian
+    note right: Kembalian yang tersisa\ndiberikan ke pelanggan
+end
+
+Ctrl --> UI : Konfirmasi berhasil
+deactivate Ctrl
+
 @enduml

@@ -5,6 +5,7 @@ import {
   customers,
   productVariants,
   customerBalanceMutations,
+  sales,
 } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { eq, sql } from "drizzle-orm";
@@ -123,9 +124,46 @@ export async function voidCustomerReturn(
   }
 
   // 4. Archive the Return
-  return await tx
+  const [archived] = await tx
     .update(customerReturns)
-    .set({ isArchived: true, deletedAt: new Date() })
+    .set({ isArchived: true })
     .where(eq(customerReturns.id, returnId))
     .returning();
+
+  // 5. Re-evaluate sale status: if sale was "refunded", check if it should revert
+  if (existingReturn.saleId) {
+    const sale = await tx.query.sales.findFirst({
+      where: eq(sales.id, existingReturn.saleId),
+      with: {
+        items: true,
+        customerReturns: {
+          where: eq(customerReturns.isArchived, false),
+          with: { items: true },
+        },
+      },
+    });
+
+    if (sale && sale.status === "refunded") {
+      const stillFullyReturned = sale.items.every((saleItem) => {
+        const totalReturnedQty = sale.customerReturns.reduce((sum, ret) => {
+          const itemMatch = ret.items.find(
+            (i) => i.variantId === saleItem.variantId,
+          );
+          return sum + (itemMatch ? Number(itemMatch.qty) : 0);
+        }, 0);
+        return totalReturnedQty >= Number(saleItem.qty);
+      });
+
+      if (!stillFullyReturned) {
+        const hasDebt =
+          Number(sale.totalPrice) > Number(sale.totalPaid) + Number(sale.totalBalanceUsed || 0);
+        await tx
+          .update(sales)
+          .set({ status: hasDebt ? "pending_payment" : "completed" })
+          .where(eq(sales.id, existingReturn.saleId));
+      }
+    }
+  }
+
+  return archived;
 }

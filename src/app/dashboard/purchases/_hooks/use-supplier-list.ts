@@ -8,7 +8,6 @@
 import { useEffect, useState } from "react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useSuppliers, useDeleteSupplier } from "@/hooks/master/use-suppliers";
-import { useConfirm } from "@/contexts/ConfirmDialog";
 import { toast } from "sonner";
 import { SuppliersQueryParams, SupplierResponse } from "../_types/supplier";
 
@@ -48,7 +47,9 @@ interface UseSupplierListReturn {
   resetFilters: () => void;
 
   // Actions
-  handleDelete: (supplier: SupplierResponse) => Promise<void>;
+  deleteTarget: SupplierResponse | null;
+  setDeleteTarget: (supplier: SupplierResponse | null) => void;
+  handleConfirmDelete: () => Promise<void>;
   isDeleting: boolean;
 }
 
@@ -66,7 +67,8 @@ export function useSupplierList(): UseSupplierListReturn {
   const debouncedSearch = useDebounce(searchInput, 500);
 
   // Sorting state
-  const [orderBy, setOrderBy] = useState<SuppliersQueryParams["orderBy"]>("createdAt");
+  const [orderBy, setOrderBy] =
+    useState<SuppliersQueryParams["orderBy"]>("createdAt");
   const [order, setOrder] = useState<SuppliersQueryParams["order"]>("desc");
 
   // Reset page to 1 when search changes
@@ -90,7 +92,9 @@ export function useSupplierList(): UseSupplierListReturn {
 
   // Delete mutation
   const deleteMutation = useDeleteSupplier();
-  const confirm = useConfirm();
+
+  // Delete target state
+  const [deleteTarget, setDeleteTarget] = useState<SupplierResponse | null>(null);
 
   // Check if filters are active
   const hasActiveFilters = orderBy !== "createdAt" || order !== "desc";
@@ -102,25 +106,17 @@ export function useSupplierList(): UseSupplierListReturn {
     setPage(1);
   };
 
-  // Delete handler
-  const handleDelete = async (supplier: SupplierResponse) => {
-    const ok = await confirm({
-      title: "Hapus Supplier",
-      description: `Apakah Anda yakin ingin menghapus supplier "${supplier.name}"?`,
-      confirmText: "Ya, Hapus",
-      cancelText: "Batal",
-    });
-
-    if (ok) {
-      try {
-        await deleteMutation.mutateAsync(supplier.id);
-        toast.success("Supplier berhasil dihapus");
-      } catch (error) {
-        const errorMessage = error instanceof Error
-          ? error.message
-          : "Gagal menghapus supplier";
-        toast.error(errorMessage);
-      }
+  // Confirm delete handler
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteMutation.mutateAsync(deleteTarget.id);
+      toast.success("Supplier berhasil dipindahkan ke sampah");
+      setDeleteTarget(null);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Gagal menghapus supplier";
+      toast.error(errorMessage);
     }
   };
 
@@ -152,8 +148,10 @@ export function useSupplierList(): UseSupplierListReturn {
     resetFilters,
 
     // Actions
-    handleDelete,
-    isDeleting: deleteMutation.isPending ? true : false,
+    deleteTarget,
+    setDeleteTarget,
+    handleConfirmDelete,
+    isDeleting: deleteMutation.isPending,
   };
 
   return result;

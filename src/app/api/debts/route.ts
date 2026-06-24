@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
         remainingAmount: debts.remainingAmount,
         status: debts.status,
         isActive: debts.isActive,
-        deletedAt: debts.deletedAt,
         createdAt: debts.createdAt,
         updatedAt: debts.updatedAt,
         customer: {

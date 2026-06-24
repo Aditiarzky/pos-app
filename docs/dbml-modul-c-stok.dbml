@@ -1,0 +1,36 @@
+// ═══════════════════════════════════════════════════
+// Modul C: Penyelarasan Stok
+// Paste ke https://dbdiagram.io untuk generate diagram
+// ═══════════════════════════════════════════════════
+
+enum stock_mutation_type {
+  purchase
+  purchase_cancel
+  sale
+  sale_cancel
+  return_restock
+  return_cancel
+  waste
+  supplier_return
+  adjustment
+  exchange
+  exchange_cancel
+}
+
+Table stock_mutations {
+  id serial [pk, increment]
+  product_id integer [not null, ref: > products.id]
+  variant_id integer [not null, ref: > product_variants.id]
+  user_id integer [not null, ref: > users.id]
+  type stock_mutation_type [not null]
+  qty_base_unit decimal(12,4) [not null]
+  unit_factor_at_mutation decimal(12,3)
+  reference varchar(100)
+  created_at timestamp
+  updated_at timestamp
+}
+
+// External references
+Table products { id serial [pk] }
+Table product_variants { id serial [pk] }
+Table users { id serial [pk] }

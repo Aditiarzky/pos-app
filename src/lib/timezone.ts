@@ -37,13 +37,17 @@ export const getLocalMidnightUtc = (timezone: string, offsetDays = 0) => {
   const month = Number(parts.month) - 1;
   const day = Number(parts.day) + offsetDays;
 
-  // Buat tanggal "naive" di timezone lokal, lalu konversi ke UTC yang benar
+  // Buat tanggal "naive" di timezone lokal server
   const naive = new Date(year, month, day, 0, 0, 0, 0);
 
-  // Cari offset: selisih antara UTC vs timezone target pada waktu itu
-  const inTz = new Date(naive.toLocaleString("en-US", { timeZone: timezone }));
-  const inUtc = new Date(naive.toLocaleString("en-US", { timeZone: "UTC" }));
-  const offsetMs = inTz.getTime() - inUtc.getTime();
+  // Gunakan reference date untuk menghitung offset timezone target.
+  // Pendekatan lama (inTz - inUtc) salah di server non-UTC karena
+  // toLocaleString menginterpretasi epoch di timezone server, bukan target.
+  // Dengan reference date yang sama, perbandingan kedua timezone akurat.
+  const ref = new Date(Date.UTC(2000, 0, 1, 12, 0, 0));
+  const refInTz = new Date(ref.toLocaleString("en-US", { timeZone: timezone }));
+  const refInUtc = new Date(ref.toLocaleString("en-US", { timeZone: "UTC" }));
+  const offsetMs = refInTz.getTime() - refInUtc.getTime();
 
   return new Date(naive.getTime() - offsetMs);
 };
@@ -61,9 +65,14 @@ export const getUtcFromLocalDate = (
   timezone: string,
 ): Date => {
   const naive = new Date(`${localDateStr}T${time}`);
-  const inTz = new Date(naive.toLocaleString("en-US", { timeZone: timezone }));
-  const inUtc = new Date(naive.toLocaleString("en-US", { timeZone: "UTC" }));
-  const offsetMs = inTz.getTime() - inUtc.getTime();
+
+  // Gunakan reference date (lihat getLocalMidnightUtc) agar offset akurat
+  // di semua timezone server — tidak hanya UTC.
+  const ref = new Date(Date.UTC(2000, 0, 1, 12, 0, 0));
+  const refInTz = new Date(ref.toLocaleString("en-US", { timeZone: timezone }));
+  const refInUtc = new Date(ref.toLocaleString("en-US", { timeZone: "UTC" }));
+  const offsetMs = refInTz.getTime() - refInUtc.getTime();
+
   return new Date(naive.getTime() - offsetMs);
 };
 

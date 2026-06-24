@@ -1,0 +1,1 @@
+Orchestrates a Next.js-based Point of Sale system by unifying server-side API routes, client-side React components, and shared infrastructure for authentication, database access, and state management.

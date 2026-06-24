@@ -58,11 +58,8 @@ export function SalesSection({
             {isLoading ? (
               <Skeleton className="h-9 w-32" />
             ) : (
-              <div className="text-2xl font-bold flex items-baseline gap-1">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Rp
-                </span>
-                <AnimatedNumber value={summary?.totalSales || 0} />
+              <div className="text-2xl font-bold">
+                <AnimatedNumber value={summary?.totalSales || 0} formatter={formatCurrency} />
               </div>
             )}
           </CardContent>
@@ -103,16 +100,14 @@ export function SalesSection({
             {isLoading ? (
               <Skeleton className="h-9 w-32" />
             ) : (
-              <div className="text-2xl font-bold flex items-baseline gap-1">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Rp
-                </span>
+              <div className="text-2xl font-bold">
                 <AnimatedNumber
                   value={
                     summary?.totalTransactions
                       ? summary.totalSales / summary.totalTransactions
                       : 0
                   }
+                  formatter={formatCurrency}
                 />
               </div>
             )}

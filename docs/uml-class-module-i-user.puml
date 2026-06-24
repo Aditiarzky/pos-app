@@ -1,0 +1,69 @@
+@startuml Modul_I_Pengelolaan_Pengguna
+
+' Pengaturan visual agar profesional dan fungsional
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
+
+title Pengelolaan Pengguna
+
+package "Domain Model: Authentication & Authorization" {
+    class User {
+        - id: Integer
+        - email: String
+        - name: String
+        - password: String
+        - isActive: Boolean
+        - createdAt: DateTime
+        - updatedAt: DateTime
+        + login(email: String, password: String): Boolean
+        + logout(): void
+        + changePassword(newPassword: String): void
+        + updateProfile(name: String, email: String): void
+        + delete(): void
+        + getRoles(): List<UserRole>
+    }
+
+    class UserRoleMapping {
+        - userId: Integer
+        - role: RoleType
+        + getRoleLabel(): String
+        + checkAccess(resource: String): Boolean
+    }
+
+    class SessionToken {
+        - id: Integer
+        - token: String
+        - userId: Integer
+        - expiresAt: DateTime
+        + isValid(): Boolean
+        + destroy(): void
+    }
+
+    enum RoleType {
+        STORE_ADMIN
+        SYSTEM_ADMIN
+    }
+
+    ' Relationships
+    User "1" *-- "1..*" UserRoleMapping : has >
+    User "1" -- "0..*" SessionToken : has active sessions >
+    UserRoleMapping ..> RoleType : role type >
+}
+
+' Catatan Fungsional
+note top of User
+  Pusat data identitas User sistem. 
+  Mengelola logika keamanan dasar.
+end note
+
+note bottom of UserRoleMapping
+  Mendukung Role-Based Access Control (RBAC).
+  Memisahkan hak akses Admin Toko dan Admin Sistem.
+end note
+
+@enduml

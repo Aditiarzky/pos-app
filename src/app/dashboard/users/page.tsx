@@ -129,13 +129,6 @@ function UsersContent() {
         <AnalyticsCards analytics={analytics} />
 
         <div className="pt-4">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="p-1.5 bg-primary/10 rounded-lg">
-              <Users className="h-5 w-5 text-primary" />
-            </div>
-            <h2 className="text-lg font-semibold">Daftar Pengguna</h2>
-          </div>
-
           <UserListSection onEdit={handleEdit} />
         </div>
 

@@ -17,7 +17,8 @@ export type NotificationState = {
 export type NotificationType =
   | "low_stock"
   | "restock"
-  | "trash_cleanup"
+  // [REMOVED: trash feature] — uncomment to restore or delete permanently
+  // | "trash_cleanup"
   | "debt_overdue"
   | "qris_pending";
 
@@ -40,14 +41,12 @@ export const toDateBucket = (value: Date) => value.toISOString().slice(0, 10);
 export const buildLowStockId = (productId: number, _date: Date) =>
   `low_stock:${productId}`;
 
-export const buildExpiredTrashId = (count: number, oldestAt: string | null) => {
-  if (!oldestAt) return "trash_cleanup:expired_items";
-  // Format: trash_cleanup:expired_items:COUNT:DATE(YYYY-MM-DD)
-  // Ini memastikan jika jumlah berubah atau item tertua berubah (misal ada yang baru expired), 
-  // maka ID akan berubah dan notifikasi muncul sebagai 'baru/unread' lagi.
-  const dateStr = oldestAt.split("T")[0];
-  return `trash_cleanup:expired_items:${count}:${dateStr}`;
-};
+// [REMOVED: trash feature] — uncomment to restore or delete permanently
+// export const buildExpiredTrashId = (count: number, oldestAt: string | null) => {
+//   if (!oldestAt) return "trash_cleanup:expired_items";
+//   const dateStr = oldestAt.split("T")[0];
+//   return `trash_cleanup:expired_items:${count}:${dateStr}`;
+// };
 
 export const buildRestockId = (
   productId: number,
@@ -70,12 +69,13 @@ export const mapRestockSeverity = (
   return "info";
 };
 
-export const resolveStableTrashCreatedAt = (oldestAt: string | undefined, cutoffDate: Date) => {
-  if (!oldestAt) return cutoffDate.toISOString();
-  const parsed = new Date(oldestAt);
-  if (Number.isNaN(parsed.getTime())) return cutoffDate.toISOString();
-  return parsed.toISOString();
-};
+// [REMOVED: trash feature] — uncomment to restore or delete permanently
+// export const resolveStableTrashCreatedAt = (oldestAt: string | undefined, cutoffDate: Date) => {
+//   if (!oldestAt) return cutoffDate.toISOString();
+//   const parsed = new Date(oldestAt);
+//   if (Number.isNaN(parsed.getTime())) return cutoffDate.toISOString();
+//   return parsed.toISOString();
+// };
 
 export type RestockSignal = {
   productId: number;

@@ -6,6 +6,7 @@ import { AnimatedNumber } from "@/components/ui/animated-number";
 import { CardBg } from "@/assets/card-background/card-bg";
 import { Receipt, ArrowUpRight, Info } from "lucide-react";
 import { PurchaseReportResponse } from "@/services/reportService";
+import { formatCurrency } from "@/lib/format";
 import { ChartAreaInteractive } from "@/components/chart-area-interactive";
 
 interface PurchaseSectionProps {
@@ -39,11 +40,8 @@ export function PurchaseSection({
             {isLoading ? (
               <Skeleton className="h-9 w-32" />
             ) : (
-              <div className="text-2xl font-bold flex items-baseline gap-1">
-                <span className="text-sm font-medium text-muted-foreground">
-                  Rp
-                </span>
-                <AnimatedNumber value={summary?.totalPurchases || 0} />
+              <div className="text-2xl font-bold">
+                <AnimatedNumber value={summary?.totalPurchases || 0} formatter={formatCurrency} />
               </div>
             )}
           </CardContent>

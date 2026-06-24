@@ -1,0 +1,107 @@
+@startuml Modul_G_Pengelolaan_Laporan
+
+' Pengaturan visual agar profesional dan fungsional
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
+
+title Pengelolaan Laporan
+
+package "Domain Model: Finance & Report" {
+    class PerformanceReport {
+        - startPeriod: Date
+        - endPeriod: Date
+        - totalRevenue: Decimal
+        - totalHPP: Decimal
+        - costList: List<OperationalCost>
+        - taxList: List<TaxConfig>
+        + generateReport(start: Date, end: Date): void
+        + calculateGrossProfit(): Decimal
+        + calculateTotalOperationalCost(): Decimal
+        + calculateTotalTax(): Decimal
+        + calculateNetProfit(): Decimal
+        + exportToPDF(): String
+    }
+
+    class OperationalCost {
+        - id: Integer
+        - name: String
+        - category: CostCategory
+        - amount: Decimal
+        - period: CostPeriod
+        - effectiveFrom: Date
+        - isActive: Boolean
+        + calculateProportionalCost(days: Integer): Decimal
+        + deactivate(): void
+    }
+
+    class TaxConfig {
+        - id: Integer
+        - name: String
+        - type: TaxType
+        - rate: Decimal
+        - fixedAmount: Decimal
+        - appliesTo: TaxAppliesTo
+        - isActive: Boolean
+        + calculateTax(revenueBasis: Decimal, grossProfitBasis: Decimal): Decimal
+    }
+
+    enum CostCategory {
+        UTILITIES
+        SALARY
+        RENT
+        LOGISTICS
+        MARKETING
+        MAINTENANCE
+        OTHER
+    }
+
+    enum CostPeriod {
+        DAILY
+        WEEKLY
+        MONTHLY
+        YEARLY
+        ONE_TIME
+    }
+
+    enum TaxType {
+        PERCENTAGE
+        FIXED
+    }
+
+    enum TaxAppliesTo {
+        REVENUE
+        GROSS_PROFIT
+    }
+
+    ' Relationships
+    PerformanceReport "1" o-- "0..*" OperationalCost : includes >
+    PerformanceReport "1" o-- "0..*" TaxConfig : includes >
+    OperationalCost ..> CostCategory : category >
+    OperationalCost ..> CostPeriod : period >
+    TaxConfig ..> TaxType : type >
+    TaxConfig ..> TaxAppliesTo : basis object >
+}
+
+package "External Reference" {
+    class Sale <<external>>
+    class PurchaseOrder <<external>>
+    class User <<external>>
+}
+
+' Catatan Fungsional
+note top of PerformanceReport
+  Objek virtual yang mengagregasikan data dari berbagai modul 
+  untuk menyajikan ringkasan finansial (laba/rugi).
+end note
+
+note right of OperationalCost
+  Mencatat beban rutin toko.
+  Mendukung kalkulasi biaya proporsional berdasarkan periode PerformanceReport.
+end note
+
+@enduml

@@ -28,8 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  ChevronLeft,
-  ChevronRight,
+  LayoutList,
   Loader2,
   MoreHorizontal,
   Pencil,
@@ -43,14 +42,16 @@ import { useDeleteUser } from "@/hooks/users/use-delete-user";
 import { ApiResponse, UserResponse } from "@/services/userService";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { useDebounce } from "@/hooks/use-debounce";
 import { AxiosError } from "axios";
-import { SearchInput } from "@/components/ui/search-input";
 import { FilterWrap } from "@/components/filter-wrap";
 import { UserFilterForm } from "./ui/user-filter-form";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
+import { AppPagination } from "@/components/app-pagination";
+import { SearchInput } from "@/components/ui/search-input";
+import { Separator } from "@/components/ui/separator";
+import { useDebounce } from "@/hooks/use-debounce";
 
 interface UserListSectionProps {
   onEdit: (user: UserResponse) => void;
@@ -61,16 +62,15 @@ export function UserListSection({ onEdit }: UserListSectionProps) {
   const [page, setPage] = useState(1);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [limit, setLimit] = useState(10);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const [roleFilter, setRoleFilter] = useState("all");
   const [orderBy, setOrderBy] = useState("createdAt");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
 
-  const debouncedSearch = useDebounce(search, 500);
-
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserResponse | null>(null);
+  const debouncedSearch = useDebounce(searchInput, 500);
 
   const { data, isLoading, isError } = useUsers({
     params: {
@@ -113,12 +113,6 @@ export function UserListSection({ onEdit }: UserListSectionProps) {
     }
   };
 
-  // Handler for search to reset page
-  const handleSearchChange = (val: string) => {
-    setSearch(val);
-    setPage(1);
-  };
-
   // Handlers needed for FilterForm that reset page
   const handleRoleChange = (val: string) => {
     setRoleFilter(val);
@@ -149,18 +143,18 @@ export function UserListSection({ onEdit }: UserListSectionProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Filter / Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-card p-4 rounded-lg border shadow-sm">
-        <div className="flex flex-1 w-full gap-2">
-          <div className="flex-1 max-w-72">
-            <SearchInput
-              placeholder="Cari user..."
-              value={search}
-              onChange={handleSearchChange}
-            />
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row gap-3 bg-background rounded-md">
+        <SearchInput
+          placeholder="Cari nama atau email user..."
+          value={searchInput}
+          onChange={(val) => {
+            setSearchInput(val);
+            setPage(1);
+          }}
+        />
 
+        <div className="flex gap-2">
           <FilterWrap hasActiveFilters={hasActiveFilters}>
             <UserFilterForm
               roleFilter={roleFilter}
@@ -173,13 +167,17 @@ export function UserListSection({ onEdit }: UserListSectionProps) {
             />
           </FilterWrap>
 
-          <div className="h-10 w-[1px] bg-border mx-1 hidden sm:block" />
+          <Separator orientation="vertical" className="h-10" />
           <ViewModeSwitch value={viewMode} onChange={setViewMode} />
+          <Badge className="h-10 px-4 bg-primary/10 text-primary rounded-lg hidden md:flex items-center gap-2 font-medium">
+            <LayoutList className="h-4 w-4" />
+            Total {meta?.total || 0} User
+          </Badge>
         </div>
       </div>
 
       {viewMode === "table" ? (
-        <div className="overflow-hidden bg-card shadow-sm">
+        <div className="overflow-hidden">
           <Table>
             <TableHeader className="bg-muted/20 border-t border-b border-border/50">
               <TableRow className="border-none">
@@ -368,29 +366,14 @@ export function UserListSection({ onEdit }: UserListSectionProps) {
         </div>
       )}
 
-      {/* Pagination */}
       {meta && meta.totalPages > 1 && (
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <div className="text-sm text-muted-foreground">
-            Halaman {meta.page} dari {meta.totalPages}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(meta.page - 1)}
-            disabled={meta.page <= 1}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPage(meta.page + 1)}
-            disabled={meta.page >= meta.totalPages}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <AppPagination
+          currentPage={page}
+          totalPages={meta.totalPages}
+          onPageChange={setPage}
+          limit={limit}
+          onLimitChange={setLimit}
+        />
       )}
 
       {/* Delete Dialog */}

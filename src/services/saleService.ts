@@ -78,3 +78,11 @@ export const verifyPakasirStatus = async (
   const response = await axiosInstance.post("/pakasir-verify", { saleId });
   return response.data;
 };
+
+export const updateSaleStatus = async (
+  id: number,
+  action: "complete" | "cancel",
+): Promise<ApiResponse<SaleResponse>> => {
+  const response = await axiosInstance.patch(`/sales/${id}/status`, { action });
+  return response.data;
+};

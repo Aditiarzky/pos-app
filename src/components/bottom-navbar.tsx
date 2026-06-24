@@ -1,21 +1,24 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Package } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 import {
   IconLayout,
   IconCalculator,
   IconTrolley,
   IconReport,
+  IconUsers,
 } from "@tabler/icons-react";
 
 interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  allowedRoles?: string[];
 }
 
 const mainNavItems: NavItem[] = [
@@ -43,15 +46,60 @@ const mainNavItems: NavItem[] = [
     label: "Laporan",
     href: "/dashboard/report",
     icon: <IconReport className="w-5 h-5" />,
+    allowedRoles: ["admin sistem"],
+  },
+  {
+    label: "Pelanggan",
+    href: "/dashboard/customers",
+    icon: <IconUsers className="w-5 h-5" />,
+    allowedRoles: ["admin toko"],
   },
 ];
 
 export function BottomNavbar() {
   const pathname = usePathname();
+  const { roles } = useAuth();
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    // In this app, scrolling happens inside the <main> element of AppLayout
+    const scrollContainer = document.querySelector("main");
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const currentScrollY = scrollContainer.scrollTop;
+
+      // Hide when scrolling down, show when scrolling up
+      // currentScrollY > 60 to avoid flickering at the top
+      if (currentScrollY > lastScrollY && currentScrollY > 60) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
+    return () => scrollContainer.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
+
+  // Filter items based on user roles
+  // Logic: 4 first items are common, the 5th depends on role
+  const filteredItems = mainNavItems.filter((item) => {
+    if (!item.allowedRoles) return true;
+    return item.allowedRoles.some((role) => (roles as string[]).includes(role));
+  });
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border z-40 md:hidden flex items-center justify-around px-2">
-      {mainNavItems.map((item) => {
+    <nav
+      className={cn(
+        "fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border z-40 md:hidden flex items-center justify-around px-2 transition-transform duration-300 ease-in-out",
+        isVisible ? "translate-y-0" : "translate-y-full",
+      )}
+    >
+      {filteredItems.map((item) => {
         const isActive = pathname === item.href;
         return (
           <Link key={item.href} href={item.href} className="flex-1">

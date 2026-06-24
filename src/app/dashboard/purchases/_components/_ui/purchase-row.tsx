@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Eye, Trash2, MoreHorizontal } from "lucide-react";
+import { Eye, Pencil, MoreHorizontal } from "lucide-react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { PurchaseResponse } from "../../_types/purchase-type";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -20,21 +20,25 @@ import {
 interface PurchaseProps {
   purchase: PurchaseResponse;
   onView: (purchase: PurchaseResponse) => void;
-  onDelete: (purchase: PurchaseResponse) => void;
+  onEdit?: (purchase: PurchaseResponse) => void;
   idx?: number;
+  canEdit?: boolean;
 }
 
 export const PurchaseRow = ({
   purchase,
   onView,
-  onDelete,
+  onEdit,
   idx,
+  canEdit = false,
 }: PurchaseProps) => {
   const itemCount = purchase?.items?.length || 0;
 
   return (
     <TableRow className="hover:bg-muted/30 transition-colors border-b border-border/30 last:border-none group">
-      <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">{idx}</TableCell>
+      <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
+        {idx}
+      </TableCell>
       <TableCell className="font-mono text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-bold text-primary">
         {purchase.orderNumber}
         {purchase.isArchived && (
@@ -113,9 +117,11 @@ export const PurchaseRow = ({
             <DropdownMenuItem onClick={() => onView(purchase)}>
               <Eye className="mr-2 h-4 w-4" /> Lihat
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDelete(purchase)}>
-              <Trash2 className="mr-2 h-4 w-4" /> Hapus
-            </DropdownMenuItem>
+            {canEdit && onEdit && (
+              <DropdownMenuItem onClick={() => onEdit(purchase)}>
+                <Pencil className="mr-2 h-4 w-4" /> Data Salah
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -123,7 +129,12 @@ export const PurchaseRow = ({
   );
 };
 
-export const PurchaseCard = ({ purchase, onView, onDelete }: PurchaseProps) => {
+export const PurchaseCard = ({
+  purchase,
+  onView,
+  onEdit,
+  canEdit = false,
+}: PurchaseProps) => {
   return (
     <Card className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50">
       {/* Header with Gradient */}
@@ -217,14 +228,16 @@ export const PurchaseCard = ({ purchase, onView, onDelete }: PurchaseProps) => {
         >
           <Eye className="h-3.5 w-3.5 mr-1" /> Lihat
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => onDelete(purchase)}
-          className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        {canEdit && onEdit && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onEdit(purchase)}
+            className="h-8 px-2 text-amber-600 hover:text-amber-700 hover:bg-amber-600/10"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
       </div>
     </Card>
   );

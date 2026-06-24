@@ -126,6 +126,7 @@ export async function GET(request: NextRequest) {
             and(
               not(sales.isArchived),
               not(eq(sales.status, "cancelled")),
+              not(eq(sales.status, "refunded")),
               sql`${sales.createdAt} >= ${todayStart}`,
               sql`${sales.createdAt} <= ${todayEnd}`,
             ),
@@ -140,6 +141,7 @@ export async function GET(request: NextRequest) {
             and(
               not(sales.isArchived),
               not(eq(sales.status, "cancelled")),
+              not(eq(sales.status, "refunded")),
               sql`${sales.createdAt} >= ${todayStart}`,
               sql`${sales.createdAt} <= ${todayEnd}`,
             ),
@@ -179,6 +181,7 @@ export async function GET(request: NextRequest) {
             and(
               not(sales.isArchived),
               not(eq(sales.status, "cancelled")),
+              not(eq(sales.status, "refunded")),
               sql`${sales.createdAt} >= ${yesterdayStart}`,
               sql`${sales.createdAt} <= ${yesterdayEnd}`,
             ),
@@ -193,6 +196,7 @@ export async function GET(request: NextRequest) {
             and(
               not(sales.isArchived),
               not(eq(sales.status, "cancelled")),
+              not(eq(sales.status, "refunded")),
               sql`${sales.createdAt} >= ${yesterdayStart}`,
               sql`${sales.createdAt} <= ${yesterdayEnd}`,
             ),
@@ -329,8 +333,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ✅ Untuk QRIS: status awal adalah pending_payment
-    const initialStatus = paymentMethod === "qris" ? "pending_payment" : "completed";
+    // Status awal selalu pending_payment; dikonfirmasi via PATCH /status
+    const initialStatus = "pending_payment";
 
     const result = await db.transaction(async (tx) => {
       const invoiceNum = `INV-${Date.now()}`;
@@ -422,9 +426,10 @@ export async function POST(request: NextRequest) {
 
       const paidAmount = paymentMethod === "qris" ? netTotal : Number(totalPaid);
       let calculatedReturn = 0;
-      let saleStatus: "completed" | "debt" | "pending_payment" = initialStatus;
+      // Status selalu pending_payment; PATCH /status yang akan finalisasi
+      const saleStatus: "completed" | "debt" | "pending_payment" = "pending_payment";
 
-      // ✅ QRIS: lewati validasi pembayaran kurang karena pembayaran belum terjadi
+      // QRIS: lewati validasi pembayaran kurang karena pembayaran belum terjadi
       if (paymentMethod !== "qris") {
         if (paidAmount < netTotal) {
           if (!isDebt) {
@@ -439,7 +444,7 @@ export async function POST(request: NextRequest) {
             );
           }
 
-          saleStatus = "debt";
+          // Buat debt record, tapi status sale tetap pending_payment
           const debtAmount = netTotal - paidAmount;
 
           await tx.insert(debts).values({
@@ -607,7 +612,7 @@ export async function POST(request: NextRequest) {
         // Revert sale
         await db
           .update(sales)
-          .set({ isArchived: true, status: "cancelled", deletedAt: new Date() })
+          .set({ isArchived: true, status: "cancelled" })
           .where(eq(sales.id, result.id));
 
         // Revert stok

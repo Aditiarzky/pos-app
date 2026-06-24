@@ -35,6 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
 import { RoleGuard } from "@/components/role-guard";
 import { AccessDenied } from "@/components/access-denied";
+import { useAuth } from "@/hooks/use-auth";
 
 // ============================================
 // MAIN CONTENT COMPONENT
@@ -62,7 +63,6 @@ function PurchasesContent() {
     setOrder,
     hasActiveFilters,
     resetFilters,
-    handleDelete,
   } = usePurchaseList();
 
   // Purchase form state
@@ -88,6 +88,14 @@ function PurchasesContent() {
     setEditingPurchase(null);
     setIsPurchaseFormOpen(true);
   };
+
+  const handleEditPurchase = (purchase: PurchaseResponse) => {
+    setEditingPurchase(purchase);
+    setIsPurchaseFormOpen(true);
+  };
+
+  const { roles } = useAuth();
+  const isSystemAdmin = (roles as string[]).includes("admin sistem");
 
   return (
     <>
@@ -131,7 +139,7 @@ function PurchasesContent() {
       {/* Main Content */}
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
         {/* Analytics Cards - Hidden saat form terbuka */}
-        <AnalyticsCards analytics={analytics} />
+        {isSystemAdmin && <AnalyticsCards analytics={analytics} />}
 
         <PurchaseForm
           isOpen={isPurchaseFormOpen}
@@ -185,7 +193,7 @@ function PurchasesContent() {
               setOrder={setOrder}
               hasActiveFilters={hasActiveFilters}
               resetFilters={resetFilters}
-              onDelete={handleDelete}
+              onEdit={handleEditPurchase}
             />
           </TabsContent>
 

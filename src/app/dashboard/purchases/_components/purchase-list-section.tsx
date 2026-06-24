@@ -34,6 +34,7 @@ import {
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
 import { useQueryState } from "@/hooks/use-query-state";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { useAuth } from "@/hooks/use-auth";
 
 export function PurchaseListSection({
   // Optional props for direct injection
@@ -52,10 +53,10 @@ export function PurchaseListSection({
   setOrder: injectedSetOrder,
   hasActiveFilters: injectedHasActiveFilters,
   resetFilters: injectedResetFilters,
-  onDelete: injectedOnDelete,
+  onEdit: injectedOnEdit,
 }: PurchaseListSectionProps &
   Partial<ReturnType<typeof usePurchaseList>> & {
-    onDelete?: (p: PurchaseResponse) => void;
+    onEdit?: (p: PurchaseResponse) => void;
   }) {
   const internalData = usePurchaseList();
 
@@ -76,15 +77,19 @@ export function PurchaseListSection({
   const hasActiveFilters =
     injectedHasActiveFilters ?? internalData.hasActiveFilters;
   const resetFilters = injectedResetFilters ?? internalData.resetFilters;
-  const handleDelete = injectedOnDelete ?? internalData.handleDelete;
+  const handleEdit = injectedOnEdit;
+
+  const { roles } = useAuth();
+  const userRoles = roles as string[];
+  const isSystemAdmin = userRoles.includes("admin sistem");
+  const canManage = isSystemAdmin || userRoles.includes("admin toko");
 
   const [viewMode, setViewMode] = useQueryState<"table" | "card">(
     "view",
     "table",
   );
-  const [selectedPurchase, setSelectedPurchase] = useState<PurchaseResponse | null>(
-    null,
-  );
+  const [selectedPurchase, setSelectedPurchase] =
+    useState<PurchaseResponse | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
   const openReceipt = (purchase: PurchaseResponse) => {
@@ -136,17 +141,27 @@ export function PurchaseListSection({
               <Table>
                 <TableHeader className="bg-muted/20 border-t border-b border-border/50">
                   <TableRow className="border-none">
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Transaksi</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      No.
+                    </TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      No. Transaksi
+                    </TableHead>
                     <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-center font-semibold text-muted-foreground uppercase tracking-wide">
                       Tanggal
                     </TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Supplier</TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Items</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Supplier
+                    </TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Items
+                    </TableHead>
                     <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
                       Total Amount
                     </TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Dicatat Oleh</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Dicatat Oleh
+                    </TableHead>
                     <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide w-20">
                       Aksi
                     </TableHead>
@@ -170,17 +185,27 @@ export function PurchaseListSection({
               <Table>
                 <TableHeader className="bg-muted/20 border-t border-b border-border/50">
                   <TableRow className="border-none">
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Transaksi</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      No.
+                    </TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      No. Transaksi
+                    </TableHead>
                     <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-center font-semibold text-muted-foreground uppercase tracking-wide">
                       Tanggal
                     </TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Supplier</TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Items</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Supplier
+                    </TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Items
+                    </TableHead>
                     <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
                       Total Amount
                     </TableHead>
-                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Dicatat Oleh</TableHead>
+                    <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                      Dicatat Oleh
+                    </TableHead>
                     <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide w-20">
                       Aksi
                     </TableHead>
@@ -211,17 +236,27 @@ export function PurchaseListSection({
                 <Table className="min-w-[800px]">
                   <TableHeader className="bg-muted/20 border-t border-b border-border/50">
                     <TableRow className="border-none">
-                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
-                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. Transaksi</TableHead>
+                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                        No.
+                      </TableHead>
+                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                        No. Transaksi
+                      </TableHead>
                       <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-center font-semibold text-muted-foreground uppercase tracking-wide">
                         Tanggal
                       </TableHead>
-                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Supplier</TableHead>
-                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Items</TableHead>
+                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                        Supplier
+                      </TableHead>
+                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                        Items
+                      </TableHead>
                       <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
                         Total Amount
                       </TableHead>
-                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Dicatat Oleh</TableHead>
+                      <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                        Dicatat Oleh
+                      </TableHead>
                       <TableHead className="text-right text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide w-20">
                         Aksi
                       </TableHead>
@@ -233,8 +268,9 @@ export function PurchaseListSection({
                         key={purchase.id}
                         purchase={purchase}
                         onView={openReceipt}
-                        onDelete={handleDelete}
+                        onEdit={handleEdit}
                         idx={idx + 1}
+                        canEdit={canManage}
                       />
                     ))}
                   </TableBody>
@@ -249,7 +285,8 @@ export function PurchaseListSection({
                 key={purchase.id}
                 purchase={purchase}
                 onView={openReceipt}
-                onDelete={handleDelete}
+                onEdit={handleEdit}
+                canEdit={canManage}
               />
             ))}
           </div>
@@ -280,8 +317,12 @@ export function PurchaseListSection({
               <>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <p className="text-xs text-muted-foreground">No. Transaksi</p>
-                    <p className="font-semibold">{selectedPurchase.orderNumber}</p>
+                    <p className="text-xs text-muted-foreground">
+                      No. Transaksi
+                    </p>
+                    <p className="font-semibold">
+                      {selectedPurchase.orderNumber}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">Tanggal</p>
@@ -298,7 +339,9 @@ export function PurchaseListSection({
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Dicatat Oleh</p>
+                    <p className="text-xs text-muted-foreground">
+                      Dicatat Oleh
+                    </p>
                     <p className="font-semibold">
                       {selectedPurchase.user?.name || "-"}
                     </p>
@@ -320,8 +363,12 @@ export function PurchaseListSection({
                       {(selectedPurchase.items || []).map((item) => (
                         <TableRow key={item.id}>
                           <TableCell>{item.product?.name || "-"}</TableCell>
-                          <TableCell>{item.productVariant?.name || "-"}</TableCell>
-                          <TableCell className="text-right">{item.qty}</TableCell>
+                          <TableCell>
+                            {item.productVariant?.name || "-"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {item.qty}
+                          </TableCell>
                           <TableCell className="text-right">
                             {formatCurrency(Number(item.price || 0))}
                           </TableCell>
@@ -336,7 +383,9 @@ export function PurchaseListSection({
 
                 <div className="flex justify-end">
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Total Transaksi</p>
+                    <p className="text-xs text-muted-foreground">
+                      Total Transaksi
+                    </p>
                     <p className="text-lg font-bold text-primary">
                       {formatCurrency(Number(selectedPurchase.total || 0))}
                     </p>

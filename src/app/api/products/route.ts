@@ -153,6 +153,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!session.roles.includes("admin sistem")) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Admin system role required" },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
     const validation = validateProductData(body);
 

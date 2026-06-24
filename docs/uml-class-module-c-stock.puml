@@ -1,0 +1,85 @@
+@startuml Modul_C_Penyelarasan_Stok
+
+' Pengaturan visual agar profesional dan fungsional
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Arial"
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
+
+title Penyelarasan Stok
+
+package "Domain Model: Inventory" {
+    class StockMutation {
+        - id: Integer
+        - productId: Integer
+        - variantId: Integer
+        - userId: Integer
+        - type: StockMutationType
+        - qtyBaseUnit: Decimal
+        - unitFactorAtMutation: Decimal
+        - reference: String
+        - createdAt: DateTime
+        + recordMutation(product: Product, amount: Decimal, reason: String): void
+        + getProductDetail(): Product
+        + getVariantDetail(): ProductVariant
+    }
+
+    class StockOpnameWorksheet {
+        - generatedAt: DateTime
+        - items: List<WorksheetItem>
+        + generate(products: List<Product>): String
+        + processResult(variantId: Integer, physicalQty: Decimal): void
+    }
+
+    enum StockMutationType {
+        PURCHASE
+        PURCHASE_CANCEL
+        SALE
+        WASTE
+        ADJUSTMENT
+        RETURN_RESTOCK
+        SUPPLIER_RETURN
+        EXCHANGE
+    }
+
+    ' Relationships
+    StockMutation "0..*" -- "1" Product : records change on >
+    StockMutation "0..*" -- "1" ProductVariant : via variant >
+    StockMutation ..> StockMutationType : using >
+    StockOpnameWorksheet ..> StockMutation : triggers >
+}
+
+package "External Reference" {
+    class Product <<external>> {
+        + updateStock(amount: Decimal): void
+    }
+    class ProductVariant <<external>>
+    class User <<external>>
+}
+
+' Catatan Fungsional
+note bottom of StockMutation
+  Objek ini merepresentasikan 
+  setiap perubahan stok.
+  Data ini menjadi acuan 
+  utama untuk audit log stok.
+  PURCHASE_CANCEL digunakan 
+  saat edit/hapus purchase.
+end note
+
+note bottom of StockOpnameWorksheet
+  Lembar kerja cetak 
+  untuk stock opname offline.
+  Admin Toko cetak, 
+  Admin Sistem input hasil.
+end note
+
+note bottom of StockMutationType
+  Mendefinisikan sumber perubahan stok
+  (Sale, Purchase, Stock Adjustment, dll).
+end note
+
+@enduml

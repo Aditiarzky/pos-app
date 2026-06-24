@@ -16,7 +16,6 @@ import {
   IconUsers,
   IconShieldLock,
   IconReport,
-  IconTrash,
   IconBell,
   IconDatabase,
   IconTax,
@@ -99,12 +98,6 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         href: "/dashboard/notifications",
         icon: <IconBell className="w-5 h-5" />,
         roles: STORE_AND_SYSTEM_ROLES,
-      },
-      {
-        label: "Tempat Sampah",
-        href: "/dashboard/trash",
-        icon: <IconTrash className="w-5 h-5" />,
-        roles: SYSTEM_ADMIN_ONLY_ROLES,
       },
       {
         label: "User & Akses",

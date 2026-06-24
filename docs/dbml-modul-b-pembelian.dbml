@@ -1,0 +1,50 @@
+// ═══════════════════════════════════════════════════
+// Modul B: Pengelolaan Pembelian
+// Paste ke https://dbdiagram.io untuk generate diagram
+// ═══════════════════════════════════════════════════
+
+Table suppliers {
+  id serial [pk, increment]
+  name varchar(120) [not null]
+  phone varchar(30)
+  email varchar(255)
+  address text
+  description text
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+}
+
+Table purchase_orders {
+  id serial [pk, increment]
+  order_number varchar(60) [unique]
+  supplier_id integer [not null, ref: > suppliers.id]
+  user_id integer [not null, ref: > users.id]
+  total decimal(12,2)
+  is_archived boolean [default: false]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+
+  Indexes {
+    order_number [unique, name: 'purchase_orders_order_number_key']
+  }
+}
+
+Table purchase_items {
+  id serial [pk, increment]
+  purchase_id integer [not null, ref: > purchase_orders.id]
+  product_id integer [not null, ref: > products.id]
+  variant_id integer [not null, ref: > product_variants.id]
+  qty decimal(12,3) [not null]
+  price decimal(12,2) [not null]
+  unit_factor_at_purchase decimal(12,3)
+  cost_before decimal(12,4) [not null]
+  subtotal decimal(12,2) [not null]
+}
+
+// External references (simplified)
+Table users { id serial [pk] }
+Table products { id serial [pk] }
+Table product_variants { id serial [pk] }

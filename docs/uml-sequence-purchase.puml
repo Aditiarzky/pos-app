@@ -1,25 +1,82 @@
-@startuml
-actor "Admin Toko" as Admin
-participant "Sistem POS" as App
-database "Sistem Penyimpanan" as DB
+@startuml Purchase_Management_Sequence
+autonumber
 
-== Rekam Pengadaan Baru ==
-Admin -> App: Input data pemasok, barang, dan harga
-App -> App: Verifikasi kelengkapan data pengadaan
-App -> DB: Catat transaksi pengadaan barang
-loop Tiap Barang
-  App -> DB: Cek kondisi stok dan harga terakhir
-  App -> App: Kalkulasi ulang nilai pokok (HPP) barang
-  App -> DB: Perbarui stok dan nilai harga pokok terintegrasi
-  App -> DB: Catat alur masuk barang
+skinparam BoxPadding 5
+skinparam ParticipantPadding 8
+skinparam defaultFontSize 16
+skinparam maxMessageSize 300
+skinparam sequenceMessageAlign center
+
+actor "Admin Toko" as Viewer
+actor "Admin Sistem" as Admin
+boundary "UI Pembelian" as UI
+control "Purchase Controller" as Ctrl
+box "Purchase Order" #F5F5F5
+    database "purchase_orders" as po
+    database "purchase_items" as pi
+end box
+database "products" as p
+database "product_variants" as v
+database "stock_mutations" as sm
+
+== 1. Input Pembelian Baru ==
+Viewer -> UI : Input nota supplier & list item
+UI -> Ctrl : Simpan pembelian
+activate Ctrl
+Ctrl -> po : Insert purchase_orders (orderNumber sementara)
+loop Per Item
+    Ctrl -> p : Baca stok & averageCost
+    Ctrl -> v : Baca conversionToBase
+    Ctrl -> p : Hitung average baru, update stok & lastPurchaseCost
+    Ctrl -> pi : Insert purchase_items (qty, price, costBefore)
+    Ctrl -> sm : Insert stock_mutations (type: purchase)
 end
-App -> DB: Finalisasi total transaksi pengadaan
-App --> Admin: Konfirmasi pengadaan berhasil tersimpan
+Ctrl -> po : Update total & orderNumber final
+po --> UI : Konfirmasi berhasil
+deactivate Ctrl
 
-== Review / Pembatalan Pengadaan ==
-Admin -> App: Pilih transaksi pengadaan yang akan diubah
-App -> DB: Tarik data pengadaan dan rinciannya
-App -> DB: Reversi stok dan harga ke kondisi sebelum pengadaan
-App -> DB: Hapus rincian pengadaan lama
-App --> Admin: Informasikan data berhasil dikelola
+== 2. Edit Nota / Data Salah (Revert & Re-apply) ==
+Viewer -> UI : Klik "Data Salah" pada nota
+UI -> Ctrl : Buka form edit (pre-filled)
+Viewer -> UI : Ubah item & klik Update
+UI -> Ctrl : Request edit PO
+activate Ctrl
+note right: Revert & Re-apply (Reverse Average Method)
+
+group REVERT (Audit Trail)
+    Ctrl -> pi : Fetch item lama
+    loop Per Item Lama
+        Ctrl -> p : Reverse average (kurangi stok & nilai aset)
+        Ctrl -> sm : Insert purchase_cancel (qty negatif, ref: EDIT-PO)
+    end
+    Ctrl -> pi : Delete purchase_items lama
+end
+
+group APPLY
+    loop Per Item Baru
+        Ctrl -> p : Baca stok & avgCost terbaru
+        Ctrl -> v : Baca conversionToBase
+        Ctrl -> p : Hitung average baru, update stok
+        Ctrl -> pi : Insert purchase_items baru
+        Ctrl -> sm : Insert stock_mutations (type: purchase)
+    end
+    Ctrl -> po : Update header (supplierId, total)
+end
+Ctrl --> UI : Konfirmasi berhasil
+deactivate Ctrl
+
+== 3. Hapus Permanen / Data Tidak Berguna ==
+Admin -> UI : Klik "Data Tidak Berguna" di form edit
+UI -> Ctrl : Modal konfirmasi (ketik HAPUS)
+activate Ctrl
+Ctrl -> pi : Fetch item lama
+loop Per Item
+    Ctrl -> p : Reverse average (kurangi stok)
+    Ctrl -> sm : Insert stock_mutations (purchase_cancel, qty negatif)
+end
+Ctrl -> pi : Delete purchase_items
+Ctrl -> po : Delete purchase_orders (hard delete)
+Ctrl --> UI : Konfirmasi berhasil
+deactivate Ctrl
+
 @enduml

@@ -1,25 +1,55 @@
-@startuml
-actor "Admin Toko" as Admin
-participant "Sistem POS" as App
-participant "Sistem Pembayaran" as Pay
-database "Sistem Penyimpanan" as DB
+@startuml Sales_Transaction_Sequence
+autonumber
 
-== Proses Penjualan ==
-Admin -> App: Masukkan produk dan pilih pelanggan
-Admin -> App: Tentukan cara pembayaran
-App -> App: Verifikasi stok dan hitung total
+skinparam BoxPadding 5
+skinparam ParticipantPadding 8
+skinparam defaultFontSize 16
+skinparam maxMessageSize 300
+skinparam sequenceMessageAlign center
 
-alt Pembayaran Digital
-  App -> Pay: Buat permintaan pembayaran
-  Pay --> App: Berikan status pembayaran berhasil
-  App -> DB: Rekam transaksi selesai
-else Tunai atau Saldo
-  App -> App: Hitung kembalian / potong saldo
-  App -> DB: Rekam transaksi selesai
+actor "Admin Sistem /\nAdmin Toko" as Admin
+boundary "UI Kasir" as UI
+control "Sale Controller" as Ctrl
+database "sales" as s
+database "sale_items" as si
+database "products" as p
+box "Pelanggan" #F5F5F5
+    database "customers" as c
+    database "cust. balance\nmutations" as bm
+end box
+database "debts" as d
+
+== 1. Persiapan & Validasi ==
+Admin -> UI : Scan produk & pilih pelanggan
+UI -> Ctrl : Ambil data pelanggan
+Ctrl -> c : Cek creditBalance (saldo kredit)
+c --> UI : Data pelanggan & sisa saldo
+
+== 2. Proses Transaksi ==
+Admin -> UI : Pilih metode bayar & proses
+UI -> Ctrl : Kirim data transaksi
+activate Ctrl
+
+Ctrl -> s : Insert sales (status: pending_payment)
+
+loop Per Item
+    Ctrl -> p : Cek stok (stock >= qty × conversion)
+    Ctrl -> p : UPDATE stok (kurangi qty base unit)
+    Ctrl -> si : Insert sale_items (priceAtSale, costAtSale)
 end
 
-App -> DB: Kurangi stok produk
-App -> DB: Catat arus keluar barang
-App -> DB: Perbarui catatan saldo/piutang pelanggan
-App --> Admin: Tampilkan bukti transaksi
+alt Penggunaan Saldo Pelanggan
+    Ctrl -> c : UPDATE creditBalance (kurangi balanceUsed)
+    Ctrl -> bm : Insert balance_mutation (sale_balance_used)
+end
+
+alt Pembayaran Kurang & Piutang
+    Ctrl -> d : Insert debts (originalAmount, status: unpaid)
+end
+
+== 3. Finalisasi (Tunai) ==
+Ctrl -> s : UPDATE totalPrice, totalReturn, invoice final
+Ctrl --> UI : Konfirmasi & cetak struk
+deactivate Ctrl
+
 @enduml

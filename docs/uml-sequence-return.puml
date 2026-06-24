@@ -1,37 +1,54 @@
-@startuml
-actor "Admin Toko" as Admin
-participant "Sistem POS" as App
-database "Sistem Penyimpanan" as DB
+@startuml Return_Process_Sequence
+autonumber
 
-== Proses Retur Pelanggan ==
-Admin -> App: Input identitas transaksi produk retur
-App -> DB: Tarik rincian sejarah transaksi
-DB --> App: Berikan data transaksi yang relevan
-App -> App: Verifikasi sisa kuantitas retur
+skinparam BoxPadding 5
+skinparam ParticipantPadding 8
+skinparam defaultFontSize 16
+skinparam maxMessageSize 200
+skinparam sequenceMessageAlign center
 
-alt Barang Masih Baik
-  App -> DB: Tambahkan kembali stok barang
-  App -> DB: Catat arus masuk retur barang
+actor "Admin Sistem /\nAdmin Toko" as Admin
+boundary "UI Retur" as UI
+control "Return Controller" as Ctrl
+database "sales" as s
+database "products" as p
+database "customer_returns" as cr
+database "return_items" as ri
+database "stock_mutations" as sm
+box "Kompensasi" #F5F5F5
+    database "customers" as c
+    database "balance_mutations" as bm
+end box
+
+== 1. Validasi Nota ==
+Admin -> UI : Input nota & pilih barang retur
+UI -> Ctrl : Proses retur
+activate Ctrl
+Ctrl -> s : Fetch penjualan asli (+ items, retur sebelumnya)
+note right: Validasi: item ada di invoice, qty tidak melebihi sisa
+
+== 2. Penanganan Stok ==
+alt Barang Layak Jual (returnedToStock = true)
+    Ctrl -> p : UPDATE stok (tambah qty × conversion)
+    Ctrl -> sm : Insert stock_mutations (return_restock)
+else Barang Rusak
+    note right: Stok tidak dikembalikan
 end
 
-alt Solusi Saldo
-  App -> DB: Kreditkan nilai retur ke saldo pelanggan
-else Solusi Tukar Barang
-  App -> DB: Proses pengeluaran barang pengganti
-  App -> App: Perhitungan selisih nilai tukar
-  alt Ada Selisih Saldo
-    App -> DB: Sesuaikan saldo pelanggan
-  end
-else Solusi Refund
-  App -> App: Hitung total dana pengembalian
+== 3. Kompensasi ==
+alt Refund (Tunai)
+    note right: Kasir berikan uang tunai = totalValueReturned
+else Credit Note (Saldo)
+    Ctrl -> c : UPDATE creditBalance (tambah totalRefund)
+    Ctrl -> bm : Insert balance_mutation (return_deposit)
 end
 
-App -> DB: Rekam detail dokumen retur
-App --> Admin: Tampilkan bukti penanganan retur
+== 4. Simpan Data Retur ==
+Ctrl -> cr : Insert customer_returns (returnNumber, totalRefund, compensationType)
+Ctrl -> ri : Insert customer_return_items (qty, priceAtReturn, reason)
 
-== Pembatalan Retur ==
-Admin -> App: Pilih dokumen retur untuk dibatalkan
-App -> DB: Reversi stok dan saldo ke kondisi sebelum retur
-App -> DB: Tandai dokumen retur sebagai dibatalkan
-App --> Admin: Informasikan pembatalan berhasil
+Ctrl --> UI : Konfirmasi (tampilkan nota retur)
+deactivate Ctrl
+
+
 @enduml

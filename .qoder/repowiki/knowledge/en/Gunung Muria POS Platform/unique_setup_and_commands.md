@@ -1,0 +1,2 @@
+- **Dual-Environment Dev**: Supports standard local development via `next dev` with experimental HTTPS, and edge-worker simulation via `vinext dev` for Cloudflare Workers compatibility.
+- **Unified Testing**: Uses Vitest with a dedicated config (`vitest.config.ts`) for both unit tests and integration tests of API logic.

@@ -72,13 +72,15 @@ export type CompensationTypeEnumType =
 export type SurplusStrategyEnumType =
   (typeof schema.surplusStrategyType.enumValues)[number];
 
-export type ProductAuditLogType = InferSelectModel<typeof schema.productAuditLogs>;
-export type InsertProductAuditLogType = InferInsertModel<typeof schema.productAuditLogs>;
-export type ProductAuditActionEnumType = (typeof schema.productAuditAction.enumValues)[number];
+// [REMOVED: product audit feature] — uncomment to restore or delete permanently
+// export type ProductAuditLogType = InferSelectModel<typeof schema.productAuditLogs>;
+// export type InsertProductAuditLogType = InferInsertModel<typeof schema.productAuditLogs>;
+// export type ProductAuditActionEnumType = (typeof schema.productAuditAction.enumValues)[number];
 
-export type ChangeEntry = {
-  field: string;
-  label: string;
-  oldValue: unknown;
-  newValue: unknown;
-};
+// [REMOVED: product audit feature] — ChangeEntry used by audit logs
+// export type ChangeEntry = {
+//   field: string;
+//   label: string;
+//   oldValue: unknown;
+//   newValue: unknown;
+// };

@@ -39,12 +39,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format";
 import { useSupplierList } from "../_hooks/use-supplier-list";
+import { RelationAwareDeleteDialog } from "@/components/relation-aware-delete-dialog";
 import { SupplierListSectionProps, SupplierResponse } from "../_types/supplier";
 import { FilterWrap } from "@/components/filter-wrap";
 import { SupplierFilterForm } from "./_ui/supplier-filter-form";
 import { Card } from "@/components/ui/card";
 import { useState } from "react";
 import { ViewModeSwitch } from "@/components/ui/view-mode-switch";
+import { useAuth } from "@/hooks/use-auth";
 
 // ============================================
 // MAIN COMPONENT
@@ -55,6 +57,8 @@ export function SupplierListSection({
   onAddNew,
 }: SupplierListSectionProps) {
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
+  const { roles } = useAuth();
+  const isSystemAdmin = (roles as string[]).includes("admin sistem");
 
   const {
     // Data
@@ -83,7 +87,10 @@ export function SupplierListSection({
     resetFilters,
 
     // Actions
-    handleDelete,
+    deleteTarget,
+    setDeleteTarget,
+    handleConfirmDelete,
+    isDeleting,
   } = useSupplierList();
 
   return (
@@ -113,12 +120,6 @@ export function SupplierListSection({
             />
           </FilterWrap>
 
-          {/* Add Supplier Button */}
-          <Button className="h-10" onClick={onAddNew}>
-            <Plus className="mr-2 h-4 w-4" />
-            Tambah Supplier
-          </Button>
-
           <div className="h-10 w-[1px] bg-border mx-1 hidden sm:block" />
           <ViewModeSwitch value={viewMode} onChange={setViewMode} />
 
@@ -135,15 +136,27 @@ export function SupplierListSection({
           <Table>
             <TableHeader className="bg-muted/20 border-t border-b border-border/50">
               <TableRow className="border-none">
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No. </TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Nama Supplier</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Telepon</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Email</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Alamat</TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  No.{" "}
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Nama Supplier
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Telepon
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Email
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Alamat
+                </TableHead>
                 <TableHead className="text-center text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
                   Tanggal Dibuat
                 </TableHead>
-                <TableHead className="text-right w-20 text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Aksi</TableHead>
+                <TableHead className="text-right w-20 text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Aksi
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -158,7 +171,8 @@ export function SupplierListSection({
                     idx={idx + 1}
                     supplier={supplier}
                     onEdit={onEdit}
-                    onDelete={handleDelete}
+                    onDelete={setDeleteTarget}
+                    canEdit={isSystemAdmin}
                   />
                 ))
               )}
@@ -203,7 +217,9 @@ export function SupplierListSection({
                 </div>
                 <div className="flex items-start gap-2 text-[10px] sm:text-xs text-muted-foreground">
                   <MapPin className="h-3.5 w-3.5 mt-0.5" />
-                  <span className="line-clamp-2">{supplier.address || "-"}</span>
+                  <span className="line-clamp-2">
+                    {supplier.address || "-"}
+                  </span>
                 </div>
               </div>
 
@@ -216,14 +232,16 @@ export function SupplierListSection({
                 >
                   <Edit className="h-3.5 w-3.5 mr-1" /> Edit
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 sm:h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => handleDelete(supplier)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {isSystemAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 sm:h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setDeleteTarget(supplier)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </Card>
           ))}
@@ -242,6 +260,16 @@ export function SupplierListSection({
           />
         </div>
       )}
+
+      {/* Delete Dialog */}
+      <RelationAwareDeleteDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        itemName={deleteTarget?.name ?? ""}
+        relationsUrl={`/api/master/suppliers/${deleteTarget?.id}/relations`}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
@@ -308,19 +336,26 @@ function EmptyState() {
 interface SupplierRowProps {
   supplier: SupplierResponse;
   onEdit: (supplier: SupplierResponse) => void;
-  onDelete: (supplier: SupplierResponse) => Promise<void>;
+  onDelete: (supplier: SupplierResponse) => void;
   idx: number;
+  canEdit?: boolean;
 }
 
-function SupplierRow({ supplier, onEdit, onDelete, idx }: SupplierRowProps) {
+function SupplierRow({ supplier, onEdit, onDelete, idx, canEdit = false }: SupplierRowProps) {
   return (
     <TableRow className="hover:bg-muted/30 transition-colors border-b border-border/30 last:border-none group">
-      <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">{idx}</TableCell>
+      <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
+        {idx}
+      </TableCell>
       <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-semibold text-primary">
         {supplier.name}
       </TableCell>
-      <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2">{supplier.phone || "-"}</TableCell>
-      <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2">{supplier.email || "-"}</TableCell>
+      <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2">
+        {supplier.phone || "-"}
+      </TableCell>
+      <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2">
+        {supplier.email || "-"}
+      </TableCell>
       <TableCell className="px-2 sm:px-4 py-2">
         <div className="text-sm text-muted-foreground max-w-[150px] truncate">
           {supplier.address || "-"}
@@ -347,13 +382,17 @@ function SupplierRow({ supplier, onEdit, onDelete, idx }: SupplierRowProps) {
             >
               <Edit className="h-4 w-4" /> Edit
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => onDelete(supplier)}
-              className="gap-2 text-destructive focus:text-destructive cursor-pointer"
-            >
-              <Trash2 className="h-4 w-4" /> Hapus
-            </DropdownMenuItem>
+            {canEdit && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => onDelete(supplier)}
+                  className="gap-2 text-destructive focus:text-destructive cursor-pointer"
+                >
+                  <Trash2 className="h-4 w-4" /> Hapus
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>

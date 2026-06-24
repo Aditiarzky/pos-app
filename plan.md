@@ -1,65 +1,56 @@
-# High-Level Plan - Konsolidasi Laporan Multi-Kategori
+# Plan: Penghapusan Fitur Tempat Sampah (Trash) & Implementasi Hard Delete dengan Peringatan Relasi
 
-## Tujuan
-Mengubah laporan yang saat ini terpisah atau terlalu tipis per bagian menjadi satu laporan terpadu yang terdiri dari beberapa kategori. Setiap kategori harus memiliki konten yang lebih kaya dan kontekstual, tanpa mengorbankan kejelasan atau performa antarmuka.
+## 1. Tujuan
 
-## Hasil yang Diharapkan
-1. Satu halaman laporan utama dengan struktur kategori yang jelas.
-2. Setiap kategori memiliki detail yang cukup (ringkasan, metrik inti, breakdown, dan insight pendukung).
-3. UI laporan tetap selaras dengan design system dan pola interaksi yang sudah ada.
+Menghilangkan fitur "Tempat Sampah" (Soft Delete) agar sistem lebih sederhana dan tidak _over-engineered_. Mekanisme penghapusan akan diubah menjadi "Hard Delete" konvensional. Namun, untuk mencegah kecerobohan yang mengakibatkan hilangnya data penting, sistem akan memberikan **peringatan khusus (Warning)** saat akan menghapus Master Data, yang menampilkan **jumlah data berelasi** (misal: jumlah transaksi, produk yang menggunakan kategori tersebut) yang terhubung atau akan ikut terhapus (jika _cascade_).
 
-## Ruang Lingkup Perubahan
-1. Konsolidasi sumber data laporan ke satu alur agregasi.
-2. Restrukturisasi konten laporan berdasarkan kategori yang relevan.
-3. Pendalaman isi per kategori agar tidak hanya menampilkan angka ringkas.
-4. Penyesuaian komponen UI agar konsisten dengan gaya existing (layout, typography, spacing, warna, komponen).
-5. Validasi kualitas data, pengalaman pengguna, dan performa render.
+## 2. Ruang Lingkup Perubahan
 
-## Strategi Implementasi
-1. Definisikan kategori utama laporan beserta tujuan bisnis tiap kategori.
-2. Petakan data yang tersedia saat ini, lalu identifikasi gap data untuk detail kategori.
-3. Rancang skema tampilan per kategori:
-   - Ringkasan kategori
-   - Metrik kunci
-   - Breakdown detail (contoh: periode, produk, channel, atau dimensi relevan lain)
-   - Catatan insight/anomali jika ada
-4. Bangun pipeline data terpadu agar setiap kategori mengambil data dari kontrak yang konsisten.
-5. Implementasikan halaman laporan tunggal dengan section kategori yang mudah dipindai.
-6. Lakukan harmonisasi UI:
-   - Gunakan komponen existing terlebih dahulu
-   - Ikuti pola grid, spacing, dan hierarchy visual yang sudah dipakai di aplikasi
-   - Pastikan responsif desktop dan mobile tetap stabil
-7. Tambahkan state lengkap (loading, empty, error) per kategori agar UX tetap informatif.
-8. Lakukan QA fungsional dan visual untuk memastikan akurasi serta konsistensi.
+### A. Backend (Tingkat Database & API)
 
-## Kriteria Detail Per Kategori
-1. Setiap kategori minimal memiliki 3 lapisan informasi:
-   - Angka utama
-   - Breakdown pendukung
-   - Interpretasi singkat atau indikator perubahan
-2. Hindari kategori yang hanya berisi 1 angka tanpa konteks.
-3. Prioritaskan detail yang bisa ditindaklanjuti pengguna.
+1. **Pembersihan Schema Database**
+   - Meninjau kembali `drizzle/schema.ts` dan menghapus logic Soft Delete (misalnya keberadaan kolom seperti `deletedAt`) pada entitas master data (Users, Categories, Units, Suppliers, Customers, Products, dll).
+2. **Penghapusan Fitur Trash**
+   - Menghapus keseluruhan servis Tempat Sampah (contoh: `trashService.ts`, controller/route API yang membawahi fungsi restore, empty trash, dan list trash).
+3. **Pembaruan Logika Delete & Pengecekan Relasi**
+   - Mengubah API hapus utama (seperti `DELETE /:entity/:id`) agar menjalankan Hard Delete (langsung hapus row dari tabel).
+   - **Pembuatan Pre-flight Check Endpoint (Dependency Check)**: Sistem perlu Endpoint khusus, misalnya `GET /:entity/:id/relations-check`, yang bertugas mengkalkulasi (COUNT) jumlah relasi yang terkait dengan ID data yang ingin dihapus.
+   - (Alternatif: Cek relasi disertakan di Endpoint GET single item jika lebih efisien).
 
-## Prinsip Keselarasan UI
-1. Tidak membuat bahasa visual baru yang bertabrakan dengan UI eksisting.
-2. Mempertahankan pola navigasi, card, tabel, dan filter yang sudah familiar.
-3. Menjaga konsistensi jarak, ukuran teks, dan interaksi antar komponen.
-4. Menjaga keterbacaan saat data kategori bertambah banyak.
+### B. Frontend (UI & Integrasi)
 
-## Validasi & Pengujian
-1. Validasi data:
-   - Kecocokan angka agregat vs sumber data
-   - Konsistensi antar kategori
-2. Validasi UX:
-   - Alur baca dari ringkasan ke detail terasa natural
-   - Empty state dan error state jelas
-3. Validasi UI:
-   - Konsistensi style dengan halaman lain
-   - Responsif di breakpoint utama
-4. Validasi performa:
-   - Waktu render tetap wajar saat seluruh kategori tampil
+1. **Penghapusan Halaman & Navigasi Trash**
+   - Menghapus komponen halaman untuk menu "Tempat Sampah" (misalnya `src/app/dashboard/trash`).
+   - Menghilangkan _link_ navigasi menuju halaman tersebut dari menu samping (Sidebar).
+2. **Perombakan Dialog Konfirmasi Hapus (Delete Confirmation Modal)**
+   - Saat admin menekan tombol "Hapus" pada Master Data (misal Supplier), jangan langsung dieksekusi. Tampilkan _Dialog_.
+   - Begitu dialog ini terbuka (render), jalankan API untuk mengecek relasi. Tampilkan _loading stat_ selama mengecek.
+   - **Isi Dialog Dinamis**:
+     - _Jika tidak ada relasi_: Tampilkan kalimat _'Apakah Anda yakin ingin menghapus [Nama Item]?'_
+     - _Jika ada relasi_: Tampilkan peringatan destruktif. Contoh: _'PERHATIAN: Master data ini berkait dengan [5] Produk dan [12] Transaksi Pembelian. Melanjutkan penghapusan ini akan menghapus data tersebut secara permanen. Apakah Anda benar-benar yakin?'_
+   - Jika jumlah relasinya masif (atau menyangkut transaksi), pertimbangkan menambahkan _Constraint_ konfirmasi ketik (misal mengetikkan tulisan "HAPUS" atau semacamnya) agar tidak mudah tidak disengaja.
+3. **Penyeragaman Aksi Hapus**
+   - Pastikan _action menu_ pada tabel/list dan halaman detail mengarahkan _trigger_ ke komponen modal relasi yang baru ini.
 
-## Deliverables
-1. Halaman laporan tunggal berbasis multi-kategori.
-2. Struktur data dan kontrak kategori yang terdokumentasi.
-3. Checklist QA data + UI untuk verifikasi sebelum release.
+## 3. Prioritas & Langkah Implementasi
+
+1. **Fase 1: Cleanup Schema & Trash Code**
+   - Hapus properti soft-delete `deletedAt`. Buat migrasi db baru.
+   - Hapus service dan route untuk Trash. Hapus UI folder `dashboard/trash`.
+2. **Fase 2: Helper Cek Relasi Backend**
+   - Buat fungsi query agregat di backend (`COUNT()`) untuk tiap entitas master:
+     - **Category**: hitung jumlah _Products_ terkait.
+     - **Supplier**: hitung _Purchase Orders_ dan _Supplier Returns_ terkait.
+     - **Customer**: hitung _Sales_ dan _Customer Returns_ terkait.
+     - **Product**: hitung _Product Variants_, _Purchase Items_, _Sale Items_, _Returns_.
+     - **User**: hitung _Sales / Purchases_ yang di-handle (Atau _set null_ jika user dihapus).
+3. **Fase 3: Reusable Delete Modal**
+   - Bangun atau refaktor _UI Component_ (missal: `RelationAwareDeleteDialog`) yang menerima props _endpoint pengecekan_, lalu merender peringatan yang sesuai. Integrasikan secara luas ke semua tabel Master Data.
+4. **Fase 4: Testing & Deployment**
+   - Uji semua _hard delete_ satu per satu menggunakan UI dan konfirmasikan data anak (cascade) terhapus di database (atau ada constraint restrict sesuai rancangan schema final).
+
+## 4. Validasi Utama
+
+1. Memastikan **penghitungan relasi akurat** sebelum aksi penghapusan dieksekusi.
+2. Memastikan user mendapat peringatan visual (warna merah, tanda seru).
+3. Mengecek `schema.ts` apakah relasi Drizzle ditandai `{ onDelete: "cascade" }` atau justru `"restrict"`. Rencana ini lebih cocok apabila status dari cascade dapat memberitahukan ke user dengan jelas. Kalau `"set null"`, UX harus disesuaikan.

@@ -81,15 +81,17 @@ function ProductsContent() {
             </p>
           </div>
         </div>
-        <div>
-          <Button
-            onClick={() => setIsAddModalOpen(true)}
-            className="bg-gradient-to-br from-primary to-green-600 dark:to-green-400 hover:brightness-90 rounded-app-lg"
-          >
-            <Plus className="mr-0 sm:mr-2 h-4 w-4" />
-            <p className="hidden sm:block">Tambah Produk</p>
-          </Button>
-        </div>
+        {isSystemAdmin && (
+          <div>
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-gradient-to-br from-primary to-green-600 dark:to-green-400 hover:brightness-90 rounded-app-lg"
+            >
+              <Plus className="mr-0 sm:mr-2 h-4 w-4" />
+              <p className="hidden sm:block">Tambah Produk</p>
+            </Button>
+          </div>
+        )}
       </header>
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
         {/* Overview Cards */}

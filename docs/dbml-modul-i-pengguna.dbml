@@ -1,0 +1,45 @@
+// ═══════════════════════════════════════════════════
+// Modul I: Pengelolaan Pengguna
+// Paste ke https://dbdiagram.io untuk generate diagram
+// ═══════════════════════════════════════════════════
+
+enum user_role {
+  "admin toko"
+  "admin sistem"
+}
+
+Table users {
+  id serial [pk, increment]
+  email text [not null, unique]
+  name text [not null]
+  password text [not null]
+  is_active boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+  deleted_at timestamp
+
+  Indexes {
+    email [unique, name: 'users_email_key']
+  }
+}
+
+Table user_roles {
+  user_id integer [not null, ref: > users.id]
+  role user_role [not null]
+
+  Indexes {
+    (user_id, role) [pk, name: 'user_roles_pkey']
+  }
+}
+
+Table refresh_tokens {
+  id serial [pk, increment]
+  token text [not null, unique]
+  user_id integer [not null, ref: > users.id]
+  expires_at timestamp [not null]
+  created_at timestamp
+
+  Indexes {
+    token [unique, name: 'refresh_tokens_token_key']
+  }
+}

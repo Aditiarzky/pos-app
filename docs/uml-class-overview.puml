@@ -1,87 +1,89 @@
-@startuml
+@startuml System_Overview_Class_Diagram
 hide methods
 skinparam classAttributeIconSize 0
+skinparam defaultFontSize 14
+skinparam titleFontSize 20
 
-class Pengguna {
-  Nama
-  Akses Kredensial
+class User {
+  Name
+  Email / Account
 }
 
-class Kategori {
-  Nama Kategori
+class Category {
+  Category Name
 }
 
-class Produk {
-  Nomor Seri Produk
-  Penamaan Item
-  Ambang Batas Stok Minimal
-  Biaya Perolehan Rata-Rata
+class Product {
+  Product SKU
+  Product Name
+  Current Stock
+  Average Cost
 }
 
-class VarianProduk {
-  Spesifikasi Varian
-  Nilai Konversi Dasar
-  Harga Penawaran
+class ProductVariant {
+  Variant & Unit
+  Conversion Factor
+  Sell Price
 }
 
 class Supplier {
-  Identitas Rekanan Bisnis
-  Alamat Kontak
+  Supplier Name
+  Contact & Address
 }
 
-class Pelanggan {
-  Identitasi Konsumen
-  Akses Narahubung
-  Total Saldo Dompet
+class Customer {
+  Customer Name
+  Contact Person
+  Credit Balance
 }
 
-class Pembelian {
-  Nomor Lembar Penagihan
-  Kalkulasi Total Biaya
-  Asuransi Status Dokumen
+class Purchase {
+  Order Number
+  Total Cost
+  Archive Status
 }
 
-class TransaksiPenjualan {
-  Faktur Bukti Jual
-  Total Tagihan Publik
-  Nominal Pemenuhan Pembayaran
-  Skema Pendanaan (Metode)
+class Sale {
+  Invoice Number
+  Total Price
+  Total Paid
+  Payment Method
 }
 
-class RiwayatHutang {
-  Proporsi Kewajiban Belum Terbayar
-  Batas Pertanggungjawaban
+class Debt {
+  Remaining Debt
+  Payment Status
 }
 
-class ReturPelanggan {
-  Registrasi Komplain Konsumen
-  Pemilihan Alokasi Kompensasi
+class CustomerReturn {
+  Return Number
+  Compensation Type
 }
 
-class NotifikasiSistem {
-  Pokok Pesan Berita
-  Indikator Telah Terbaca
+class SystemNotification {
+  Notification Message
+  Read Status
 }
 
 ' Relational Mapping Models
-Pengguna "1" -- "*" TransaksiPenjualan : Melaksanakan >
-Pengguna "1" -- "*" Pembelian : Mensahkan >
+User "1" -- "*" Sale : Executes >
+User "1" -- "*" Purchase : Authorizes >
 
-Kategori "1" -- "*" Produk : Mewadahi <
-Produk "1" -- "*" VarianProduk : Dipilah berdasarkan >
+Category "1" -- "*" Product : Contains <
+Product "1" -- "*" ProductVariant : Sorted by >
 
-Supplier "1" -- "*" Pembelian : Menyediakan bagi >
-Pembelian "1" -- "*" Produk : Mendata perolehan >
+Supplier "1" -- "*" Purchase : Provides for >
+Purchase "1" -- "*" Product : Records acquisition >
 
-Pelanggan "1" -- "*" TransaksiPenjualan : Melakukan pembelian via >
-Pelanggan "1" -- "*" RiwayatHutang : Berhutang melalui >
-Pelanggan "1" -- "*" ReturPelanggan : Mendaftarkan asuransi retur >
+Customer "1" -- "*" Sale : Makes purchase via >
+Customer "1" -- "*" Debt : Owes through >
+Customer "1" -- "*" CustomerReturn : Registers return >
 
-TransaksiPenjualan "1" -- "*" Produk : Berisi rincian barang >
-TransaksiPenjualan "1" -- "0..1" RiwayatHutang : Mengakibatkan penagihan >
-TransaksiPenjualan "1" -- "*" ReturPelanggan : Direferensikan historis pada >
+Sale "1" -- "*" Product : Contains item details >
+Sale "1" -- "0..1" Debt : Results in billing >
+Sale "1" -- "*" CustomerReturn : Referenced historically by >
 
-ReturPelanggan "1" -- "*" Produk : Mengeksekusi penarikan produk balik >
+CustomerReturn "1" -- "*" Product : Executes product return >
 
-Pengguna "1" -- "*" NotifikasiSistem : Menerima log penyampaian peristiwa >
+User "1" -- "*" SystemNotification : Receives event log delivery >
 @enduml

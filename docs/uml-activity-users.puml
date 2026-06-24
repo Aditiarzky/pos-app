@@ -1,0 +1,42 @@
+@startuml Activity Kelola User
+|Admin Sistem|
+start
+:Akses Menu User & Akses;
+
+|Sistem POS|
+:Ambil data pengguna dan statistik;
+:Tampilkan Daftar Pengguna;
+
+|Admin Sistem|
+if (Pilih Tindakan?) then (Tambah User)
+  :Input Nama, Email, Password, & Role;
+  |Sistem POS|
+  :Validasi format data;
+  :Cek duplikasi email;
+  if (Valid?) then (Ya)
+    :Hash password;
+    :Simpan data user & role (Transaction);
+    :Tampilkan pesan Berhasil;
+  else (Tidak)
+    :Tampilkan pesan Kesalahan;
+  endif
+  
+elseif (Tindakan?) then (Update User)
+  |Admin Sistem|
+  :Ubah informasi atau role pengguna;
+  |Sistem POS|
+  :Update data ke basis data;
+  :Tampilkan pesan Berhasil;
+
+else (Hapus Data User)
+  |Admin Sistem|
+  :Pilih Hapus User;
+  |Sistem POS|
+  :Konfirmasi penghapusan;
+  :Ubah status isActive menjadi false (Soft Delete);
+  :Update basis data;
+  :Tampilkan pesan Berhasil;
+endif
+
+stop
+@enduml

@@ -1,3 +1,7 @@
+// [REMOVED: product audit feature] — entire file commented out
+// Uncomment to restore or delete permanently
+
+/*
 import { useState, useEffect } from "react";
 import { useProductAuditLogs } from "@/hooks/products/use-product-audit-logs";
 import {
@@ -361,3 +365,4 @@ export const ProductAuditLogSection = () => {
     </div>
   );
 };
+*/

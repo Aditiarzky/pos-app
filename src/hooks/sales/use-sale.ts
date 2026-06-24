@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createSale, deleteSale } from "@/services/saleService";
+import { createSale, deleteSale, updateSaleStatus } from "@/services/saleService";
 import { MutationConfig } from "@/lib/react-query";
 import { getSalesQueryOptions, saleKeys } from "./sale-query-options";
 import { useCallback, useEffect } from "react";
@@ -136,6 +136,19 @@ export const useDeleteSale = ({
       queryClient.invalidateQueries({ queryKey: saleKeys.lists() });
       invalidateBusinessData(queryClient);
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
+    },
+  });
+};
+
+export const useUpdateSaleStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, action }: { id: number; action: "complete" | "cancel" }) =>
+      updateSaleStatus(id, action),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: saleKeys.lists() });
+      invalidateBusinessData(queryClient);
     },
   });
 };

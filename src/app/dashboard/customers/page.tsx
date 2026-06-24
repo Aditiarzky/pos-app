@@ -2,7 +2,6 @@
 
 import { Suspense, useState } from "react";
 import { Loader2, Users } from "lucide-react";
-import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { CustomerListSection } from "./_components/customer-list-section";
@@ -167,16 +166,9 @@ function CustomersContent() {
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
         <AnalyticsCards analytics={analytics} />
 
-        <div className="flex flex-col sm:flex-row gap-3 pt-4">
-          <SearchInput
-            placeholder="Cari nama atau telepon..."
-            value={searchInput}
-            onChange={setSearchInput}
-          />
-        </div>
-
         <CustomerListSection
           searchInput={debouncedSearch}
+          setSearchInput={setSearchInput}
           onEdit={handleEdit}
         />
 

@@ -1,0 +1,181 @@
+// ═══════════════════════════════════════════════════════════
+// Overview: Seluruh Tabel Sistem POS
+// Paste ke https://dbdiagram.io untuk generate diagram lengkap
+// ═══════════════════════════════════════════════════════════
+
+// ── Enums ──
+enum stock_mutation_type { purchase; purchase_cancel; sale; sale_cancel; return_restock; return_cancel; waste; supplier_return; adjustment; exchange; exchange_cancel }
+enum sale_status { pending_payment; debt; completed; refunded; cancelled }
+enum payment_method { cash; qris }
+enum debt_status { unpaid; partial; paid; cancelled }
+enum compensation_type { exchange; credit_note; refund }
+enum surplus_strategy_type { cash; credit_balance }
+enum user_role { "admin toko"; "admin sistem" }
+enum cost_category { utilities; salary; rent; logistics; marketing; maintenance; other }
+enum cost_period { daily; weekly; monthly; yearly; one_time }
+enum tax_type { percentage; fixed }
+enum tax_applies_to { revenue; gross_profit }
+
+// ── Master Data ──
+Table users { id serial [pk]; email text [unique]; name text; password text; is_active boolean; deleted_at timestamp }
+Table user_roles { user_id integer [ref: > users.id]; role user_role }
+Table refresh_tokens { id serial [pk]; token text [unique]; user_id integer [ref: > users.id]; expires_at timestamp }
+
+Table categories { id serial [pk]; name varchar(100); is_active boolean; deleted_at timestamp }
+Table units { id serial [pk]; name varchar(50); is_active boolean; deleted_at timestamp }
+
+Table products {
+  id serial [pk, increment]
+  category_id integer [ref: > categories.id]
+  base_unit_id integer [not null, ref: > units.id]
+  sku varchar(50) [unique]
+  name varchar(150) [not null]
+  stock decimal(12,3)
+  average_cost decimal(12,4)
+  last_purchase_cost decimal(12,4)
+  is_active boolean
+  deleted_at timestamp
+}
+
+Table product_variants {
+  id serial [pk, increment]
+  product_id integer [ref: > products.id]
+  unit_id integer [ref: > units.id]
+  name varchar(100)
+  sku varchar(60) [unique]
+  conversion_to_base decimal(12,4)
+  sell_price decimal(12,2)
+  is_active boolean
+  deleted_at timestamp
+}
+
+Table product_barcodes { id serial [pk]; product_id integer [ref: > products.id]; barcode varchar(100) [unique] }
+
+Table suppliers { id serial [pk]; name varchar(120); phone varchar(30); email varchar(255); address text; is_active boolean; deleted_at timestamp }
+Table customers { id serial [pk]; name varchar(150); phone varchar(30); address text; credit_balance decimal(12,2); is_active boolean }
+Table store_settings { id serial [pk]; store_name varchar(255); address text; phone varchar(50) }
+
+// ── Transaksi Pembelian ──
+Table purchase_orders {
+  id serial [pk, increment]
+  order_number varchar(60) [unique]
+  supplier_id integer [ref: > suppliers.id]
+  user_id integer [ref: > users.id]
+  total decimal(12,2)
+  is_archived boolean
+  deleted_at timestamp
+}
+
+Table purchase_items {
+  id serial [pk]
+  purchase_id integer [ref: > purchase_orders.id]
+  product_id integer [ref: > products.id]
+  variant_id integer [ref: > product_variants.id]
+  qty decimal(12,3)
+  price decimal(12,2)
+  cost_before decimal(12,4)
+  subtotal decimal(12,2)
+}
+
+// ── Transaksi Penjualan ──
+Table sales {
+  id serial [pk, increment]
+  invoice_number varchar(60) [unique]
+  customer_id integer [ref: > customers.id]
+  user_id integer [ref: > users.id]
+  total_price decimal(12,2)
+  total_paid decimal(12,2)
+  total_return decimal(12,2)
+  total_balance_used decimal(12,2)
+  status sale_status
+  payment_method payment_method
+  is_archived boolean
+  qris_order_id varchar(100)
+}
+
+Table sale_items {
+  id serial [pk]
+  sale_id integer [ref: > sales.id]
+  product_id integer [ref: > products.id]
+  variant_id integer [ref: > product_variants.id]
+  qty decimal(12,3)
+  price_at_sale decimal(12,2)
+  cost_at_sale decimal(12,4)
+  subtotal decimal(12,2)
+}
+
+// ── Retur & Tukar Barang ──
+Table customer_returns {
+  id serial [pk, increment]
+  return_number varchar(60) [unique]
+  sale_id integer [ref: > sales.id]
+  customer_id integer [ref: > customers.id]
+  user_id integer [ref: > users.id]
+  total_value_returned decimal(12,2)
+  total_refund decimal(12,2)
+  compensation_type compensation_type
+  surplus_strategy surplus_strategy_type
+  is_archived boolean
+}
+
+Table customer_return_items {
+  id serial [pk]
+  return_id integer [ref: > customer_returns.id]
+  product_id integer [ref: > products.id]
+  variant_id integer [ref: > product_variants.id]
+  qty decimal(12,3)
+  price_at_return decimal(12,2)
+  returned_to_stock boolean
+  is_archived boolean
+}
+
+Table customer_exchange_items {
+  id serial [pk]
+  return_id integer [ref: > customer_returns.id]
+  product_id integer [ref: > products.id]
+  variant_id integer [ref: > product_variants.id]
+  qty decimal(12,3)
+  price_at_exchange decimal(12,2)
+}
+
+Table customer_balance_mutations {
+  id serial [pk]
+  customer_id integer
+  amount decimal(15,2)
+  balance_before decimal(15,2)
+  balance_after decimal(15,2)
+  type text
+  reference_id integer
+}
+
+// ── Piutang ──
+Table debts {
+  id serial [pk, increment]
+  sale_id integer [ref: > sales.id]
+  customer_id integer [ref: > customers.id]
+  original_amount decimal(12,2)
+  remaining_amount decimal(12,2)
+  status debt_status
+  is_active boolean
+}
+
+Table debt_payments { id serial [pk]; debt_id integer [ref: > debts.id]; amount_paid decimal(12,2); payment_date timestamp; note text }
+
+// ── Inventori ──
+Table stock_mutations {
+  id serial [pk, increment]
+  product_id integer [ref: > products.id]
+  variant_id integer [ref: > product_variants.id]
+  user_id integer [ref: > users.id]
+  type stock_mutation_type
+  qty_base_unit decimal(12,4)
+  reference varchar(100)
+}
+
+// ── Keuangan ──
+Table operational_costs { id serial [pk]; name varchar(150); category cost_category; amount decimal(14,2); period cost_period; effective_from date; is_active boolean; created_by integer [ref: > users.id] }
+Table tax_configs { id serial [pk]; name varchar(150); type tax_type; rate decimal(6,4); fixed_amount decimal(14,2); applies_to tax_applies_to; effective_from date; is_active boolean; created_by integer [ref: > users.id] }
+
+// ── Lainnya ──
+Table notification_states { id serial [pk]; user_id integer [ref: > users.id]; notification_id varchar(255); read_at timestamp }
+Table supplier_returns { id serial [pk]; supplier_id integer [ref: > suppliers.id]; purchase_id integer [ref: > purchase_orders.id]; product_id integer [ref: > products.id]; qty decimal(12,3); user_id integer [ref: > users.id] }

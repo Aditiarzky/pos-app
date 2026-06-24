@@ -21,6 +21,16 @@ import {
     DialogHeader,
     DialogFooter,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { SupplierSelect } from "@/components/ui/supplier-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Trash2, Loader2, Search, X, QrCode, Package } from "lucide-react";
@@ -32,6 +42,7 @@ import { useSuppliers } from "@/hooks/master/use-suppliers";
 import {
     useCreatePurchase,
     useUpdatePurchase,
+    useDeletePurchase,
 } from "@/hooks/purchases/use-purchases";
 import { usePurchaseForm } from "../_hooks/use-purchase-form";
 import { PurchaseFormItem, PurchaseFormProps } from "../_types/purchase-type";
@@ -39,6 +50,7 @@ import { Switch } from "@/components/ui/switch";
 import { ProductResponse } from "@/services/productService";
 import { SearchResultsDropdown } from "@/components/ui/search-product-dropdown";
 import { useProductSearch } from "@/hooks/use-product-search";
+import { useAuth } from "@/hooks/use-auth";
 
 export function PurchaseForm({
     isOpen,
@@ -46,11 +58,18 @@ export function PurchaseForm({
     initialData,
     onSuccess,
 }: PurchaseFormProps) {
+    const { roles } = useAuth();
+    const isSystemAdmin = (roles as string[]).includes("admin sistem");
     const [isMassMode, setIsMassMode] = useState(false);
+
+    // Delete modal state
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
 
     // Mutations
     const createMutation = useCreatePurchase();
     const updateMutation = useUpdatePurchase();
+    const deleteMutation = useDeletePurchase();
 
     // Suppliers data
     const { data: suppliersResult } = useSuppliers({ limit: 100 });
@@ -156,10 +175,11 @@ export function PurchaseForm({
                 productId: product.id,
                 variantId: variant.id,
                 qty: 1,
-                price: Number(variant.sellPrice),
+                price: Number(product.lastPurchaseCost || 0),
                 productName: product.name,
                 variantName: variant.name,
                 image: product.image,
+                lastPurchaseCost: Number(product.lastPurchaseCost || 0),
                 variants: product.variants, // Store variants for dropdown
             });
         }
@@ -329,7 +349,22 @@ export function PurchaseForm({
                                 />
                             </div>
                         ) : (
-                            <div />
+                            isSystemAdmin && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive h-8 px-3 text-xs font-semibold rounded-lg"
+                                    disabled={isSubmitting}
+                                    onClick={() => {
+                                        setDeleteConfirmInput("");
+                                        setIsDeleteModalOpen(true);
+                                    }}
+                                >
+                                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                                    Data Tidak Berguna
+                                </Button>
+                            )
                         )}
 
                         <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
@@ -372,6 +407,77 @@ export function PurchaseForm({
                     />
                 </DialogContent>
             </Dialog>
+
+            {/* Hard Delete Confirmation Modal */}
+            <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                            Hapus Data Pembelian?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="space-y-3">
+                                <p>
+                                    Tindakan ini akan <strong className="text-destructive">menghapus permanen</strong> data pembelian{" "}
+                                    <strong>{initialData?.orderNumber}</strong> beserta seluruh itemnya.
+                                </p>
+                                <p className="text-muted-foreground">
+                                    Stok produk yang terkait akan dikembalikan dan data tidak dapat dipulihkan.
+                                </p>
+                                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
+                                    <p className="font-semibold text-destructive mb-1">Perhatian:</p>
+                                    <p className="text-muted-foreground">
+                                        Ketik <strong>HAPUS</strong> untuk mengkonfirmasi penghapusan permanen.
+                                    </p>
+                                </div>
+                                <Input
+                                    value={deleteConfirmInput}
+                                    onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                                    placeholder="Ketik HAPUS"
+                                    className="border-destructive/50 focus-visible:ring-destructive"
+                                />
+                            </div>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel
+                            disabled={deleteMutation.isPending}
+                            onClick={() => setIsDeleteModalOpen(false)}
+                        >
+                            Batal
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={deleteConfirmInput !== "HAPUS" || deleteMutation.isPending || !initialData}
+                            onClick={async (e) => {
+                                e.preventDefault();
+                                if (!initialData) return;
+                                try {
+                                    await deleteMutation.mutateAsync(initialData.id);
+                                    toast.success("Pembelian berhasil dihapus permanen");
+                                    setIsDeleteModalOpen(false);
+                                    onClose();
+                                } catch (error) {
+                                    const msg =
+                                        error instanceof Error
+                                            ? error.message
+                                            : "Gagal menghapus pembelian";
+                                    toast.error(msg);
+                                }
+                            }}
+                            className="bg-destructive hover:bg-destructive/90"
+                        >
+                            {deleteMutation.isPending ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Menghapus...
+                                </>
+                            ) : (
+                                "Hapus Permanen"
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
@@ -490,7 +596,7 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                                                                         );
                                                                         form.setValue(
                                                                             `items.${index}.price`,
-                                                                            Number(newVariant.sellPrice),
+                                                                            (field.lastPurchaseCost || 0) * newVariant.conversionToBase,
                                                                         );
                                                                     }
                                                                 }}
@@ -675,7 +781,7 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                                                                 );
                                                                 form.setValue(
                                                                     `items.${index}.price`,
-                                                                    Number(newVariant.sellPrice),
+                                                                    (field.lastPurchaseCost || 0) * newVariant.conversionToBase,
                                                                 );
                                                             }
                                                         }}

@@ -7,8 +7,9 @@ import {
   parsePagination,
 } from "@/lib/query-helper";
 import { validateSupplierData } from "@/lib/validations/supplier";
-import { and, eq, sql } from "drizzle-orm";
+import { and, isNull, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
+import { verifySession } from "@/lib/auth";
 
 // GET
 export async function GET(request: NextRequest) {
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const [suppliersData, totalRes] = await Promise.all([
       db.query.suppliers.findMany({
-        where: and(eq(suppliers.isActive, true), searchFilter),
+        where: and(isNull(suppliers.deletedAt), searchFilter),
         orderBy: searchOrder,
         limit: params.limit,
         offset: params.offset,
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
       db
         .select({ count: sql<number>`count(*)` })
         .from(suppliers)
-        .where(and(eq(suppliers.isActive, true), searchFilter)),
+        .where(and(isNull(suppliers.deletedAt), searchFilter)),
     ]);
 
     const totalCount = Number(totalRes[0]?.count || 0);
@@ -49,6 +50,24 @@ export async function GET(request: NextRequest) {
 // POST
 export async function POST(request: NextRequest) {
   try {
+    const session = await verifySession();
+    if (!session) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 },
+      );
+    }
+
+    if (
+      !session.roles.includes("admin sistem") &&
+      !session.roles.includes("admin toko")
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Forbidden: Unauthorized role" },
+        { status: 403 },
+      );
+    }
+
     const body = await request.json();
 
     const validation = validateSupplierData(body);
