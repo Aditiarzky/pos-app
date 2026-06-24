@@ -26,7 +26,6 @@ import { NotificationItem } from "@/services/notificationService";
 import { RoleGuard } from "@/components/role-guard";
 import { AccessDenied } from "@/components/access-denied";
 import { useQueryState } from "@/hooks/use-query-state";
-import { useAuth } from "@/hooks/use-auth";
 
 const FILTERS = [
   { value: "all", label: "Semua" },
@@ -34,7 +33,6 @@ const FILTERS = [
   { value: "stock", label: "Stok" },
   { value: "finance", label: "Keuangan" },
   { value: "payment", label: "Pembayaran" },
-  { value: "trash", label: "Tempat Sampah" },
 ] as const;
 
 type FilterValue = (typeof FILTERS)[number]["value"];
@@ -93,7 +91,6 @@ const getCategoryLabel = (category: string) => {
     case "stock": return "Stok";
     case "finance": return "Keuangan";
     case "payment": return "Pembayaran";
-    case "trash": return "Sampah";
     case "system": return "Sistem";
     default: return category;
   }
@@ -110,7 +107,6 @@ const getNotificationIcon = (notification: NotificationItem) => {
   if (notification.type === "restock") return <PackageSearch className="h-4 w-4 text-blue-500" />;
   if (notification.type === "debt_overdue") return <HandCoins className="h-4 w-4 text-rose-500" />;
   if (notification.type === "qris_pending") return <CreditCard className="h-4 w-4 text-indigo-500" />;
-  if (notification.category === "trash") return <Trash2 className="h-4 w-4 text-emerald-500" />;
   return <Bell className="h-4 w-4 text-muted-foreground" />;
 };
 
@@ -121,9 +117,6 @@ const matchesFilter = (notification: NotificationItem, filter: FilterValue) => {
 };
 
 function NotificationsContent() {
-  const { roles } = useAuth();
-  const userRoles = roles as string[];
-  const isSystemAdmin = userRoles.includes("admin sistem");
   const router = useRouter();
 
   const [filter, setFilter] = useQueryState<FilterValue>("filter", "all");
@@ -232,7 +225,7 @@ function NotificationsContent() {
       <main className="relative z-10 -mt-12 container bg-background shadow-[0_-3px_5px_-1px_rgba(0,0,0,0.1)] rounded-t-4xl mx-auto p-4 space-y-6 min-h-screen border-t">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex flex-wrap gap-2">
-            {FILTERS.filter(f => isSystemAdmin || f.value !== "trash").map((item) => (
+            {FILTERS.map((item) => (
               <Button
                 key={item.value}
                 type="button"

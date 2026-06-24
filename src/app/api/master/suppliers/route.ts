@@ -7,7 +7,7 @@ import {
   parsePagination,
 } from "@/lib/query-helper";
 import { validateSupplierData } from "@/lib/validations/supplier";
-import { and, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, isNull, sql } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth";
 
@@ -15,8 +15,6 @@ import { verifySession } from "@/lib/auth";
 export async function GET(request: NextRequest) {
   try {
     const params = parsePagination(request);
-    const trash = request.nextUrl.searchParams.get("trash") === "true";
-
     const { searchFilter, searchOrder } = getSearchAndOrderBasic(
       params.search,
       params.order,
@@ -24,13 +22,9 @@ export async function GET(request: NextRequest) {
       suppliers.name,
     );
 
-    const softDeleteFilter = trash
-      ? isNotNull(suppliers.deletedAt)
-      : isNull(suppliers.deletedAt);
-
     const [suppliersData, totalRes] = await Promise.all([
       db.query.suppliers.findMany({
-        where: and(softDeleteFilter, searchFilter),
+        where: and(isNull(suppliers.deletedAt), searchFilter),
         orderBy: searchOrder,
         limit: params.limit,
         offset: params.offset,
@@ -38,7 +32,7 @@ export async function GET(request: NextRequest) {
       db
         .select({ count: sql<number>`count(*)` })
         .from(suppliers)
-        .where(and(softDeleteFilter, searchFilter)),
+        .where(and(isNull(suppliers.deletedAt), searchFilter)),
     ]);
 
     const totalCount = Number(totalRes[0]?.count || 0);
