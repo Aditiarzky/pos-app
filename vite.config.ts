@@ -11,10 +11,10 @@ export default defineConfig(({ command }) => ({
       }),
   ].filter(Boolean),
   ssr: {
-    external: ["cloudinary", "bcryptjs", "jose"],
+    external: ["cloudinary", "bcryptjs", "jose", "pg"],
   },
   optimizeDeps: {
-    exclude: ["cloudinary", "bcryptjs", "jose"],
+    exclude: ["cloudinary", "bcryptjs", "jose", "pg-native"],
     include: ["qrcode.react", "nprogress", "@neondatabase/serverless"],
   },
   resolve: {

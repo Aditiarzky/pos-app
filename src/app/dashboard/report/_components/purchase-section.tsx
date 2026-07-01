@@ -41,7 +41,10 @@ export function PurchaseSection({
               <Skeleton className="h-9 w-32" />
             ) : (
               <div className="text-2xl font-bold">
-                <AnimatedNumber value={summary?.totalPurchases || 0} formatter={formatCurrency} />
+                <AnimatedNumber
+                  value={summary?.totalPurchases || 0}
+                  formatter={formatCurrency}
+                />
               </div>
             )}
           </CardContent>

@@ -1,18 +1,16 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { drizzle } from "drizzle-orm/neon-serverless";
-import { Pool } from "@neondatabase/serverless";
+import type { drizzle as drizzleNeon } from "drizzle-orm/neon-serverless";
 import * as schema from "../drizzle/schema";
 import * as relations from "../drizzle/relations";
 
 const fullSchema = { ...schema, ...relations };
-type DbInstance = ReturnType<typeof drizzle<typeof fullSchema>>;
 
-// Cache instances to avoid recreating them every time
-const dbCache = new Map<string, DbInstance>();
+type DbInstance = ReturnType<typeof drizzleNeon<typeof fullSchema>>;
+
+const isProduction = process.env.NODE_ENV === "production";
 
 function getConnectionString() {
-  // In Cloudflare Workers (via vinext/vite-plugin-cloudflare shims),
-  // bindings like HYPERDRIVE are typically available on process.env
   const hc = (process.env as { [key: string]: any }).HYPERDRIVE as
     | { connectionString?: string }
     | undefined;
@@ -22,27 +20,22 @@ function getConnectionString() {
   return process.env.DATABASE_URL!;
 }
 
-function getDbInstance(): DbInstance {
-  const connectionString = getConnectionString();
+let dbInstance: DbInstance;
 
-  const cached = dbCache.get(connectionString);
-  if (cached) return cached;
+if (isProduction) {
+  // Production: Cloudflare Workers / Hyperdrive / Neon cloud
+  const { drizzle } = require("drizzle-orm/neon-serverless");
+  const { Pool } = require("@neondatabase/serverless");
 
-  const pool = new Pool({ connectionString });
-  const instance = drizzle(pool, {
-    schema: fullSchema,
-  });
+  const pool = new Pool({ connectionString: getConnectionString() });
+  dbInstance = drizzle(pool, { schema: fullSchema });
+} else {
+  // Local development: PostgreSQL biasa via node-postgres
+  const { drizzle } = require("drizzle-orm/node-postgres");
+  const { Pool } = require("pg");
 
-  dbCache.set(connectionString, instance);
-  return instance;
+  const pool = new Pool({ connectionString: getConnectionString() });
+  dbInstance = drizzle(pool, { schema: fullSchema });
 }
 
-// Export a Proxy as 'db' so we don't have to update imports in other files.
-// This ensures that we always use the correct connection string (Hyperdrive or local).
-export const db = new Proxy({} as DbInstance, {
-  get(target, prop) {
-    const activeDb = getDbInstance();
-    const value = (activeDb as any)[prop];
-    return typeof value === "function" ? value.bind(activeDb) : value;
-  },
-});
+export const db = dbInstance;

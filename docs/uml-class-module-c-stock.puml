@@ -41,7 +41,6 @@ package "Domain Model: Inventory" {
         WASTE
         ADJUSTMENT
         RETURN_RESTOCK
-        SUPPLIER_RETURN
         EXCHANGE
     }
 

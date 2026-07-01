@@ -217,7 +217,7 @@ export async function POST(request: NextRequest) {
             variants.map((v: ProductVariantInputType) => ({
               ...v,
               productId: newProduct.id,
-              sku: `${parentSku}-${v.unitId}`,
+              sku: `${parentSku}-${v.unitId}-${v.conversionToBase}`,
             })),
           )
           .returning();

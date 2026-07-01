@@ -1,1 +1,0 @@
-Central repository for functional specifications, UML modeling artifacts, and UI/UX standardization audits for the POS application.

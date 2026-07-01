@@ -4,7 +4,6 @@ import { UnitType } from "@/drizzle/type";
 import { TabsContent } from "@/components/ui/tabs";
 import { InsertProductVariantInputType } from "@/lib/validations/product-variant";
 import { Button } from "@/components/ui/button";
-import { useConfirm } from "@/contexts/ConfirmDialog";
 import { VariantCard } from "../../variant-card";
 import {
   Control,
@@ -57,7 +56,6 @@ export function VariantsTab({
   averageCost: number;
   isSystemAdmin?: boolean;
 }) {
-  const confirm = useConfirm();
   type VariantFormState = {
     id?: number;
     name?: string;
@@ -70,21 +68,8 @@ export function VariantsTab({
     isActive?: boolean;
   };
 
-  const handleRemoveVariant = async (index: number) => {
-    const variantId = watch(`variants.${index}.id`);
-    const variantName = watch(`variants.${index}.name`);
-
-    if (variantId) {
-      const ok = await confirm({
-        title: "Hapus Variant",
-        description: `Apakah Anda yakin ingin menghapus variant "${variantName || "tanpa nama"}"? Data ini tidak akan benar-benar dihapus, hanya dinonaktifkan.`,
-        confirmText: "Ya, Hapus",
-        cancelText: "Batal",
-      });
-      if (ok) removeVariant(index);
-    } else {
-      removeVariant(index);
-    }
+  const handleRemoveVariant = (index: number) => {
+    removeVariant(index);
   };
 
   const baseUnitId = useWatch({ control, name: "baseUnitId" });
@@ -173,28 +158,35 @@ export function VariantsTab({
         (unit) => unit.id === variant.unitId,
       )?.name;
 
-      if (currentUnitName && variant.name !== currentUnitName) {
-        setValue(`variants.${index}.name`, currentUnitName, {
-          shouldDirty: true,
-          shouldValidate: false,
-        });
+      if (index === 0) {
+        if (currentUnitName && variant.name !== currentUnitName) {
+          setValue(`variants.${index}.name`, currentUnitName, {
+            shouldDirty: true,
+            shouldValidate: false,
+          });
+        }
+      } else {
+        if (currentUnitName && !variant.name) {
+          setValue(`variants.${index}.name`, currentUnitName, {
+            shouldDirty: true,
+            shouldValidate: false,
+          });
+        }
       }
 
       if (index === 0) return;
 
-      const previousVariants = variants
-        .slice(0, index)
-        .filter((item) => Number(item.unitId) > 0);
+      // referenceUnitId now stores the variant array index.
+      // E.g. if variant 2 references variant 1, referenceUnitId is 1.
+      const isReferenceValid =
+        variant.referenceUnitId !== undefined &&
+        Number(variant.referenceUnitId) >= 0 &&
+        Number(variant.referenceUnitId) < index;
 
-      if (previousVariants.length === 0) return;
-
-      const isReferenceValid = previousVariants.some(
-        (item) => item.unitId === variant.referenceUnitId,
-      );
       if (!isReferenceValid) {
         setValue(
           `variants.${index}.referenceUnitId`,
-          previousVariants[previousVariants.length - 1]?.unitId,
+          0, // Default reference is always index 0 (base unit)
           {
             shouldDirty: true,
             shouldValidate: false,
@@ -202,21 +194,16 @@ export function VariantsTab({
         );
       }
 
-      const referencedVariant = previousVariants.find(
-        (item) =>
-          item.unitId ===
-          (isReferenceValid
-            ? variant.referenceUnitId
-            : previousVariants[previousVariants.length - 1]?.unitId),
-      );
+      const refIdx = isReferenceValid ? Number(variant.referenceUnitId) : 0;
+      const referencedVariant = variants[refIdx];
       const referenceConversion = Number(
-        referencedVariant?.conversionToBase || 0,
+        referencedVariant?.conversionToBase || 1,
       );
 
       if (
         (!variant.conversionValue || Number(variant.conversionValue) <= 0) &&
         Number(variant.conversionToBase) > 0 &&
-        Number(variant.referenceUnitId) === Number(baseUnitId)
+        refIdx === 0
       ) {
         setValue(
           `variants.${index}.conversionValue`,

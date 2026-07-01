@@ -29,8 +29,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
     const storePhone = setting?.phone || "0812-3456-7890";
     const footerMessage = setting?.footerMessage || "Terima Kasih!";
     const receiptNote =
-      setting?.receiptNote ||
-      "Bawa nota ini untuk pengembalian barang.";
+      setting?.receiptNote || "Bawa nota ini untuk pengembalian barang.";
 
     const fontSans = "'Courier New', Courier, monospace";
 
@@ -64,6 +63,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
         className="print-content"
         style={{
           margin: "0 auto",
+          padding: "16px",
           backgroundColor: "#fff",
           color: "#000",
           fontFamily: fontSans,
@@ -107,12 +107,8 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
             {storeName}
           </h2>
 
-          <p style={{ fontSize: "9px", margin: "1px 0" }}>
-            {storeAddress}
-          </p>
-          <p style={{ fontSize: "9px", margin: "1px 0" }}>
-            Telp: {storePhone}
-          </p>
+          <p style={{ fontSize: "9px", margin: "1px 0" }}>{storeAddress}</p>
+          <p style={{ fontSize: "9px", margin: "1px 0" }}>Telp: {storePhone}</p>
         </div>
 
         <div style={divider} />
@@ -216,9 +212,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
                   {formatCurrency(Number(item.subtotal))}
                 </span>
               </div>
-              <div
-                style={{ fontSize: "9.5px", marginTop: "1px" }}
-              >
+              <div style={{ fontSize: "9.5px", marginTop: "1px" }}>
                 {Number(item.qty).toFixed(0)} pcs &times;{" "}
                 {formatCurrency(Number(item.priceAtSale))}
                 {item.productVariant?.name && (

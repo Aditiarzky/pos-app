@@ -1,1 +1,0 @@
-Next.js 16 (App Router), Drizzle ORM (PostgreSQL/Neon), TanStack Query, Radix UI, Tailwind CSS 4, Zod, Vitest.

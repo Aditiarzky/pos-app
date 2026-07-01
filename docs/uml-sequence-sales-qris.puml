@@ -35,7 +35,7 @@ alt User Batal / QR Expired
     Ctrl --> UI : Transaksi dibatalkan
     deactivate Ctrl
 
-else Pembayaran Berhasil (Webhook dari Pakasir)
+else Pembayaran Berhasil (Webhook dari Provider QRIS)
     UI -> Ctrl : Terima webhook pembayaran berhasil
     activate Ctrl
     Ctrl -> s : UPDATE status = completed, totalPaid

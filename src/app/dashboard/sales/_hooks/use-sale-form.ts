@@ -76,7 +76,9 @@ export function useSaleForm({
 
   const adjustStockMutation = useAdjustStock();
 
-  const [transactionMode, setTransactionMode] = useState<"guest" | "customer">("guest");
+  const [transactionMode, setTransactionMode] = useState<"guest" | "customer">(
+    "guest",
+  );
   const [isVoucherUsed, setIsVoucherUsed] = useState(false);
   const [isDebt, setIsDebt] = useState(false);
   const [lastSale, setLastSale] = useState<SaleResponse | null>(null);
@@ -85,7 +87,9 @@ export function useSaleForm({
   const [qrisData, setQrisData] = useState<QrisPaymentData | null>(null);
 
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
-  const [insufficientItems, setInsufficientItems] = useState<InsufficientStockItem[]>([]);
+  const [insufficientItems, setInsufficientItems] = useState<
+    InsufficientStockItem[]
+  >([]);
   const [isAdjustingStock, setIsAdjustingStock] = useState(false);
 
   const form = useForm<SaleFormData>({
@@ -103,7 +107,9 @@ export function useSaleForm({
 
   const { data: customersData } = useCustomers();
   const customers = useMemo(
-    () => (customersData?.data as (CustomerResponse & { totalDebt: number })[]) || [],
+    () =>
+      (customersData?.data as (CustomerResponse & { totalDebt: number })[]) ||
+      [],
     [customersData],
   );
 
@@ -226,11 +232,15 @@ export function useSaleForm({
         });
       }
 
-      toast.success("Stok berhasil disesuaikan, memproses transaksi...", { id: toastId });
+      toast.success("Stok berhasil disesuaikan, memproses transaksi...", {
+        id: toastId,
+      });
 
       const currentItems = form.getValues().items;
       currentItems.forEach((item, index) => {
-        const problem = insufficientItems.find((p) => p.productId === item.productId);
+        const problem = insufficientItems.find(
+          (p) => p.productId === item.productId,
+        );
         if (problem) {
           form.setValue(`items.${index}.currentStock`, problem.requestedQty);
         }
@@ -280,20 +290,19 @@ export function useSaleForm({
   };
 
   const handleSubmit = async (data: SaleFormData) => {
-    const toastId = toast.loading("Memproses transaksi...");
-
     if (!isAdjustingStock) {
       const isStockValid = validateStock();
       if (!isStockValid) {
-        toast.dismiss(toastId);
         return;
       }
     }
 
     if (paymentMethod === "cash" && !isDebt && Number(data.totalPaid) <= 0) {
-      toast.error("Masukkan jumlah pembayaran yang diterima", { id: toastId });
+      toast.error("Masukkan jumlah pembayaran yang diterima");
       return;
     }
+
+    const toastId = toast.loading("Memproses transaksi...");
 
     try {
       const cleanedItems = data.items.map((item) => ({
@@ -310,7 +319,8 @@ export function useSaleForm({
         totalPaid: paymentMethod === "qris" ? 0 : data.totalPaid,
         totalBalanceUsed: data.totalBalanceUsed,
         isDebt: paymentMethod === "cash" ? isDebt : false,
-        shouldPayOldDebt: paymentMethod === "cash" ? !!data.shouldPayOldDebt : false,
+        shouldPayOldDebt:
+          paymentMethod === "cash" ? !!data.shouldPayOldDebt : false,
         paymentMethod,
       };
 
@@ -336,7 +346,9 @@ export function useSaleForm({
           setPaymentMethod("cash"); // reset terakhir, setelah qrisData sudah di state
 
           onSuccess?.();
-          toast.success("QR Code siap, silakan scan untuk membayar", { id: toastId });
+          toast.success("QR Code siap, silakan scan untuk membayar", {
+            id: toastId,
+          });
         } else {
           // Cash: langsung tampilkan receipt
           setLastSale(rawData);
@@ -347,7 +359,9 @@ export function useSaleForm({
         }
       }
     } catch (error) {
-      toast.error((error as ApiResponse).error || "Gagal memproses transaksi", { id: toastId });
+      toast.error((error as ApiResponse).error || "Gagal memproses transaksi", {
+        id: toastId,
+      });
     }
   };
 

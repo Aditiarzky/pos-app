@@ -16,6 +16,8 @@ type UseStockMutationsOptions = {
     type?: string;
     orderBy?: string;
     order?: string;
+    startDate?: string;
+    endDate?: string;
   };
   enabled?: boolean;
 };

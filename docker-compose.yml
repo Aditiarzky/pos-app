@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: "postgres:16"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: posgm
+    ports:
+      - "5434:5432" # ganti port host jadi 5434
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  pg_proxy:
+    image: ghcr.io/neondatabase/wsproxy:latest
+    environment:
+      APPEND_PORT: "postgres:5432" # ini tetap 5432 karena port INTERNAL container
+      ALLOW_ADDR_REGEX: ".*"
+      LOG_TRAFFIC: "true"
+    ports:
+      - "5433:80"
+    depends_on:
+      - postgres
+
+volumes:
+  pgdata:

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -11,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { Trash2, ShoppingCart, Package } from "lucide-react";
+import { Trash2, ShoppingCart, Package, Minus, Plus } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { UseFormReturn } from "react-hook-form";
 import { ProductResponse } from "@/services/productService";
@@ -186,23 +185,50 @@ export function TransactionCartItems({
                           </div>
                         </td>
                         <td className="px-2 py-4">
-                          <Input
-                            type="number"
-                            min={1}
-                            className="h-10 w-20 text-center mx-auto font-bold text-base bg-muted/30 focus-visible:ring-1 focus-visible:ring-primary/40"
-                            value={qty || ""}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (val === "") {
-                                form.setValue(`items.${index}.qty`, 0);
-                              } else {
-                                const num = Number(val);
-                                if (!isNaN(num)) {
-                                  form.setValue(`items.${index}.qty`, num);
+                          <div className="flex items-center border border-input rounded-xl h-10 w-fit mx-auto overflow-hidden bg-background shadow-sm hover:border-primary/40 transition-colors">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-full w-8 rounded-none hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/20 text-muted-foreground transition-colors p-0 flex items-center justify-center border-r border-input"
+                              onClick={() => {
+                                if (qty > 1) {
+                                  form.setValue(`items.${index}.qty`, qty - 1);
                                 }
-                              }
-                            }}
-                          />
+                              }}
+                              disabled={qty <= 1}
+                            >
+                              <Minus className="h-3.5 w-3.5" />
+                            </Button>
+                            <input
+                              type="number"
+                              min={1}
+                              className="w-12 text-center text-sm font-bold bg-transparent border-0 p-0 focus:outline-none focus:ring-0 focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              value={qty || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === "") {
+                                  form.setValue(`items.${index}.qty`, 0);
+                                } else {
+                                  const num = Number(val);
+                                  if (!isNaN(num)) {
+                                    form.setValue(`items.${index}.qty`, num);
+                                  }
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-full w-8 rounded-none hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/20 text-muted-foreground transition-colors p-0 flex items-center justify-center border-l border-input"
+                              onClick={() => {
+                                form.setValue(`items.${index}.qty`, qty + 1);
+                              }}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </td>
                         <td className="px-5 py-4 text-right tabular-nums text-xs font-semibold text-muted-foreground">
                           {formatCurrency(price)}
@@ -344,23 +370,50 @@ export function TransactionCartItems({
                           <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                             Kuantitas
                           </Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            className="h-10 text-sm font-semibold bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/30 rounded-lg shadow-none"
-                            value={qty || ""}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (val === "") {
-                                form.setValue(`items.${index}.qty`, 0);
-                              } else {
-                                const num = Number(val);
-                                if (!isNaN(num)) {
-                                  form.setValue(`items.${index}.qty`, num);
+                          <div className="flex items-center border border-input rounded-xl h-10 w-full overflow-hidden bg-background shadow-sm hover:border-primary/40 transition-colors">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-full w-8 shrink-0 rounded-none hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/20 text-muted-foreground transition-colors p-0 flex items-center justify-center border-r border-input"
+                              onClick={() => {
+                                if (qty > 1) {
+                                  form.setValue(`items.${index}.qty`, qty - 1);
                                 }
-                              }
-                            }}
-                          />
+                              }}
+                              disabled={qty <= 1}
+                            >
+                              <Minus className="h-3.5 w-3.5" />
+                            </Button>
+                            <input
+                              type="number"
+                              min={1}
+                              className="min-w-0 flex-1 text-center text-sm font-bold bg-transparent border-0 p-0 focus:outline-none focus:ring-0 focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              value={qty || ""}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === "") {
+                                  form.setValue(`items.${index}.qty`, 0);
+                                } else {
+                                  const num = Number(val);
+                                  if (!isNaN(num)) {
+                                    form.setValue(`items.${index}.qty`, num);
+                                  }
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-full w-8 shrink-0 rounded-none hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/20 text-muted-foreground transition-colors p-0 flex items-center justify-center border-l border-input"
+                              onClick={() => {
+                                form.setValue(`items.${index}.qty`, qty + 1);
+                              }}
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
 
                         {/* Price Display */}

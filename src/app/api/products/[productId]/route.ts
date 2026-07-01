@@ -190,7 +190,7 @@ export async function PUT(
             where: eq(units.id, v.unitId),
           });
           const unitCode = unit?.name.toUpperCase();
-          const vSku = `${newParentSku}-${unitCode}-${v.id}`;
+          const vSku = `${newParentSku}-${unitCode}-${v.id || v.conversionToBase}`;
 
           if (v.id) {
             const [updatedVariant] = await tx
@@ -296,12 +296,18 @@ export async function DELETE(
     const productId = (await params).productId;
 
     if (!productId) {
-      return NextResponse.json({ success: false, error: "Product ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { success: false, error: "Product ID is required" },
+        { status: 400 },
+      );
     }
 
     await db.delete(products).where(eq(products.id, Number(productId)));
 
-    return NextResponse.json({ success: true, message: "Produk berhasil dihapus" });
+    return NextResponse.json({
+      success: true,
+      message: "Produk berhasil dihapus",
+    });
   } catch (error) {
     return handleApiError(error);
   }
