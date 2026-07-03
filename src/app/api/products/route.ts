@@ -262,7 +262,7 @@ export async function POST(request: NextRequest) {
             await tx
               .update(productVariants)
               .set({ conversionReferenceVariantId: refVariantId })
-              .where(eq(productVariants.id, newVariants[i].id));
+              .where(eq(productVariants.id, newVariants[i].id!));
 
             newVariants[i].conversionReferenceVariantId = refVariantId;
           } else {
