@@ -88,6 +88,7 @@ export async function PUT(
     const { productId } = await params;
     const idNum = Number(productId);
     const body = await request.json();
+
     const validation = validateUpdateProductData(body);
 
     if (!validation.success)
@@ -192,11 +193,14 @@ export async function PUT(
           const unitCode = unit?.name.toUpperCase();
           const vSku = `${newParentSku}-${unitCode}-${v.id || v.conversionToBase}`;
 
+          const dbVal = { ...v };
+          delete dbVal.referenceVariantIndex;
+
           if (v.id) {
             const [updatedVariant] = await tx
               .update(productVariants)
               .set({
-                ...v,
+                ...dbVal,
                 sku: vSku,
                 isActive: true,
                 deletedAt: null,
@@ -207,9 +211,50 @@ export async function PUT(
           } else {
             const [insertedVariant] = await tx
               .insert(productVariants)
-              .values({ ...v, productId: idNum, sku: vSku })
+              .values({ ...dbVal, productId: idNum, sku: vSku })
               .returning();
             updatedVariants.push(insertedVariant);
+          }
+        }
+
+        // Update conversionReferenceVariantId based on referenceVariantIndex
+        console.log(
+          "PUT /api/products/[id] resolving references. Variants count:",
+          variants?.length,
+          "Updated count:",
+          updatedVariants.length,
+        );
+        for (let i = 0; i < variants.length; i++) {
+          const refIndex = variants[i].referenceVariantIndex;
+          console.log(
+            `Variant index ${i} (unitId: ${variants[i].unitId}) -> referenceVariantIndex is: ${refIndex}`,
+          );
+          if (
+            refIndex !== undefined &&
+            refIndex !== null &&
+            refIndex >= 0 &&
+            refIndex < updatedVariants.length
+          ) {
+            const refVariantId = updatedVariants[refIndex].id;
+            console.log(
+              `Setting variant id ${updatedVariants[i].id} conversionReferenceVariantId = ${refVariantId}`,
+            );
+            await tx
+              .update(productVariants)
+              .set({ conversionReferenceVariantId: refVariantId })
+              .where(eq(productVariants.id, updatedVariants[i].id!));
+
+            updatedVariants[i].conversionReferenceVariantId = refVariantId;
+          } else {
+            console.log(
+              `Setting variant id ${updatedVariants[i].id} conversionReferenceVariantId = null`,
+            );
+            await tx
+              .update(productVariants)
+              .set({ conversionReferenceVariantId: null })
+              .where(eq(productVariants.id, updatedVariants[i].id!));
+
+            updatedVariants[i].conversionReferenceVariantId = null;
           }
         }
       }

@@ -36,6 +36,8 @@ import { StickyCardStack } from "@/components/ui/sticky-card-wrapper";
 import { RoleGuard } from "@/components/role-guard";
 import { AccessDenied } from "@/components/access-denied";
 import { useAuth } from "@/hooks/use-auth";
+import { useTabsOverflow } from "@/hooks/use-tabs-overflow";
+import { cn } from "@/lib/utils";
 
 // ============================================
 // MAIN CONTENT COMPONENT
@@ -97,6 +99,8 @@ function PurchasesContent() {
   const { roles } = useAuth();
   const isSystemAdmin = (roles as string[]).includes("admin sistem");
 
+  const { listRef, isOverflowing } = useTabsOverflow();
+
   return (
     <>
       {/* Header Section */}
@@ -155,22 +159,42 @@ function PurchasesContent() {
 
         {/* Tabs */}
         <Tabs value={tab} onValueChange={setTab} className="gap-4">
-          <TabsList className="bg-background">
-            <TabsTrigger
-              value="history"
-              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
-            >
-              <History className="mr-2 h-4 w-4" />
-              <p className="truncate">Riwayat Pembelian</p>
-            </TabsTrigger>
-            <TabsTrigger
-              value="suppliers"
-              className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
-            >
-              <Truck className="mr-2 h-4 w-4" />
-              <p className="truncate">Daftar Supplier</p>
-            </TabsTrigger>
-          </TabsList>
+          <div ref={listRef} className="w-full overflow-hidden">
+            <TabsList className="bg-background w-max">
+              <TabsTrigger
+                value="history"
+                className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
+              >
+                <History className="h-4 w-4 shrink-0" />
+                <span
+                  className={cn(
+                    "overflow-hidden transition-[max-width,opacity,margin] duration-300 ease-in-out",
+                    !isOverflowing || tab === "history"
+                      ? "max-w-[120px] opacity-100 ml-2"
+                      : "max-w-0 opacity-0 ml-0",
+                  )}
+                >
+                  Riwayat Pembelian
+                </span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="suppliers"
+                className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
+              >
+                <Truck className="h-4 w-4 shrink-0" />
+                <span
+                  className={cn(
+                    "overflow-hidden transition-[max-width,opacity,margin] duration-300 ease-in-out",
+                    !isOverflowing || tab === "suppliers"
+                      ? "max-w-[120px] opacity-100 ml-2"
+                      : "max-w-0 opacity-0 ml-0",
+                  )}
+                >
+                  Daftar Supplier
+                </span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent
             value="history"

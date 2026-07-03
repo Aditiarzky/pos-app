@@ -13,14 +13,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { useProduct } from "@/hooks/products/use-product";
 import { BasicInfoTab } from "./tabs/basic-info-tab";
 import { VariantsTab } from "./tabs/variants-tab";
 import { BarcodesTab } from "./tabs/barcodes-tab";
-import { ErrorIndicator } from "@/components/ui/error-indicator";
 import { useAuth } from "@/hooks/use-auth";
 import { CategoryType, UnitType } from "@/drizzle/type";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -32,6 +30,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Loader2,
+  Save,
+  PackageMinus,
+  X,
+  AlertCircle,
+} from "lucide-react";
+
+// ── Step definitions ────────────────────────────────────────────────────────
+
+const STEPS = [
+  { id: 1, label: "Informasi" },
+  { id: 2, label: "Satuan & Harga" },
+  { id: 3, label: "Barcode" },
+];
+
+// Fields validated per step (for form.trigger)
+const STEP_FIELDS: Record<number, string[]> = {
+  1: ["name", "baseUnitId"],
+  2: ["variants"],
+  3: ["barcodes"],
+};
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export function ProductFormModal({
   open,
@@ -47,7 +73,7 @@ export function ProductFormModal({
 }) {
   const isEdit = mode === "edit" && !!productId;
 
-  const [activeTab, setActiveTab] = useState("basic");
+  const [currentStep, setCurrentStep] = useState(1);
   const [minStockValue, setMinStockValue] = useState("");
   const [minStockUnitId, setMinStockUnitId] = useState<number | undefined>(
     undefined,
@@ -92,21 +118,15 @@ export function ProductFormModal({
     updateMutation: updateMutation as any,
     onSuccess: () => handleClose(),
   });
-  const watchedVariants = useWatch({
-    control: form.control,
-    name: "variants",
-  });
-  const baseUnitId = useWatch({
-    control: form.control,
-    name: "baseUnitId",
-  });
+
+  const watchedVariants = useWatch({ control: form.control, name: "variants" });
+  const baseUnitId = useWatch({ control: form.control, name: "baseUnitId" });
   const baseUnitName =
-    units.find((unit) => unit.id === Number(baseUnitId))?.name ||
+    units.find((unit) => unit.id === Number(baseUnitId))?.name ??
     "satuan dasar";
 
-  // Keep ALL variants (even if they share the same unitId) so variants like
-  // "Setengah Kilo" (0.5 kg) and "Seperempat Kilo" (0.25 kg) both appear.
-  // We identify each entry by its array index, not by unitId.
+  // ── availableUnits for min stock ──────────────────────────────────────────
+
   const availableUnits = useMemo(() => {
     const rows = Array.isArray(watchedVariants) ? watchedVariants : [];
     return rows
@@ -122,14 +142,9 @@ export function ProductFormModal({
       .filter((v) => v.unitId > 0 && v.conversionToBase > 0);
   }, [watchedVariants, units]);
 
-  // Keep a ref so effects can always read the latest availableUnits without
-  // listing it as a dependency (which would cause infinite loops when
-  // VariantsTab's own effects mutate variants).
   const availableUnitsRef = useRef(availableUnits);
   availableUnitsRef.current = availableUnits;
 
-  // Now minStockUnitId tracks the variant *index* so identical-unitId variants
-  // can be told apart. We find by idx.
   const selectedUnit = useMemo(
     () => availableUnits.find((u) => u.idx === minStockUnitId),
     [availableUnits, minStockUnitId],
@@ -141,7 +156,6 @@ export function ProductFormModal({
     return value * selectedUnit.conversionToBase;
   }, [selectedUnit, minStockValue]);
 
-  // syncMinStock now takes the variant idx (not unitId) to identify the unit.
   const syncMinStock = (value: string, idx: number | undefined) => {
     const unit = availableUnits.find((u) => u.idx === idx);
     const numberValue = Number(value);
@@ -158,9 +172,7 @@ export function ProductFormModal({
     });
   };
 
-  // Sync minStock when the user changes minStockValue or minStockUnitId.
-  // availableUnits is read via ref so this effect never fires due to variant
-  // mutations — only fires on explicit user input (avoiding infinite loops).
+  // Sync minStock on explicit user input
   useEffect(() => {
     if (minStockUnitId === undefined || !minStockValue) return;
     const unit = availableUnitsRef.current.find(
@@ -177,24 +189,17 @@ export function ProductFormModal({
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [minStockUnitId, minStockValue]); // availableUnits read via ref; form methods are stable
+  }, [minStockUnitId, minStockValue]);
 
-  // On open: restore saved minStock or default to 1 × largest unit.
-  // availableUnits is read from the ref so this effect doesn't re-fire every
-  // time VariantsTab's own effects mutate the variants array.
+  // Restore saved minStock on open
   useEffect(() => {
-    if (!open) return;
-    if (!baseUnitId) return;
-    if (initialized) return;
-
+    if (!open || !baseUnitId || initialized) return;
     const units = availableUnitsRef.current;
     if (units.length === 0) return;
 
     const savedMinStock = Number(
       productData?.data?.minStock ?? form.getValues("minStock") ?? 0,
     );
-
-    // Largest unit = highest conversionToBase value.
     const largest = [...units].sort(
       (a, b) => b.conversionToBase - a.conversionToBase,
     )[0];
@@ -214,30 +219,29 @@ export function ProductFormModal({
           ),
         );
       }
-      setShowMinStock(true);
     } else {
-      // No saved value: default silently to 1 × largest unit.
       setMinStockUnitId(largest.idx);
-      setMinStockValue("1");
-      form.setValue("minStock", String(largest.conversionToBase), {
+      setMinStockValue("");
+      form.setValue("minStock", "", {
         shouldDirty: false,
         shouldValidate: false,
       });
     }
 
     setInitialized(true);
-    // availableUnitsRef is a ref (stable), so not listed as dep.
-    // form.setValue / form.getValues are stable per react-hook-form docs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, baseUnitId, initialized, productData]);
 
-  // Ensure a unit is always selected when the form first becomes ready.
-  // Uses ref to avoid firing every time variants mutate.
+  // Recover unit selection if it becomes stale
   useEffect(() => {
     if (!open || !baseUnitId) return;
-    if (minStockUnitId !== undefined) return;
     const units = availableUnitsRef.current;
     if (units.length === 0) return;
+    if (
+      minStockUnitId !== undefined &&
+      units.some((u) => u.idx === minStockUnitId)
+    )
+      return;
     const largest = [...units].sort(
       (a, b) => b.conversionToBase - a.conversionToBase,
     )[0];
@@ -245,9 +249,27 @@ export function ProductFormModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, baseUnitId, minStockUnitId]);
 
+  // ── Image ─────────────────────────────────────────────────────────────────
+
   const { imagePreview, setImagePreview, uploading, inputRef, uploadImage } =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useProductImage(uploadMutation, form.setValue as any, open, productData);
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+
+  const isLastStep = currentStep === STEPS.length;
+
+  const goNext = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fields = STEP_FIELDS[currentStep] as any[];
+    const valid = await form.trigger(fields);
+    if (valid) setCurrentStep((s) => Math.min(s + 1, STEPS.length));
+  };
+
+  const goBack = () => setCurrentStep((s) => Math.max(s - 1, 1));
+
+  // ── Error flags (for recovering step on submit error) ─────────────────────
 
   const hasBasicError =
     !!form.formState.errors.name ||
@@ -258,36 +280,29 @@ export function ProductFormModal({
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     form.handleSubmit(
-      (data) => {
-        submitHandler(data);
-      },
+      (data) => submitHandler(data),
       () => {
-        switch (true) {
-          case hasBasicError:
-            toast.error("Mohon isi minimal nama produk, SKU, dan satuan");
-            setActiveTab("basic");
-            break;
-          case hasVariantError:
-            toast.error("Periksa kembali data pada tab Satuan & Harga");
-            setActiveTab("variants");
-            break;
-          case hasBarcodeError:
-            toast.error("Mohon isi minimal satu data Barcode");
-            setActiveTab("barcodes");
-            break;
-          default:
-            break;
+        if (hasBasicError) {
+          toast.error("Mohon isi minimal nama produk dan satuan");
+          setCurrentStep(1);
+        } else if (hasVariantError) {
+          toast.error("Periksa kembali data Satuan & Harga");
+          setCurrentStep(2);
+        } else if (hasBarcodeError) {
+          toast.error("Periksa kembali data Barcode");
+          setCurrentStep(3);
         }
       },
     )();
   };
 
+  // ── Close ─────────────────────────────────────────────────────────────────
+
   const handleClose = () => {
     onOpenChange(false);
     form.reset();
-    setActiveTab("basic");
+    setCurrentStep(1);
     setImagePreview(null);
     setMinStockValue("");
     setMinStockUnitId(undefined);
@@ -295,201 +310,278 @@ export function ProductFormModal({
     setShowMinStock(false);
   };
 
+  const isPending =
+    createMutation.isPending || updateMutation.isPending || uploading;
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="max-w-2xl h-[92vh] max-h-[92vh] overflow-hidden flex flex-col p-0">
+        {/* ── Header ──────────────────────────────────────────────────── */}
+        <DialogHeader className="px-6 pt-6 pb-4 shrink-0 border-b">
+          <DialogTitle className="text-lg">
             {isEdit ? "Edit Produk" : "Tambah Produk Baru"}
           </DialogTitle>
+
+          {/* Step Indicator */}
+          <div className="flex items-center mt-4">
+            {STEPS.map((step, idx) => (
+              <div
+                key={step.id}
+                className="flex items-center flex-1 last:flex-none"
+              >
+                <div className="flex flex-col items-center gap-1">
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all duration-200",
+                      currentStep === step.id &&
+                        "border-primary bg-primary/10 text-primary",
+                      currentStep > step.id &&
+                        "border-primary bg-primary text-primary-foreground",
+                      currentStep < step.id &&
+                        "border-muted-foreground/30 text-muted-foreground bg-background",
+                    )}
+                  >
+                    {currentStep > step.id ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <span>{step.id}</span>
+                    )}
+                  </div>
+                  <span
+                    className={cn(
+                      "text-[11px] whitespace-nowrap transition-colors",
+                      currentStep === step.id
+                        ? "text-foreground font-semibold"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {step.label}
+                  </span>
+                </div>
+                {idx < STEPS.length - 1 && (
+                  <div
+                    className={cn(
+                      "flex-1 h-0.5 mx-3 mb-4 rounded-full transition-colors duration-300",
+                      currentStep > step.id ? "bg-primary" : "bg-border",
+                    )}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         </DialogHeader>
 
+        {/* ── Body (scrollable) ────────────────────────────────────────── */}
         <form
           onSubmit={handleFormSubmit}
-          className="flex flex-1 min-h-0 flex-col gap-6 overflow-hidden"
+          className="flex flex-1 min-h-0 flex-col overflow-hidden"
         >
-          {/* Controlled Tabs */}
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="flex flex-1 min-h-0 flex-col overflow-hidden"
-          >
-            <TabsList className="grid w-full shrink-0 grid-cols-3 bg-background">
-              <TabsTrigger
-                type="button"
-                value="basic"
-                className="relative data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
-              >
-                Informasi
-                <ErrorIndicator show={hasBasicError} />
-              </TabsTrigger>
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="px-6 py-5 space-y-0">
+              {/* Step 1 — Informasi */}
+              {currentStep === 1 && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <BasicInfoTab
+                    {...form}
+                    categories={categories as unknown as CategoryType[]}
+                    units={units as unknown as UnitType[]}
+                    imagePreview={imagePreview}
+                    uploading={uploading}
+                    inputRef={
+                      inputRef as unknown as React.RefObject<HTMLInputElement>
+                    }
+                    uploadImage={uploadImage}
+                    clearImage={() => {
+                      setImagePreview(null);
+                      form.setValue("image", undefined);
+                    }}
+                    errors={form.formState.errors}
+                  />
+                </div>
+              )}
 
-              <TabsTrigger
-                type="button"
-                value="variants"
-                className="relative text-[clamp(0.75rem,2vw,0.85rem)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
-              >
-                Satuan & Harga
-                <ErrorIndicator show={hasVariantError} />
-              </TabsTrigger>
+              {/* Step 2 — Satuan & Harga */}
+              {currentStep === 2 && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-200 space-y-4">
+                  <VariantsTab
+                    {...form}
+                    errors={form.formState.errors}
+                    variantFields={variantFields}
+                    appendVariant={appendVariant}
+                    removeVariant={removeVariant}
+                    averageCost={Number(productData?.data?.averageCost ?? 0)}
+                    isSystemAdmin={isSystemAdmin}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    units={units as any}
+                  />
 
-              <TabsTrigger
-                type="button"
-                value="barcodes"
-                className="relative data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
-              >
-                Barcodes
-                <ErrorIndicator show={hasBarcodeError} />
-              </TabsTrigger>
-            </TabsList>
-
-            {activeTab === "variants" &&
-              baseUnitId &&
-              availableUnits.length > 0 && (
-                <div className="shrink-0 border-b px-4 py-2 z-10">
-                  {!showMinStock ? (
-                    // Collapsed: soft trigger text
-                    <button
-                      type="button"
-                      onClick={() => setShowMinStock(true)}
-                      className="text-[11px] text-muted-foreground hover:text-primary transition-colors underline-offset-2 hover:underline cursor-pointer"
-                    >
-                      + Atur stok minimum untuk peringatan notifikasi (opsional)
-                    </button>
-                  ) : (
-                    // Expanded: compact inline form
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-semibold text-foreground">
-                          Stok Minimum
-                        </span>
+                  {/* Min Stock — hanya tampil kalau baseUnitId & variant sudah ada */}
+                  {baseUnitId && availableUnits.length > 0 && (
+                    <div className="border-t pt-4">
+                      {!showMinStock ? (
                         <button
                           type="button"
-                          onClick={() => setShowMinStock(false)}
-                          className="text-[10px] text-muted-foreground hover:text-destructive transition-colors ml-1"
+                          onClick={() => setShowMinStock(true)}
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors underline-offset-2 hover:underline cursor-pointer"
                         >
-                          sembunyikan
+                          + Atur stok minimum untuk peringatan notifikasi
+                          (opsional)
                         </button>
-                      </div>
+                      ) : (
+                        <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-3">
+                          {/* Header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <PackageMinus className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">
+                                Stok Minimum
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setShowMinStock(false)}
+                              className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <X className="h-3 w-3" />
+                              Sembunyikan
+                            </button>
+                          </div>
 
-                      <div className="flex flex-col sm:items-end gap-1">
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            min={0}
-                            className="w-20 h-8 text-sm"
-                            value={minStockValue}
-                            onChange={(e) => {
-                              const next = e.target.value;
-                              setMinStockValue(next);
-                              syncMinStock(next, minStockUnitId);
-                            }}
-                            placeholder="0"
-                          />
-                          <Select
-                            value={
-                              minStockUnitId !== undefined
-                                ? String(minStockUnitId)
-                                : undefined
-                            }
-                            onValueChange={(value) => {
-                              const idx = Number(value);
-                              setMinStockUnitId(idx);
-                              syncMinStock(minStockValue, idx);
-                            }}
-                          >
-                            <SelectTrigger className="h-8 w-[120px] text-sm bg-muted/30">
-                              <SelectValue placeholder="Satuan" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableUnits.map((unit) => (
-                                // Use idx as key + value so identical-unitId variants
-                                // (e.g. two "kg" variants) both appear.
-                                <SelectItem
-                                  key={unit.idx}
-                                  value={String(unit.idx)}
-                                >
-                                  {unit.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        {minStockInBase > 0 &&
-                          selectedUnit &&
-                          selectedUnit.conversionToBase !== 1 && (
-                            <p className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-semibold">
-                              = {minStockInBase.toLocaleString("id-ID")}{" "}
-                              {baseUnitName}
+                          {/* Input angka + satuan, digabung jadi satu kontrol */}
+                          <div className="space-y-2">
+                            <div className="flex items-stretch rounded-md border border-input bg-background overflow-hidden focus-within:ring-1 focus-within:ring-ring transition-shadow">
+                              <Input
+                                type="number"
+                                min={0}
+                                className="h-8 text-sm border-0 rounded-none shadow-none focus-visible:ring-0 flex-1 min-w-0"
+                                value={minStockValue}
+                                onChange={(e) => {
+                                  const next = e.target.value;
+                                  setMinStockValue(next);
+                                  syncMinStock(next, minStockUnitId);
+                                }}
+                                placeholder="0"
+                              />
+                              <div className="w-px bg-border" />
+                              <Select
+                                value={
+                                  minStockUnitId !== undefined
+                                    ? String(minStockUnitId)
+                                    : undefined
+                                }
+                                onValueChange={(value) => {
+                                  const idx = Number(value);
+                                  setMinStockUnitId(idx);
+                                  syncMinStock(minStockValue, idx);
+                                }}
+                              >
+                                <SelectTrigger className="h-8 w-28 text-sm border-0 rounded-none shadow-none bg-transparent focus:ring-0 shrink-0">
+                                  <SelectValue placeholder="Satuan" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableUnits.map((unit) => (
+                                    <SelectItem
+                                      key={unit.idx}
+                                      value={String(unit.idx)}
+                                    >
+                                      {unit.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {minStockInBase > 0 &&
+                              selectedUnit &&
+                              selectedUnit.conversionToBase !== 1 && (
+                                <div className="flex items-center gap-1.5 pl-0.5 text-[10px] text-primary">
+                                  <ArrowRight className="h-3 w-3 shrink-0" />
+                                  <span className="font-medium">
+                                    Setara{" "}
+                                    {minStockInBase.toLocaleString("id-ID")}{" "}
+                                    {baseUnitName}
+                                  </span>
+                                </div>
+                              )}
+
+                            <p className="text-[10px] text-muted-foreground leading-relaxed">
+                              Sistem akan menandai produk sebagai stok menipis
+                              saat jumlahnya mencapai batas ini.
                             </p>
+                          </div>
+
+                          {form.formState.errors.minStock && (
+                            <div className="flex items-start gap-1.5 rounded-md bg-destructive/10 px-2 py-1.5">
+                              <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                              <p className="text-[11px] text-destructive font-medium leading-snug">
+                                {
+                                  form.formState.errors.minStock
+                                    .message as string
+                                }
+                              </p>
+                            </div>
                           )}
-                        {form.formState.errors.minStock && (
-                          <p className="text-[11px] text-destructive font-medium">
-                            {form.formState.errors.minStock.message as string}
-                          </p>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               )}
 
-            <ScrollArea className="h-0 flex-1 min-h-0">
-              <div className="pb-1 pr-2">
-                <BasicInfoTab
-                  {...form}
-                  categories={categories as unknown as CategoryType[]}
-                  units={units as unknown as UnitType[]}
-                  imagePreview={imagePreview}
-                  uploading={uploading}
-                  inputRef={
-                    inputRef as unknown as React.RefObject<HTMLInputElement>
-                  }
-                  uploadImage={uploadImage}
-                  clearImage={() => {
-                    setImagePreview(null);
-                    form.setValue("image", undefined);
-                  }}
-                  errors={form.formState.errors}
-                />
+              {/* Step 3 — Barcode */}
+              {currentStep === 3 && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <BarcodesTab
+                    {...form}
+                    barcodeFields={barcodeFields}
+                    appendBarcode={appendBarcode}
+                    removeBarcode={removeBarcode}
+                    errors={form.formState.errors}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
 
-                <VariantsTab
-                  {...form}
-                  errors={form.formState.errors}
-                  variantFields={variantFields}
-                  appendVariant={appendVariant}
-                  removeVariant={removeVariant}
-                  averageCost={Number(productData?.data?.averageCost ?? 0)}
-                  isSystemAdmin={isSystemAdmin}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  units={units as any}
-                />
+          {/* ── Footer ────────────────────────────────────────────────── */}
+          <div className="shrink-0 border-t px-6 py-4 flex items-center justify-between gap-3">
+            <div>
+              {currentStep > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={goBack}
+                  disabled={isPending}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1.5" />
+                  Kembali
+                </Button>
+              )}
+            </div>
 
-                <BarcodesTab
-                  {...form}
-                  barcodeFields={barcodeFields}
-                  appendBarcode={appendBarcode}
-                  removeBarcode={removeBarcode}
-                  errors={form.formState.errors}
-                />
-              </div>
-            </ScrollArea>
-          </Tabs>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {currentStep} / {STEPS.length}
+              </span>
 
-          <div className="flex shrink-0 justify-end gap-3 px-1 mt-auto pb-4">
-            <Button type="button" variant="outline" onClick={handleClose}>
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              disabled={
-                createMutation.isPending ||
-                updateMutation.isPending ||
-                uploading
-              }
-            >
-              {isEdit ? "Update Produk" : "Simpan Produk"}
-            </Button>
+              {isLastStep ? (
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? (
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-1.5" />
+                  )}
+                  {isEdit ? "Update Produk" : "Simpan Produk"}
+                </Button>
+              ) : (
+                <Button type="button" onClick={goNext} disabled={isPending}>
+                  Lanjut
+                  <ArrowRight className="h-4 w-4 ml-1.5" />
+                </Button>
+              )}
+            </div>
           </div>
         </form>
       </DialogContent>

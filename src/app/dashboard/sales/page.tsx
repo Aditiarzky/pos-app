@@ -370,26 +370,25 @@ function SalesContent() {
             className="animate-in fade-in duration-300 space-y-8"
           >
             {/* GLOBAL FILTER & TOGGLE BAR */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 items-stretch">
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+              <SearchInput
+                placeholder="Cari No. Invoice..."
+                value={saleList.searchInput}
+                onChange={saleList.setSearchInput}
+                rightAction={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-app-pill hover:bg-background/50"
+                    onClick={() => setIsSalesScannerOpen(true)}
+                    aria-label="Buka scanner barcode riwayat penjualan"
+                  >
+                    <QrCode className="h-4 w-4" />
+                  </Button>
+                }
+              />
               <div className="flex flex-1 gap-2">
-                <SearchInput
-                  placeholder="Cari No. Invoice..."
-                  value={saleList.searchInput}
-                  onChange={saleList.setSearchInput}
-                  rightAction={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-app-pill hover:bg-background/50"
-                      onClick={() => setIsSalesScannerOpen(true)}
-                      aria-label="Buka scanner barcode riwayat penjualan"
-                    >
-                      <QrCode className="h-4 w-4" />
-                    </Button>
-                  }
-                />
-
                 <FilterWrap hasActiveFilters={hasActiveAdvancedFilters}>
                   <div className="space-y-3">
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -422,9 +421,8 @@ function SalesContent() {
                     />
                   </div>
                 </FilterWrap>
+                <ViewModeSwitch value={viewMode} onChange={setViewMode} />
               </div>
-
-              <ViewModeSwitch value={viewMode} onChange={setViewMode} />
             </div>
 
             <DebtListSection

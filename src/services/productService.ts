@@ -24,6 +24,7 @@ export interface ProductResponse extends ProductType {
     conversionToBase: string;
     sellPrice: string;
     isArchived?: boolean;
+    conversionReferenceVariantId?: number | null;
     unit?: { id: number; name: string };
   }>;
 }

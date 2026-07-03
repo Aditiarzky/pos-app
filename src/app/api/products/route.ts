@@ -161,7 +161,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    console.log(
+      "POST /api/products RAW body variants:",
+      JSON.stringify(body.variants, null, 2),
+    );
     const validation = validateProductData(body);
+    console.log("POST /api/products VALIDATION success:", validation.success);
+    if (validation.success) {
+      console.log(
+        "POST /api/products VALIDATED variants:",
+        JSON.stringify(validation.data.variants, null, 2),
+      );
+    }
 
     if (!validation.success) {
       return NextResponse.json(
@@ -214,13 +225,52 @@ export async function POST(request: NextRequest) {
         newVariants = await tx
           .insert(productVariants)
           .values(
-            variants.map((v: ProductVariantInputType) => ({
-              ...v,
-              productId: newProduct.id,
-              sku: `${parentSku}-${v.unitId}-${v.conversionToBase}`,
-            })),
+            variants.map((v: ProductVariantInputType) => {
+              const dbVal = { ...v };
+              delete dbVal.referenceVariantIndex;
+              return {
+                ...dbVal,
+                productId: newProduct.id,
+                sku: `${parentSku}-${v.unitId}-${v.conversionToBase}`,
+              };
+            }),
           )
           .returning();
+
+        // Update conversionReferenceVariantId based on referenceVariantIndex
+        console.log(
+          "POST /api/products resolving references. Variants count:",
+          variants?.length,
+          "Inserted count:",
+          newVariants.length,
+        );
+        for (let i = 0; i < variants.length; i++) {
+          const refIndex = variants[i].referenceVariantIndex;
+          console.log(
+            `Variant index ${i} (unitId: ${variants[i].unitId}) -> referenceVariantIndex is: ${refIndex}`,
+          );
+          if (
+            refIndex !== undefined &&
+            refIndex !== null &&
+            refIndex >= 0 &&
+            refIndex < newVariants.length
+          ) {
+            const refVariantId = newVariants[refIndex].id;
+            console.log(
+              `Setting variant id ${newVariants[i].id} conversionReferenceVariantId = ${refVariantId}`,
+            );
+            await tx
+              .update(productVariants)
+              .set({ conversionReferenceVariantId: refVariantId })
+              .where(eq(productVariants.id, newVariants[i].id));
+
+            newVariants[i].conversionReferenceVariantId = refVariantId;
+          } else {
+            console.log(
+              `Setting variant id ${newVariants[i].id} conversionReferenceVariantId = null`,
+            );
+          }
+        }
       }
 
       // 4. Audit log

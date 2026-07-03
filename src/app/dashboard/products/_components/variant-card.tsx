@@ -1,4 +1,13 @@
-import { Check, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  Layers,
+  Package,
+  Sparkles,
+  Trash2,
+  TrendingDown,
+  TrendingUp,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -70,39 +79,39 @@ type VariantFormState = {
 
 const PRESETS = [
   {
-    label: "Satu Kilo (1 kg)",
-    variantName: "Satu Kilo",
+    label: "Kiloan (1 kg)",
+    variantName: "Kiloan",
     targetUnit: "kg",
     getConversionValue: (base: string) =>
       ["g", "gram", "gr"].includes(base.toLowerCase()) ? 1000 : 1,
   },
   {
-    label: "Setengah Kilo (0.5 kg / 500 g)",
+    label: "Setengah Kilo (500 g)",
     variantName: "Setengah Kilo",
     targetUnit: "kg",
     getConversionValue: (base: string) =>
       ["g", "gram", "gr"].includes(base.toLowerCase()) ? 500 : 0.5,
   },
   {
-    label: "Seperempat Kilo (0.25 kg / 250 g)",
+    label: "Seperempat Kilo (250 g)",
     variantName: "Seperempat Kilo",
     targetUnit: "kg",
     getConversionValue: (base: string) =>
       ["g", "gram", "gr"].includes(base.toLowerCase()) ? 250 : 0.25,
   },
   {
-    label: "Satu Ons (100 g / 0.1 kg)",
-    variantName: "Satu Ons",
-    targetUnit: "g",
+    label: "Satu Ons (100 g)",
+    variantName: "Ons",
+    targetUnit: "Ons",
     getConversionValue: (base: string) =>
       ["kg", "kilogram", "kilo"].includes(base.toLowerCase()) ? 0.1 : 100,
   },
   {
-    label: "Satu Krat (10 kg / 10000 g)",
-    variantName: "1 Krat",
+    label: "Satu Krat (10 kg)",
+    variantName: "Krat",
     targetUnit: "krat",
     getConversionValue: (base: string) =>
-      ["g", "gram", "gr"].includes(base.toLowerCase()) ? 10000 : 10,
+      ["kg", "gram", "gr"].includes(base.toLowerCase()) ? 10000 : 10,
   },
 ];
 
@@ -135,6 +144,45 @@ const isWeightUnit = (unitName: string) => {
     name,
   );
 };
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <p className="flex items-center gap-1 text-xs text-destructive">
+      <AlertCircle className="h-3 w-3 shrink-0" />
+      {message}
+    </p>
+  );
+}
+
+function MarginRow({
+  marginAmount,
+  marginPercent,
+}: {
+  marginAmount: number;
+  marginPercent: number;
+}) {
+  const isPositive = marginAmount > 0;
+  return (
+    <div className="flex justify-between items-center px-2 py-1.5 text-xs rounded-md bg-muted/50">
+      <span className="uppercase font-bold tracking-tighter text-muted-foreground">
+        Estimasi Margin
+      </span>
+      <span
+        className={`flex items-center gap-1 font-black ${
+          isPositive ? "text-emerald-600" : "text-red-500"
+        }`}
+      >
+        {isPositive ? (
+          <TrendingUp className="h-3.5 w-3.5" />
+        ) : (
+          <TrendingDown className="h-3.5 w-3.5" />
+        )}
+        Rp {marginAmount.toLocaleString("id-ID")} ({marginPercent}%)
+      </span>
+    </div>
+  );
+}
 
 export function VariantCard({
   index,
@@ -208,7 +256,15 @@ export function VariantCard({
 
   const baseUnitId = watch("baseUnitId");
   const showPreset = !isBaseUnit && isWeightUnit(baseUnitName);
-  const conversionToBase = watch(`variants.${index}.conversionToBase`);
+
+  // Nama satuan dari variant yang dijadikan acuan konversi
+  const referenceVariantIndex =
+    variant?.referenceUnitId !== undefined
+      ? Number(variant.referenceUnitId)
+      : 0;
+  const referencedVariant = variants[referenceVariantIndex];
+  const referenceUnitName =
+    units.find((u) => u.id === referencedVariant?.unitId)?.name || baseUnitName;
 
   const handleSelectPreset = (presetLabel: string) => {
     const selectedPreset = PRESETS.find((p) => p.label === presetLabel);
@@ -250,7 +306,8 @@ export function VariantCard({
       <Card className="p-4 border-primary/20 gap-0 bg-primary/5">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Badge variant="default" className="text-xs">
+            <Badge variant="default" className="text-xs gap-1">
+              <Package className="h-3 w-3" />
               Satuan Dasar
             </Badge>
             <span className="text-sm font-semibold">{variantUnitName}</span>
@@ -302,24 +359,18 @@ export function VariantCard({
                 pencatatan stok.
               </p>
             )}
-            {errors.variants?.[index]?.sellPrice && (
-              <p className="text-sm text-destructive">
-                {errors.variants[index].sellPrice.message}
-              </p>
-            )}
+            <FieldError
+              message={errors.variants?.[index]?.sellPrice?.message}
+            />
           </div>
 
           {/* Margin info for admin */}
           {isSystemAdmin && Number(averageCost) > 0 && currentSellPrice > 0 && (
-            <div className="md:col-span-2 flex justify-between items-center px-1 text-xs rounded bg-muted/50 py-2">
-              <span className="uppercase font-bold tracking-tighter text-muted-foreground">
-                Estimasi Margin
-              </span>
-              <span
-                className={`font-black ${marginAmount > 0 ? "text-emerald-600" : "text-red-500"}`}
-              >
-                Rp {marginAmount.toLocaleString("id-ID")} ({marginPercent}%)
-              </span>
+            <div className="md:col-span-2">
+              <MarginRow
+                marginAmount={marginAmount}
+                marginPercent={marginPercent}
+              />
             </div>
           )}
         </div>
@@ -336,7 +387,8 @@ export function VariantCard({
   return (
     <Card className="p-4 gap-0">
       <div className="flex items-center justify-between mb-3">
-        <Badge variant="secondary" className="text-xs">
+        <Badge variant="secondary" className="text-xs gap-1">
+          <Layers className="h-3 w-3" />
           Satuan Jual Tambahan
         </Badge>
         {variantFieldsLength > 1 && (
@@ -357,8 +409,9 @@ export function VariantCard({
         {/* ── STEP 1: Preset (only for weight units) ── */}
         {showPreset && (
           <div className="rounded-md border border-dashed border-primary/30 bg-primary/5 p-3 space-y-2">
-            <p className="text-xs font-semibold text-primary">
-              Isi Otomatis - Pilih kemasan umum:
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              Isi Otomatis - Pilih kemasan umum
             </p>
             <Select onValueChange={handleSelectPreset}>
               <SelectTrigger className="w-full bg-background">
@@ -412,11 +465,7 @@ export function VariantCard({
               }}
               placeholder="Pilih satuan jual"
             />
-            {errors.variants?.[index]?.unitId && (
-              <p className="text-xs text-destructive">
-                {errors.variants[index].unitId.message}
-              </p>
-            )}
+            <FieldError message={errors.variants?.[index]?.unitId?.message} />
           </div>
 
           <div className="space-y-1">
@@ -430,100 +479,85 @@ export function VariantCard({
               {...register(`variants.${index}.name`)}
               placeholder="Mis: Satu Kilo, 1 Lusin..."
             />
-            {errors.variants?.[index]?.name && (
-              <p className="text-xs text-destructive">
-                {errors.variants[index].name.message}
-              </p>
-            )}
+            <FieldError message={errors.variants?.[index]?.name?.message} />
           </div>
         </div>
 
-        {/* ── STEP 3: Conversion ── */}
+        {/* ── STEP 3: Conversion — ditampilkan sebagai satu kalimat formula ── */}
         <div className="space-y-2">
           <Label className="text-sm font-medium">Isinya berapa?</Label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Controller
-                name={`variants.${index}.conversionToBase`}
-                control={control}
-                render={() => (
-                  <NumericInput
-                    value={conversionDraft}
-                    onChange={setConversionDraft}
-                    onBlur={() =>
-                      setValue(
-                        `variants.${index}.conversionValue`,
-                        conversionDraft,
-                        { shouldDirty: true, shouldValidate: true },
-                      )
-                    }
-                    placeholder={`1 ${variantUnitName} = ? ${baseUnitName}`}
-                    suffix={baseUnitName}
-                  />
-                )}
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Berapa {baseUnitName} dalam 1 {variantUnitName}?
-              </p>
+          <div className="rounded-md border border-border bg-muted/20 p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+                1 {variantUnitName}
+              </span>
+              <span className="text-sm text-muted-foreground">=</span>
+              <div className="flex-1 min-w-[140px]">
+                <Controller
+                  name={`variants.${index}.conversionToBase`}
+                  control={control}
+                  render={() => (
+                    <NumericInput
+                      value={conversionDraft}
+                      onChange={setConversionDraft}
+                      onBlur={() =>
+                        setValue(
+                          `variants.${index}.conversionValue`,
+                          conversionDraft,
+                          { shouldDirty: true, shouldValidate: true },
+                        )
+                      }
+                      placeholder="0"
+                      suffix={referenceUnitName}
+                    />
+                  )}
+                />
+              </div>
             </div>
 
             {previousVariants.length > 0 && (
-              <div className="space-y-1">
-                <Select
-                  value={
-                    variant?.referenceUnitId !== undefined
-                      ? String(variant.referenceUnitId)
-                      : undefined
-                  }
-                  onValueChange={(value) =>
-                    setValue(
-                      `variants.${index}.referenceUnitId`,
-                      Number(value),
-                      { shouldDirty: true, shouldValidate: true },
-                    )
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Acuan konversi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Use variantIndex as key+value so variants sharing the
-                        same unitId (e.g. 0.5 kg and 0.25 kg) both appear. */}
-                    {previousVariants.map((v) => (
-                      <SelectItem
-                        key={v.variantIndex}
-                        value={String(v.variantIndex)}
-                      >
-                        {v.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-[11px] text-muted-foreground">
-                  Dihitung relatif ke satuan mana?
-                </p>
+              <div className="mt-3 pt-3 border-t border-border/60 flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground shrink-0">
+                  Dihitung dari
+                </span>
+                <div className="flex-1 min-w-[140px]">
+                  <Select
+                    value={
+                      variant?.referenceUnitId !== undefined
+                        ? String(variant.referenceUnitId)
+                        : undefined
+                    }
+                    onValueChange={(value) =>
+                      setValue(
+                        `variants.${index}.referenceUnitId`,
+                        Number(value),
+                        { shouldDirty: true, shouldValidate: true },
+                      )
+                    }
+                  >
+                    <SelectTrigger className="w-full h-8 text-sm bg-background">
+                      <SelectValue placeholder="Acuan konversi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {/* Use variantIndex as key+value so variants sharing the
+                          same unitId (e.g. 0.5 kg and 0.25 kg) both appear. */}
+                      {previousVariants.map((v) => (
+                        <SelectItem
+                          key={v.variantIndex}
+                          value={String(v.variantIndex)}
+                        >
+                          {v.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
           </div>
-
-          {conversionToBase && Number(conversionToBase) > 0 && (
-            <div className="rounded-md bg-muted/50 flex items-center gap-1 px-3 py-2 text-xs text-muted-foreground">
-              <Check className="h-3.5 w-3.5 mr-1" /> 1{" "}
-              <span className="font-semibold text-foreground">
-                {variant.name}
-              </span>{" "}
-              setara dengan{" "}
-              <span className="font-semibold text-foreground">
-                {conversionToBase} {baseUnitName}
-              </span>
-            </div>
-          )}
-
-          {errors.variants?.[index]?.conversionToBase && (
-            <p className="text-sm text-destructive">
-              {errors.variants[index].conversionToBase.message}
-            </p>
-          )}
+          <FieldError
+            message={errors.variants?.[index]?.conversionToBase?.message}
+          />
         </div>
 
         {/* ── STEP 4: Price ── */}
@@ -531,7 +565,7 @@ export function VariantCard({
           <Label className="text-sm font-medium">
             Harga Jual{" "}
             <span className="text-xs font-normal text-muted-foreground">
-              (per {variantUnitName})
+              (per {variant.name})
             </span>
           </Label>
           <Controller
@@ -547,22 +581,14 @@ export function VariantCard({
             )}
           />
           {isSystemAdmin && Number(averageCost) > 0 && currentSellPrice > 0 && (
-            <div className="flex justify-between items-center px-1 py-1.5 text-xs rounded bg-muted/50 mt-1">
-              <span className="uppercase font-bold tracking-tighter text-muted-foreground">
-                Estimasi Margin
-              </span>
-              <span
-                className={`font-black ${marginAmount > 0 ? "text-emerald-600" : "text-red-500"}`}
-              >
-                Rp {marginAmount.toLocaleString("id-ID")} ({marginPercent}%)
-              </span>
+            <div className="mt-1">
+              <MarginRow
+                marginAmount={marginAmount}
+                marginPercent={marginPercent}
+              />
             </div>
           )}
-          {errors.variants?.[index]?.sellPrice && (
-            <p className="text-sm text-destructive">
-              {errors.variants[index].sellPrice.message}
-            </p>
-          )}
+          <FieldError message={errors.variants?.[index]?.sellPrice?.message} />
         </div>
       </div>
     </Card>

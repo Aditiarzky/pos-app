@@ -22,6 +22,10 @@ export const productVariantSchema = baseVariantInsert
         message: "Satuan terkecil harus diisi",
       }),
     }),
+    referenceVariantIndex: z.number().int().min(0).optional().nullable(),
+    referenceUnitId: z.number().int().min(0).optional().nullable(),
+    conversionValue: z.string().optional().nullable(),
+    conversionReferenceVariantId: z.number().int().optional().nullable(),
   })
   .superRefine((variant, ctx) => {
     if (variant.isActive === false) return;
@@ -41,8 +45,14 @@ export const insertProductSchema = baseInsertSchema
   .extend({
     name: baseInsertSchema.shape.name.min(3, "Nama harus diisi"),
     sku: baseInsertSchema.shape.sku.optional(),
-    minStock: z.coerce.string().optional().transform((v) => (v === "" ? "0" : v)),
-    stock: z.coerce.string().optional().transform((v) => (v === "" ? "0" : v)),
+    minStock: z.coerce
+      .string()
+      .optional()
+      .transform((v) => (v === "" ? "0" : v)),
+    stock: z.coerce
+      .string()
+      .optional()
+      .transform((v) => (v === "" ? "0" : v)),
     baseUnitId: z.number({
       error: () => ({
         message: "Satuan terkecil harus diisi",

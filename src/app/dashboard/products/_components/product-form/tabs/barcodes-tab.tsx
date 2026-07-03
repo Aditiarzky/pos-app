@@ -1,6 +1,5 @@
 import { useState } from "react"; // Import useState
 import { Input } from "@/components/ui/input";
-import { TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog"; // Import Dialog UI
 import { Trash2, QrCode } from "lucide-react"; // Import Icon QrCode
@@ -36,7 +35,7 @@ export function BarcodesTab({
 
   return (
     <div className="space-y-4">
-      <TabsContent value="barcodes" className="mt-4 space-y-3">
+      <div className="space-y-3">
         {barcodeFields.map((field: InsertProductBarcodeType, index: number) => (
           <div key={field.id} className="flex w-full gap-2">
             <div className="w-full">
@@ -84,7 +83,7 @@ export function BarcodesTab({
             Scan Barcode
           </Button>
         </div>
-      </TabsContent>
+      </div>
 
       <Dialog open={isScannerOpen} onOpenChange={setIsScannerOpen}>
         <DialogTitle hidden>Scan Barcode Barang</DialogTitle>

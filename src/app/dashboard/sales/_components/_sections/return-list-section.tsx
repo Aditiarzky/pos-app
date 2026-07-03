@@ -282,8 +282,6 @@ export function ReturnListSection() {
             />
           </FilterWrap>
 
-          <Separator orientation="vertical" className="h-10 mx-1" />
-
           <ViewModeSwitch value={viewMode} onChange={setViewMode} />
         </div>
       </div>

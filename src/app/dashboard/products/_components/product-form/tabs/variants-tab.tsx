@@ -1,7 +1,6 @@
 import { useEffect, useMemo } from "react";
-import { Plus } from "lucide-react";
+import { Info, Plus } from "lucide-react";
 import { UnitType } from "@/drizzle/type";
-import { TabsContent } from "@/components/ui/tabs";
 import { InsertProductVariantInputType } from "@/lib/validations/product-variant";
 import { Button } from "@/components/ui/button";
 import { VariantCard } from "../../variant-card";
@@ -229,14 +228,18 @@ export function VariantsTab({
       }
     });
   }, [baseUnitId, variants, units, setValue]);
+
   return (
     <div className="space-y-4">
-      <TabsContent value="variants" className="mt-4 space-y-4">
+      <div className="space-y-4">
         {!baseUnitId && (
-          <p className="rounded-md border border-dashed p-3 text-sm text-muted-foreground">
-            Pilih dulu satuan terkecil di tab Informasi. Baris satuan dasar akan
-            dibuat otomatis.
-          </p>
+          <div className="flex items-start gap-2 rounded-md border border-dashed border-border bg-muted/20 p-3">
+            <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+            <p className="text-sm text-muted-foreground">
+              Pilih dulu satuan terkecil di tab Informasi. Baris satuan dasar
+              akan dibuat otomatis.
+            </p>
+          </div>
         )}
 
         {variantFields.map(
@@ -273,11 +276,12 @@ export function VariantsTab({
               sellPrice: "",
             } as ProductVariantInputType)
           }
+          className="w-full border-dashed text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5"
         >
           <Plus className="mr-2 h-4 w-4" />
           Tambah Satuan Jual
         </Button>
-      </TabsContent>
+      </div>
     </div>
   );
 }

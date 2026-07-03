@@ -105,14 +105,10 @@ export const StockMutationsSection = () => {
         return "Penjualan";
       case "return_restock":
         return "Retur (Restock)";
-      case "return_cancel":
-        return "Batal Retur";
       case "adjustment":
         return "Penyesuaian";
       case "exchange":
         return "Tukar Barang";
-      case "exchange_cancel":
-        return "Batal Tukar";
       default:
         return type;
     }
