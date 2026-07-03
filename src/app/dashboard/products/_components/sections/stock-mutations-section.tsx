@@ -36,10 +36,12 @@ export const StockMutationsSection = () => {
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [viewMode, setViewMode] = useState<ViewMode>("table");
   const [limit, setLimit] = useState(12);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, typeFilter, orderBy, order]);
+  }, [debouncedSearch, typeFilter, orderBy, order, startDate, endDate]);
 
   const { data, isLoading } = useStockMutations({
     params: {
@@ -49,6 +51,8 @@ export const StockMutationsSection = () => {
       type: typeFilter !== "all" ? typeFilter : undefined,
       orderBy,
       order,
+      startDate: startDate || undefined,
+      endDate: endDate || undefined,
     },
   });
 
@@ -56,7 +60,11 @@ export const StockMutationsSection = () => {
   const meta = data?.meta;
 
   const hasActiveFilters =
-    typeFilter !== "all" || orderBy !== "createdAt" || order !== "desc";
+    typeFilter !== "all" ||
+    orderBy !== "createdAt" ||
+    order !== "desc" ||
+    !!startDate ||
+    !!endDate;
 
   const getTypeColor = (type: string) => {
     switch (type) {
@@ -97,18 +105,10 @@ export const StockMutationsSection = () => {
         return "Penjualan";
       case "return_restock":
         return "Retur (Restock)";
-      case "return_cancel":
-        return "Batal Retur";
-      case "waste":
-        return "Terbuang/Rusak";
-      case "supplier_return":
-        return "Retur ke Supplier";
       case "adjustment":
         return "Penyesuaian";
       case "exchange":
         return "Tukar Barang";
-      case "exchange_cancel":
-        return "Batal Tukar";
       default:
         return type;
     }
@@ -135,6 +135,10 @@ export const StockMutationsSection = () => {
               order={order}
               setOrder={setOrder}
               setPage={setPage}
+              startDate={startDate}
+              setStartDate={setStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
             />
           </FilterWrap>
 
@@ -148,13 +152,27 @@ export const StockMutationsSection = () => {
           <Table>
             <TableHeader className="bg-muted/20 border-t border-b border-border/50">
               <TableRow className="border-none">
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">No.</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Waktu</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Referensi</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Produk</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Tipe</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-right font-semibold text-muted-foreground uppercase tracking-wide">Jumlah</TableHead>
-                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">Oleh</TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  No.
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Waktu
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Referensi
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Produk
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Tipe
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 text-right font-semibold text-muted-foreground uppercase tracking-wide">
+                  Jumlah
+                </TableHead>
+                <TableHead className="text-[12px] sm:text-sm h-8 sm:h-10 px-2 sm:px-4 font-semibold text-muted-foreground uppercase tracking-wide">
+                  Oleh
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -200,8 +218,8 @@ export const StockMutationsSection = () => {
                         <span className="hidden sm:block">
                           {mutation.createdAt
                             ? format(mutation.createdAt, "dd/MM/yy", {
-                              locale: id,
-                            })
+                                locale: id,
+                              })
                             : "-"}
                         </span>
                       </div>
@@ -323,8 +341,8 @@ export const StockMutationsSection = () => {
                         <span className="truncate text-right ml-1">
                           {mutation.createdAt
                             ? format(mutation.createdAt, "dd/MM/yy HH:mm", {
-                              locale: id,
-                            })
+                                locale: id,
+                              })
                             : "-"}
                         </span>
                       </div>

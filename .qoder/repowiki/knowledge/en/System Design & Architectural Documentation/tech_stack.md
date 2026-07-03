@@ -1,1 +1,0 @@
-PlantUML for architectural modeling; Markdown for specification and audit tracking.

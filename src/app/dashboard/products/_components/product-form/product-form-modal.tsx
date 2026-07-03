@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCategories } from "@/hooks/master/use-categories";
 import { useUnits } from "@/hooks/master/use-units";
@@ -13,19 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { useProduct } from "@/hooks/products/use-product";
 import { BasicInfoTab } from "./tabs/basic-info-tab";
 import { VariantsTab } from "./tabs/variants-tab";
 import { BarcodesTab } from "./tabs/barcodes-tab";
-import { ErrorIndicator } from "@/components/ui/error-indicator";
 import { useAuth } from "@/hooks/use-auth";
 import { CategoryType, UnitType } from "@/drizzle/type";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -33,6 +30,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Loader2,
+  Save,
+  PackageMinus,
+  X,
+  AlertCircle,
+} from "lucide-react";
+
+// ── Step definitions ────────────────────────────────────────────────────────
+
+const STEPS = [
+  { id: 1, label: "Informasi" },
+  { id: 2, label: "Satuan & Harga" },
+  { id: 3, label: "Barcode" },
+];
+
+// Fields validated per step (for form.trigger)
+const STEP_FIELDS: Record<number, string[]> = {
+  1: ["name", "baseUnitId"],
+  2: ["variants"],
+  3: ["barcodes"],
+};
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export function ProductFormModal({
   open,
@@ -48,12 +73,13 @@ export function ProductFormModal({
 }) {
   const isEdit = mode === "edit" && !!productId;
 
-  const [activeTab, setActiveTab] = useState("basic");
+  const [currentStep, setCurrentStep] = useState(1);
   const [minStockValue, setMinStockValue] = useState("");
   const [minStockUnitId, setMinStockUnitId] = useState<number | undefined>(
     undefined,
   );
   const [initialized, setInitialized] = useState(false);
+  const [showMinStock, setShowMinStock] = useState(false);
 
   const { roles } = useAuth();
   const isSystemAdmin = (roles as string[]).includes("admin sistem");
@@ -92,129 +118,158 @@ export function ProductFormModal({
     updateMutation: updateMutation as any,
     onSuccess: () => handleClose(),
   });
-  const watchedVariants = useWatch({
-    control: form.control,
-    name: "variants",
-  });
-  const baseUnitId = useWatch({
-    control: form.control,
-    name: "baseUnitId",
-  });
+
+  const watchedVariants = useWatch({ control: form.control, name: "variants" });
+  const baseUnitId = useWatch({ control: form.control, name: "baseUnitId" });
   const baseUnitName =
-    units.find((unit) => unit.id === Number(baseUnitId))?.name ||
+    units.find((unit) => unit.id === Number(baseUnitId))?.name ??
     "satuan dasar";
+
+  // ── availableUnits for min stock ──────────────────────────────────────────
 
   const availableUnits = useMemo(() => {
     const rows = Array.isArray(watchedVariants) ? watchedVariants : [];
-    const seen = new Set<number>();
     return rows
-      .filter((v) => Number(v?.unitId) > 0 && Number(v?.conversionToBase) > 0)
-      .map((v) => ({
-        unitId: Number(v!.unitId),
+      .map((v, idx) => ({
+        idx,
+        unitId: Number(v?.unitId),
         name:
           v?.name ||
           units.find((u) => u.id === Number(v?.unitId))?.name ||
           "Satuan",
-        conversionToBase: Number(v!.conversionToBase),
+        conversionToBase: Number(v?.conversionToBase ?? 0),
       }))
-      .filter((v) => {
-        if (seen.has(v.unitId)) return false;
-        seen.add(v.unitId);
-        return true;
-      });
+      .filter((v) => v.unitId > 0 && v.conversionToBase > 0);
   }, [watchedVariants, units]);
 
-  const minStockInBase = useMemo(() => {
-    const selected = availableUnits.find((u) => u.unitId === minStockUnitId);
-    const value = Number(minStockValue);
-    if (!selected || !Number.isFinite(value) || value <= 0) return 0;
-    return value * selected.conversionToBase;
-  }, [availableUnits, minStockUnitId, minStockValue]);
+  const availableUnitsRef = useRef(availableUnits);
+  availableUnitsRef.current = availableUnits;
 
-  const syncMinStock = (value: string, unitId: number | undefined) => {
-    if (!value || !unitId) {
-      form.setValue("minStock", "", {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      return;
-    }
-    const selected = availableUnits.find((u) => u.unitId === unitId);
+  const selectedUnit = useMemo(
+    () => availableUnits.find((u) => u.idx === minStockUnitId),
+    [availableUnits, minStockUnitId],
+  );
+
+  const minStockInBase = useMemo(() => {
+    const value = Number(minStockValue);
+    if (!selectedUnit || !Number.isFinite(value) || value <= 0) return 0;
+    return value * selectedUnit.conversionToBase;
+  }, [selectedUnit, minStockValue]);
+
+  const syncMinStock = (value: string, idx: number | undefined) => {
+    const unit = availableUnits.find((u) => u.idx === idx);
     const numberValue = Number(value);
-    if (!selected || !Number.isFinite(numberValue) || numberValue < 0) {
+    if (!unit || !value || !Number.isFinite(numberValue) || numberValue < 0) {
       form.setValue("minStock", "", {
         shouldDirty: true,
         shouldValidate: true,
       });
       return;
     }
-    form.setValue("minStock", String(numberValue * selected.conversionToBase), {
+    form.setValue("minStock", String(numberValue * unit.conversionToBase), {
       shouldDirty: true,
       shouldValidate: true,
     });
   };
 
-  // Sync the form "minStock" value reactively if conversion factor changes
+  // Sync minStock on explicit user input
   useEffect(() => {
-    if (minStockUnitId && minStockValue) {
-      const selected = availableUnits.find((u) => u.unitId === minStockUnitId);
-      if (selected) {
-        const numberValue = Number(minStockValue);
-        if (Number.isFinite(numberValue) && numberValue >= 0) {
-          form.setValue(
-            "minStock",
-            String(numberValue * selected.conversionToBase),
-            {
-              shouldDirty: true,
-              shouldValidate: true,
-            },
-          );
-        }
-      }
+    if (minStockUnitId === undefined || !minStockValue) return;
+    const unit = availableUnitsRef.current.find(
+      (u) => u.idx === minStockUnitId,
+    );
+    if (!unit) return;
+    const numberValue = Number(minStockValue);
+    if (!Number.isFinite(numberValue) || numberValue < 0) return;
+    const computed = String(numberValue * unit.conversionToBase);
+    if (computed !== form.getValues("minStock")) {
+      form.setValue("minStock", computed, {
+        shouldDirty: true,
+        shouldValidate: false,
+      });
     }
-  }, [availableUnits, minStockUnitId, minStockValue, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [minStockUnitId, minStockValue]);
 
+  // Restore saved minStock on open
   useEffect(() => {
-    if (!open) return;
-    if (!baseUnitId || availableUnits.length === 0) return;
-    if (initialized) return;
+    if (!open || !baseUnitId || initialized) return;
+    const units = availableUnitsRef.current;
+    if (units.length === 0) return;
 
     const savedMinStock = Number(
       productData?.data?.minStock ?? form.getValues("minStock") ?? 0,
     );
-    const baseUnit = availableUnits.find(
-      (u) => u.unitId === Number(baseUnitId),
-    );
+    const largest = [...units].sort(
+      (a, b) => b.conversionToBase - a.conversionToBase,
+    )[0];
 
-    if (baseUnit) {
-      setMinStockUnitId(baseUnit.unitId);
-      if (savedMinStock > 0) {
-        setMinStockValue(String(savedMinStock));
-      }
-    } else if (availableUnits.length > 0) {
-      const first = availableUnits[0];
-      setMinStockUnitId(first.unitId);
-      if (savedMinStock > 0) {
+    if (savedMinStock > 0) {
+      const remainder = savedMinStock % largest.conversionToBase;
+      if (remainder === 0) {
+        setMinStockUnitId(largest.idx);
+        setMinStockValue(String(savedMinStock / largest.conversionToBase));
+      } else {
+        const baseUnit = units.find((u) => u.unitId === Number(baseUnitId));
+        const fallback = baseUnit ?? largest;
+        setMinStockUnitId(fallback.idx);
         setMinStockValue(
-          String(Math.round(savedMinStock / first.conversionToBase)),
+          String(
+            Math.round((savedMinStock / fallback.conversionToBase) * 100) / 100,
+          ),
         );
       }
+    } else {
+      setMinStockUnitId(largest.idx);
+      setMinStockValue("");
+      form.setValue("minStock", "", {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
     }
-    setInitialized(true);
-  }, [open, baseUnitId, availableUnits, initialized, productData, form]);
 
+    setInitialized(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, baseUnitId, initialized, productData]);
+
+  // Recover unit selection if it becomes stale
   useEffect(() => {
-    if (!open) return;
-    if (!baseUnitId || availableUnits.length === 0 || minStockUnitId) return;
-    const fallback =
-      availableUnits.find((u) => u.unitId === Number(baseUnitId)) ||
-      availableUnits[0];
-    if (fallback) setMinStockUnitId(fallback.unitId);
-  }, [open, baseUnitId, availableUnits, minStockUnitId]);
+    if (!open || !baseUnitId) return;
+    const units = availableUnitsRef.current;
+    if (units.length === 0) return;
+    if (
+      minStockUnitId !== undefined &&
+      units.some((u) => u.idx === minStockUnitId)
+    )
+      return;
+    const largest = [...units].sort(
+      (a, b) => b.conversionToBase - a.conversionToBase,
+    )[0];
+    setMinStockUnitId(largest.idx);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, baseUnitId, minStockUnitId]);
+
+  // ── Image ─────────────────────────────────────────────────────────────────
 
   const { imagePreview, setImagePreview, uploading, inputRef, uploadImage } =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     useProductImage(uploadMutation, form.setValue as any, open, productData);
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+
+  const isLastStep = currentStep === STEPS.length;
+
+  const goNext = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fields = STEP_FIELDS[currentStep] as any[];
+    const valid = await form.trigger(fields);
+    if (valid) setCurrentStep((s) => Math.min(s + 1, STEPS.length));
+  };
+
+  const goBack = () => setCurrentStep((s) => Math.max(s - 1, 1));
+
+  // ── Error flags (for recovering step on submit error) ─────────────────────
 
   const hasBasicError =
     !!form.formState.errors.name ||
@@ -225,225 +280,308 @@ export function ProductFormModal({
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
     form.handleSubmit(
-      (data) => {
-        submitHandler(data);
-      },
+      (data) => submitHandler(data),
       () => {
-        switch (true) {
-          case hasBasicError:
-            toast.error("Mohon isi minimal nama produk, SKU, dan satuan");
-            setActiveTab("basic");
-            break;
-          case hasVariantError:
-            toast.error("Periksa kembali data pada tab Satuan & Harga");
-            setActiveTab("variants");
-            break;
-          case hasBarcodeError:
-            toast.error("Mohon isi minimal satu data Barcode");
-            setActiveTab("barcodes");
-            break;
-          default:
-            break;
+        if (hasBasicError) {
+          toast.error("Mohon isi minimal nama produk dan satuan");
+          setCurrentStep(1);
+        } else if (hasVariantError) {
+          toast.error("Periksa kembali data Satuan & Harga");
+          setCurrentStep(2);
+        } else if (hasBarcodeError) {
+          toast.error("Periksa kembali data Barcode");
+          setCurrentStep(3);
         }
       },
     )();
   };
 
+  // ── Close ─────────────────────────────────────────────────────────────────
+
   const handleClose = () => {
     onOpenChange(false);
     form.reset();
-    setActiveTab("basic");
+    setCurrentStep(1);
     setImagePreview(null);
     setMinStockValue("");
     setMinStockUnitId(undefined);
     setInitialized(false);
+    setShowMinStock(false);
   };
+
+  const isPending =
+    createMutation.isPending || updateMutation.isPending || uploading;
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl h-[90vh] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>
+      <DialogContent className="max-w-2xl h-[92vh] max-h-[92vh] overflow-hidden flex flex-col p-0">
+        {/* ── Header ──────────────────────────────────────────────────── */}
+        <DialogHeader className="px-6 pt-6 pb-4 shrink-0 border-b">
+          <DialogTitle className="text-lg">
             {isEdit ? "Edit Produk" : "Tambah Produk Baru"}
           </DialogTitle>
-        </DialogHeader>
 
-        <form
-          onSubmit={handleFormSubmit}
-          className="flex flex-1 min-h-0 flex-col gap-6 overflow-hidden"
-        >
-          {/* Controlled Tabs */}
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="flex flex-1 min-h-0 flex-col overflow-hidden"
-          >
-            <TabsList className="grid w-full shrink-0 grid-cols-3 bg-background">
-              <TabsTrigger
-                type="button"
-                value="basic"
-                className="relative data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
+          {/* Step Indicator */}
+          <div className="flex items-center mt-4">
+            {STEPS.map((step, idx) => (
+              <div
+                key={step.id}
+                className="flex items-center flex-1 last:flex-none"
               >
-                Informasi
-                <ErrorIndicator show={hasBasicError} />
-              </TabsTrigger>
-
-              <TabsTrigger
-                type="button"
-                value="variants"
-                className="relative text-[clamp(0.75rem,2vw,0.85rem)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
-              >
-                Satuan & Harga
-                <ErrorIndicator show={hasVariantError} />
-              </TabsTrigger>
-
-              <TabsTrigger
-                type="button"
-                value="barcodes"
-                className="relative data-[state=active]:bg-primary/20 data-[state=active]:text-primary dark:data-[state=active]:text-primary dark:data-[state=active]:bg-primary/20 data-[state=active]:shadow-none dark:data-[state=active]:border-transparent cursor-pointer"
-              >
-                Barcodes
-                <ErrorIndicator show={hasBarcodeError} />
-              </TabsTrigger>
-            </TabsList>
-
-            {activeTab === "variants" && (
-              <div className="shrink-0 bg-background border-b p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 z-10">
-                <div className="space-y-0.5">
-                  <Label className="text-sm font-bold flex items-center gap-2">
-                    Stok Minimum
-                  </Label>
-                  <p className="text-[11px] text-muted-foreground leading-none">
-                    Tentukan kapan sistem harus memperingatkan stok menipis.
-                  </p>
-                </div>
-
-                {!baseUnitId ? (
-                  <p className="text-xs text-muted-foreground italic">
-                    Pilih satuan terkecil di tab Informasi.
-                  </p>
-                ) : availableUnits.length === 0 ? (
-                  <p className="text-xs text-muted-foreground italic">
-                    Belum ada satuan yang didefinisikan.
-                  </p>
-                ) : (
-                  <div className="flex flex-col sm:items-end gap-1.5">
-                    <div className="flex items-center gap-2">
-                      <div className="relative group">
-                        <Input
-                          type="number"
-                          min={0}
-                          className="w-24 h-9 pr-8"
-                          value={minStockValue}
-                          onChange={(e) => {
-                            const next = e.target.value;
-                            setMinStockValue(next);
-                            syncMinStock(next, minStockUnitId);
-                          }}
-                          placeholder="0"
-                        />
-                      </div>
-                      <Select
-                        value={
-                          minStockUnitId ? String(minStockUnitId) : undefined
-                        }
-                        onValueChange={(value) => {
-                          const unitId = Number(value);
-                          setMinStockUnitId(unitId);
-                          syncMinStock(minStockValue, unitId);
-                        }}
-                      >
-                        <SelectTrigger className="h-9 w-[130px] bg-muted/30">
-                          <SelectValue placeholder="Satuan" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableUnits.map((unit) => (
-                            <SelectItem
-                              key={unit.unitId}
-                              value={String(unit.unitId)}
-                            >
-                              {unit.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {minStockInBase > 0 &&
-                      minStockUnitId &&
-                      Number(minStockUnitId) !== Number(baseUnitId) && (
-                        <p className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-semibold">
-                          = {minStockInBase.toLocaleString("id-ID")}{" "}
-                          {baseUnitName}
-                        </p>
-                      )}
-                    {form.formState.errors.minStock && (
-                      <p className="text-[11px] text-destructive font-medium">
-                        {form.formState.errors.minStock.message as string}
-                      </p>
+                <div className="flex flex-col items-center gap-1">
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all duration-200",
+                      currentStep === step.id &&
+                        "border-primary bg-primary/10 text-primary",
+                      currentStep > step.id &&
+                        "border-primary bg-primary text-primary-foreground",
+                      currentStep < step.id &&
+                        "border-muted-foreground/30 text-muted-foreground bg-background",
+                    )}
+                  >
+                    {currentStep > step.id ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <span>{step.id}</span>
                     )}
                   </div>
+                  <span
+                    className={cn(
+                      "text-[11px] whitespace-nowrap transition-colors",
+                      currentStep === step.id
+                        ? "text-foreground font-semibold"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {step.label}
+                  </span>
+                </div>
+                {idx < STEPS.length - 1 && (
+                  <div
+                    className={cn(
+                      "flex-1 h-0.5 mx-3 mb-4 rounded-full transition-colors duration-300",
+                      currentStep > step.id ? "bg-primary" : "bg-border",
+                    )}
+                  />
                 )}
               </div>
-            )}
+            ))}
+          </div>
+        </DialogHeader>
 
-            <ScrollArea className="h-0 flex-1 min-h-0">
-              <div className="pb-1 pr-2">
-                <BasicInfoTab
-                  {...form}
-                  categories={categories as unknown as CategoryType[]}
-                  units={units as unknown as UnitType[]}
-                  imagePreview={imagePreview}
-                  uploading={uploading}
-                  inputRef={
-                    inputRef as unknown as React.RefObject<HTMLInputElement>
-                  }
-                  uploadImage={uploadImage}
-                  clearImage={() => {
-                    setImagePreview(null);
-                    form.setValue("image", undefined);
-                  }}
-                  errors={form.formState.errors}
-                />
+        {/* ── Body (scrollable) ────────────────────────────────────────── */}
+        <form
+          onSubmit={handleFormSubmit}
+          className="flex flex-1 min-h-0 flex-col overflow-hidden"
+        >
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="px-6 py-5 space-y-0">
+              {/* Step 1 — Informasi */}
+              {currentStep === 1 && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <BasicInfoTab
+                    {...form}
+                    categories={categories as unknown as CategoryType[]}
+                    units={units as unknown as UnitType[]}
+                    imagePreview={imagePreview}
+                    uploading={uploading}
+                    inputRef={
+                      inputRef as unknown as React.RefObject<HTMLInputElement>
+                    }
+                    uploadImage={uploadImage}
+                    clearImage={() => {
+                      setImagePreview(null);
+                      form.setValue("image", undefined);
+                    }}
+                    errors={form.formState.errors}
+                  />
+                </div>
+              )}
 
-                <VariantsTab
-                  {...form}
-                  errors={form.formState.errors}
-                  variantFields={variantFields}
-                  appendVariant={appendVariant}
-                  removeVariant={removeVariant}
-                  averageCost={Number(productData?.data?.averageCost ?? 0)}
-                  isSystemAdmin={isSystemAdmin}
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  units={units as any}
-                />
+              {/* Step 2 — Satuan & Harga */}
+              {currentStep === 2 && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-200 space-y-4">
+                  <VariantsTab
+                    {...form}
+                    errors={form.formState.errors}
+                    variantFields={variantFields}
+                    appendVariant={appendVariant}
+                    removeVariant={removeVariant}
+                    averageCost={Number(productData?.data?.averageCost ?? 0)}
+                    isSystemAdmin={isSystemAdmin}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    units={units as any}
+                  />
 
-                <BarcodesTab
-                  {...form}
-                  barcodeFields={barcodeFields}
-                  appendBarcode={appendBarcode}
-                  removeBarcode={removeBarcode}
-                  errors={form.formState.errors}
-                />
-              </div>
-            </ScrollArea>
-          </Tabs>
+                  {/* Min Stock — hanya tampil kalau baseUnitId & variant sudah ada */}
+                  {baseUnitId && availableUnits.length > 0 && (
+                    <div className="border-t pt-4">
+                      {!showMinStock ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowMinStock(true)}
+                          className="text-xs text-muted-foreground hover:text-primary transition-colors underline-offset-2 hover:underline cursor-pointer"
+                        >
+                          + Atur stok minimum untuk peringatan notifikasi
+                          (opsional)
+                        </button>
+                      ) : (
+                        <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-3">
+                          {/* Header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <PackageMinus className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">
+                                Stok Minimum
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setShowMinStock(false)}
+                              className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <X className="h-3 w-3" />
+                              Sembunyikan
+                            </button>
+                          </div>
 
-          <div className="flex shrink-0 justify-end gap-3 px-1 mt-auto pb-4">
-            <Button type="button" variant="outline" onClick={handleClose}>
-              Batal
-            </Button>
-            <Button
-              type="submit"
-              disabled={
-                createMutation.isPending ||
-                updateMutation.isPending ||
-                uploading
-              }
-            >
-              {isEdit ? "Update Produk" : "Simpan Produk"}
-            </Button>
+                          {/* Input angka + satuan, digabung jadi satu kontrol */}
+                          <div className="space-y-2">
+                            <div className="flex items-stretch rounded-md border border-input bg-background overflow-hidden focus-within:ring-1 focus-within:ring-ring transition-shadow">
+                              <Input
+                                type="number"
+                                min={0}
+                                className="h-8 text-sm border-0 rounded-none shadow-none focus-visible:ring-0 flex-1 min-w-0"
+                                value={minStockValue}
+                                onChange={(e) => {
+                                  const next = e.target.value;
+                                  setMinStockValue(next);
+                                  syncMinStock(next, minStockUnitId);
+                                }}
+                                placeholder="0"
+                              />
+                              <div className="w-px bg-border" />
+                              <Select
+                                value={
+                                  minStockUnitId !== undefined
+                                    ? String(minStockUnitId)
+                                    : undefined
+                                }
+                                onValueChange={(value) => {
+                                  const idx = Number(value);
+                                  setMinStockUnitId(idx);
+                                  syncMinStock(minStockValue, idx);
+                                }}
+                              >
+                                <SelectTrigger className="h-8 w-28 text-sm border-0 rounded-none shadow-none bg-transparent focus:ring-0 shrink-0">
+                                  <SelectValue placeholder="Satuan" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {availableUnits.map((unit) => (
+                                    <SelectItem
+                                      key={unit.idx}
+                                      value={String(unit.idx)}
+                                    >
+                                      {unit.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {minStockInBase > 0 &&
+                              selectedUnit &&
+                              selectedUnit.conversionToBase !== 1 && (
+                                <div className="flex items-center gap-1.5 pl-0.5 text-[10px] text-primary">
+                                  <ArrowRight className="h-3 w-3 shrink-0" />
+                                  <span className="font-medium">
+                                    Setara{" "}
+                                    {minStockInBase.toLocaleString("id-ID")}{" "}
+                                    {baseUnitName}
+                                  </span>
+                                </div>
+                              )}
+
+                            <p className="text-[10px] text-muted-foreground leading-relaxed">
+                              Sistem akan menandai produk sebagai stok menipis
+                              saat jumlahnya mencapai batas ini.
+                            </p>
+                          </div>
+
+                          {form.formState.errors.minStock && (
+                            <div className="flex items-start gap-1.5 rounded-md bg-destructive/10 px-2 py-1.5">
+                              <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                              <p className="text-[11px] text-destructive font-medium leading-snug">
+                                {
+                                  form.formState.errors.minStock
+                                    .message as string
+                                }
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Step 3 — Barcode */}
+              {currentStep === 3 && (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-200">
+                  <BarcodesTab
+                    {...form}
+                    barcodeFields={barcodeFields}
+                    appendBarcode={appendBarcode}
+                    removeBarcode={removeBarcode}
+                    errors={form.formState.errors}
+                  />
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+
+          {/* ── Footer ────────────────────────────────────────────────── */}
+          <div className="shrink-0 border-t px-6 py-4 flex items-center justify-between gap-3">
+            <div>
+              {currentStep > 1 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={goBack}
+                  disabled={isPending}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1.5" />
+                  Kembali
+                </Button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {currentStep} / {STEPS.length}
+              </span>
+
+              {isLastStep ? (
+                <Button type="submit" disabled={isPending}>
+                  {isPending ? (
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-1.5" />
+                  )}
+                  {isEdit ? "Update Produk" : "Simpan Produk"}
+                </Button>
+              ) : (
+                <Button type="button" onClick={goNext} disabled={isPending}>
+                  Lanjut
+                  <ArrowRight className="h-4 w-4 ml-1.5" />
+                </Button>
+              )}
+            </div>
           </div>
         </form>
       </DialogContent>

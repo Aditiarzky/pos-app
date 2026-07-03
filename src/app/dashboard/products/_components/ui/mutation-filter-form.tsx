@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -17,6 +18,10 @@ interface MutationFilterFormProps {
   order: "asc" | "desc";
   setOrder: (v: "asc" | "desc") => void;
   setPage: (p: number) => void;
+  startDate: string;
+  setStartDate: (v: string) => void;
+  endDate: string;
+  setEndDate: (v: string) => void;
   isDropdown?: boolean;
 }
 
@@ -28,10 +33,44 @@ export const MutationFilterForm = ({
   order,
   setOrder,
   setPage,
+  startDate,
+  setStartDate,
+  endDate,
+  setEndDate,
   isDropdown,
 }: MutationFilterFormProps) => {
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-2">
+          <h4 className="font-medium leading-none text-xs text-muted-foreground uppercase tracking-wider">
+            Dari Tanggal
+          </h4>
+          <Input
+            type="date"
+            value={startDate}
+            onChange={(e) => {
+              setStartDate(e.target.value);
+              setPage(1);
+            }}
+            className="h-10 text-xs px-3 bg-muted/50 border-none shadow-none"
+          />
+        </div>
+        <div className="space-y-2">
+          <h4 className="font-medium leading-none text-xs text-muted-foreground uppercase tracking-wider">
+            Sampai Tanggal
+          </h4>
+          <Input
+            type="date"
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              setPage(1);
+            }}
+            className="h-10 text-xs px-3 bg-muted/50 border-none shadow-none"
+          />
+        </div>
+      </div>
       <div className="space-y-2">
         <h4 className="font-medium leading-none text-xs text-muted-foreground uppercase tracking-wider">
           Tipe Mutasi

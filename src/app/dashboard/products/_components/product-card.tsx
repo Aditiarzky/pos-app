@@ -255,15 +255,19 @@ function ProductDetailModal({
                               Stok Tersedia
                             </span>
                           </div>
-                          <span className={cn(
-                            "text-xs sm:text-sm font-black",
-                            Math.floor(stockNum / Number(v.conversionToBase)) < 1
-                              ? "text-destructive"
-                              : "text-foreground"
-                          )}>
+                          <span
+                            className={cn(
+                              "text-xs sm:text-sm font-black",
+                              Math.floor(
+                                stockNum / Number(v.conversionToBase),
+                              ) < 1
+                                ? "text-destructive"
+                                : "text-foreground",
+                            )}
+                          >
                             {Math.floor(stockNum / Number(v.conversionToBase))}{" "}
                             <span className="text-[10px] font-medium text-muted-foreground">
-                              {v.unit?.name || product.unit?.name}
+                              unit
                             </span>
                           </span>
                         </div>
@@ -495,55 +499,57 @@ export function ProductCard({
           )}
 
           {/* Dropdown */}
-          <div className="absolute top-3 right-3 z-20">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="sm:h-8 sm:w-8 h-6 w-6 rounded-full shadow-sm text-black bg-white/90 hover:bg-white"
-                >
-                  <MoreVertical className="sm:h-4 sm:w-4 h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                {isSystemAdmin && onEdit && (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEdit(product.id);
-                    }}
+          {isSystemAdmin && (
+            <div className="absolute top-3 right-3 z-20">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="sm:h-8 sm:w-8 h-6 w-6 rounded-full shadow-sm text-black bg-white/90 hover:bg-white"
                   >
-                    <Edit className="mr-2 h-4 w-4" /> Edit Produk
-                  </DropdownMenuItem>
-                )}
-                {isSystemAdmin && onAdjust && (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAdjust(product);
-                    }}
-                  >
-                    <PackagePlus className="mr-2 h-4 w-4" /> Atur Stok
-                  </DropdownMenuItem>
-                )}
-                {isSystemAdmin && onDelete && (
-                  <>
-                    <DropdownMenuSeparator />
+                    <MoreVertical className="sm:h-4 sm:w-4 h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  {isSystemAdmin && onEdit && (
                     <DropdownMenuItem
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteClick();
+                        onEdit(product.id);
                       }}
-                      className="text-destructive focus:text-destructive"
                     >
-                      <Trash2 className="mr-2 h-4 w-4" /> Hapus
+                      <Edit className="mr-2 h-4 w-4" /> Edit Produk
                     </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+                  )}
+                  {isSystemAdmin && onAdjust && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAdjust(product);
+                      }}
+                    >
+                      <PackagePlus className="mr-2 h-4 w-4" /> Atur Stok
+                    </DropdownMenuItem>
+                  )}
+                  {isSystemAdmin && onDelete && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClick();
+                        }}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" /> Hapus
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
         </div>
 
         {/* Content */}

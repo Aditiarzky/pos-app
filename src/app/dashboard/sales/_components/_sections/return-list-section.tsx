@@ -282,8 +282,6 @@ export function ReturnListSection() {
             />
           </FilterWrap>
 
-          <Separator orientation="vertical" className="h-10 mx-1" />
-
           <ViewModeSwitch value={viewMode} onChange={setViewMode} />
         </div>
       </div>
@@ -419,7 +417,7 @@ export function ReturnListSection() {
                       </TableCell>
                       <TableCell className="px-2 sm:px-4 py-2">
                         <div className="flex justify-end gap-1">
-                          {/* @ts-ignore status exists in the response from backend */}
+                          {/* @ts-expect-error status exists in backend response */}
                           {ret.status === "pending" && (
                             <>
                               <Button
@@ -570,7 +568,7 @@ export function ReturnListSection() {
                 </div>
 
                 <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 flex justify-between items-center gap-1.5 sm:gap-2 mt-auto">
-                  {/* @ts-ignore status exists in backend response */}
+                  {/* @ts-expect-error status exists in backend response */}
                   {ret.status === "pending" ? (
                     <div className="flex w-full gap-2">
                       <Button

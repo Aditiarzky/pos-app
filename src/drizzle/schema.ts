@@ -10,8 +10,6 @@ export const stockMutationType = p.pgEnum("stock_mutation_type", [
   "sale_cancel",
   "return_restock",
   "return_cancel",
-  "waste",
-  "supplier_return",
   "adjustment",
   "exchange",
   "exchange_cancel",
@@ -416,6 +414,12 @@ export const productVariants = p.pgTable("product_variants", {
 
   sellPrice: p.decimal("sell_price", { precision: 12, scale: 2 }).notNull(),
   isActive: p.boolean("is_active").default(true),
+
+  conversionReferenceVariantId: p
+    .integer("conversion_reference_variant_id")
+    .references((): p.AnyPgColumn => productVariants.id, {
+      onDelete: "set null",
+    }),
 
   createdAt: p.timestamp("created_at").defaultNow(),
   updatedAt: p

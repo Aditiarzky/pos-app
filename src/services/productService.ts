@@ -24,6 +24,7 @@ export interface ProductResponse extends ProductType {
     conversionToBase: string;
     sellPrice: string;
     isArchived?: boolean;
+    conversionReferenceVariantId?: number | null;
     unit?: { id: number; name: string };
   }>;
 }
@@ -173,6 +174,8 @@ export const getStockMutations = async (params?: {
   search?: string;
   productId?: number;
   type?: string;
+  startDate?: string;
+  endDate?: string;
 }): Promise<ApiResponse<StockMutationResponse[]>> => {
   const response = await axiosInstance.get("/stock-mutations", { params });
   return response.data;

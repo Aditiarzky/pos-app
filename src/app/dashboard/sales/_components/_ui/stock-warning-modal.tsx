@@ -51,47 +51,55 @@ export function StockWarningModal({
       open={isOpen}
       onOpenChange={(open) => !isAdjusting && !open && onClose()}
     >
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] flex flex-col gap-0 p-4 sm:p-6">
+        <DialogHeader className="mb-4">
           <div className="flex items-center gap-2 text-destructive mb-2">
-            <AlertCircle className="h-6 w-6" />
-            <DialogTitle className="text-xl font-bold">
+            <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+            <DialogTitle className="text-lg sm:text-xl font-bold">
               Stok Tidak Mencukupi
             </DialogTitle>
           </div>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Beberapa produk di keranjang memiliki stok yang kurang di sistem.
             Silakan pilih tindakan untuk melanjutkan.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
-          <div className="rounded-md border">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 py-2">
+          <div className="rounded-md border overflow-x-auto w-full">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Produk</TableHead>
-                  <TableHead className="text-right">Tersedia</TableHead>
-                  <TableHead className="text-right">Diminta</TableHead>
-                  <TableHead className="text-right">Kurang</TableHead>
+                  <TableHead className="min-w-[150px]">Produk</TableHead>
+                  <TableHead className="text-right whitespace-nowrap">
+                    Tersedia
+                  </TableHead>
+                  <TableHead className="text-right whitespace-nowrap">
+                    Diminta
+                  </TableHead>
+                  <TableHead className="text-right whitespace-nowrap">
+                    Kurang
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {items.map((item, index) => (
                   <TableRow key={`${item.productId}-${index}`}>
                     <TableCell>
-                      <div className="font-medium">{item.productName}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="font-medium text-xs sm:text-sm">
+                        {item.productName}
+                      </div>
+                      <div className="text-[10px] sm:text-xs text-muted-foreground">
                         {item.variantName}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-semibold">
+                    <TableCell className="text-right font-semibold text-xs sm:text-sm">
                       {item.currentStock / item.conversionToBase}
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-primary">
+                    <TableCell className="text-right font-semibold text-primary text-xs sm:text-sm">
                       {item.requestedQty / item.conversionToBase}
                     </TableCell>
-                    <TableCell className="text-right font-bold text-destructive">
+                    <TableCell className="text-right font-bold text-destructive text-xs sm:text-sm">
                       {item.difference / item.conversionToBase}
                     </TableCell>
                   </TableRow>
@@ -101,7 +109,7 @@ export function StockWarningModal({
           </div>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4 sm:mt-6 shrink-0">
           <Button
             variant="outline"
             onClick={onClose}
@@ -118,12 +126,12 @@ export function StockWarningModal({
             {isAdjusting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Menyesuaikan Stok...
+                Menyesuaikan...
               </>
             ) : (
               <>
                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                Sesuaikan Stok Otomatis
+                Sesuaikan Stok
               </>
             )}
           </Button>

@@ -31,9 +31,10 @@ export const FilterWrap = ({
           <Button
             variant="outline"
             size="icon"
-            className={`${triggerClassName} sm:hidden`}
+            className={`${triggerClassName} sm:hidden w-fit px-3`}
           >
             <Filter className="h-4 w-4" />
+            Filter
             {hasActiveFilters && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-primary/35"></span>

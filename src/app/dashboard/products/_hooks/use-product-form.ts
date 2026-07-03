@@ -70,11 +70,41 @@ export function useProductForm({
   const submitHandler = async (
     data: InsertProductInputType | UpdateProductInputType,
   ) => {
-    const filteredVariants = (data.variants ?? []).filter((variant) => {
+    const originalToNewIndexMap: Record<number, number | null> = {};
+    let newIndexCount = 0;
+    const variantsList = data.variants ?? [];
+
+    variantsList.forEach((variant, index) => {
       const isBaseUnit = Number(variant.unitId) === Number(data.baseUnitId);
       const isSold = variant.isActive !== false;
-      return !isBaseUnit || isSold;
+      const isKept = !isBaseUnit || isSold;
+
+      if (isKept) {
+        originalToNewIndexMap[index] = newIndexCount;
+        newIndexCount++;
+      } else {
+        originalToNewIndexMap[index] = null;
+      }
     });
+
+    const filteredVariants = variantsList
+      .filter((variant) => {
+        const isBaseUnit = Number(variant.unitId) === Number(data.baseUnitId);
+        const isSold = variant.isActive !== false;
+        return !isBaseUnit || isSold;
+      })
+      .map((variant) => {
+        const refIdx = variant.referenceUnitId;
+        const referenceVariantIndex =
+          refIdx !== undefined && refIdx !== null
+            ? (originalToNewIndexMap[refIdx] ?? null)
+            : null;
+
+        return {
+          ...variant,
+          referenceVariantIndex,
+        };
+      });
 
     const cleanedData = {
       ...data,

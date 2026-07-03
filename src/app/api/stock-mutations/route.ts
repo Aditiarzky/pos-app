@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { products, stockMutations } from "@/drizzle/schema";
-import { and, asc, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  lte,
+  or,
+} from "drizzle-orm";
 import { formatMeta, parsePagination } from "@/lib/query-helper";
 import { handleApiError } from "@/lib/api-utils";
 import { MutationEnumType } from "@/drizzle/type";
@@ -12,6 +23,9 @@ export async function GET(request: NextRequest) {
     const search = request.nextUrl.searchParams.get("search")?.trim() || "";
     const productId = request.nextUrl.searchParams.get("productId");
     const type = request.nextUrl.searchParams.get("type");
+
+    const startDate = request.nextUrl.searchParams.get("startDate");
+    const endDate = request.nextUrl.searchParams.get("endDate");
 
     const baseConditions = [];
 
@@ -28,6 +42,17 @@ export async function GET(request: NextRequest) {
 
     if (type && type !== "all") {
       baseConditions.push(eq(stockMutations.type, type as MutationEnumType));
+    }
+
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      baseConditions.push(gte(stockMutations.createdAt, start));
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      baseConditions.push(lte(stockMutations.createdAt, end));
     }
 
     let whereClause = undefined;

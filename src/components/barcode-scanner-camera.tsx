@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode, Html5QrcodeCameraScanConfig } from "html5-qrcode";
+import { useEffect, useRef, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
+import type {
+  IDetectedBarcode,
+  IScannerHandle,
+} from "@yudiel/react-qr-scanner";
 import {
   Card,
   CardContent,
@@ -18,8 +22,18 @@ import {
   Loader2,
   Zap,
   ScanLine,
+  SwitchCamera,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Wajib di-load secara dinamis (client-only), karena library ini
+// mengakses API browser (getUserMedia, dsb) yang tidak ada di server.
+const Scanner = dynamic(
+  () => import("@yudiel/react-qr-scanner").then((m) => m.Scanner),
+  { ssr: false },
+);
+
+type FacingMode = "environment" | "user";
 
 interface BarcodeScannerCameraProps {
   onScanSuccess: (barcode: string) => void;
@@ -41,7 +55,7 @@ const playBeep = () => {
     const gainNode = audioCtx.createGain();
 
     oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Frekuensi tinggi
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
     oscillator.frequency.exponentialRampToValueAtTime(
       440,
       audioCtx.currentTime + 0.1,
@@ -69,28 +83,58 @@ export default function BarcodeScannerCamera({
   className,
 }: BarcodeScannerCameraProps) {
   const [scanResult, setScanResult] = useState<string | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [torchEnabled, setTorchEnabled] = useState(false); // State Torch
+  const [torchEnabled, setTorchEnabled] = useState(false);
+  const [facingMode, setFacingMode] = useState<FacingMode>("environment");
 
-  const elementId = "scanner-video-container";
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const isTransitioning = useRef(false);
-  const isMountedRef = useRef(true);
+  const scannerRef = useRef<IScannerHandle>(null);
 
-  // Toggle Lampu (Torch)
+  // Deteksi kamera sudah siap (library tidak punya callback "ready" resmi,
+  // jadi kita pantau elemen video-nya langsung). Dijalankan ulang tiap kali
+  // facingMode berubah karena Scanner di-remount (key={facingMode}).
+  useEffect(() => {
+    setIsCameraReady(false);
+
+    let pollId: ReturnType<typeof setInterval> | null = null;
+    let videoEl: HTMLVideoElement | null = null;
+
+    const handlePlaying = () => setIsCameraReady(true);
+
+    pollId = setInterval(() => {
+      const video = scannerRef.current?.getVideoElement() ?? null;
+      if (video) {
+        videoEl = video;
+        if (video.readyState >= 2) {
+          setIsCameraReady(true);
+        }
+        video.addEventListener("playing", handlePlaying);
+        if (pollId) clearInterval(pollId);
+      }
+    }, 150);
+
+    return () => {
+      if (pollId) clearInterval(pollId);
+      videoEl?.removeEventListener("playing", handlePlaying);
+    };
+  }, [facingMode]);
+
+  // Toggle Lampu (Torch) — lewat MediaStreamTrack langsung
   const toggleTorch = async () => {
-    if (!scannerRef.current) return;
+    const stream = scannerRef.current?.getStream();
+    const track = stream?.getVideoTracks?.()[0];
+
+    if (!track) {
+      setError("Kamera belum siap.");
+      return;
+    }
 
     try {
       const newState = !torchEnabled;
-
-      // Apply constraints ke kamera
-      await scannerRef.current.applyVideoConstraints({
+      await track.applyConstraints({
         advanced: [{ torch: newState } as unknown as MediaTrackConstraints],
       });
-
       setTorchEnabled(newState);
     } catch (err) {
       console.warn("Torch tidak didukung perangkat ini", err);
@@ -98,112 +142,41 @@ export default function BarcodeScannerCamera({
     }
   };
 
-  useEffect(() => {
-    isMountedRef.current = true;
-    startScanner();
-
-    return () => {
-      isMountedRef.current = false;
-      stopScanner();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const stopScanner = async () => {
-    if (isTransitioning.current) return;
-
-    isTransitioning.current = true;
-    try {
-      if (scannerRef.current) {
-        // Hanya stop jika statusnya memang sedang scanning
-        if (scannerRef.current.isScanning) {
-          await scannerRef.current.stop();
-        }
-        scannerRef.current.clear();
-        scannerRef.current = null;
-      }
-
-      // Pembersihan manual MediaTracks (Paling ampuh mematikan lampu indikator browser)
-      const videoElements = document.querySelectorAll("video");
-      videoElements.forEach((video) => {
-        const stream = video.srcObject as MediaStream;
-        if (stream) {
-          stream.getTracks().forEach((track) => {
-            track.stop();
-            track.enabled = false;
-          });
-          video.srcObject = null;
-        }
-      });
-    } catch (err) {
-      console.error("Gagal menghentikan kamera:", err);
-    } finally {
-      isTransitioning.current = false;
-    }
+  // Ganti kamera depan / belakang
+  const toggleCamera = () => {
+    setError(null);
+    setTorchEnabled(false);
+    setFacingMode((prev) => (prev === "environment" ? "user" : "environment"));
   };
 
-  const startScanner = async () => {
-    if (isTransitioning.current || !isMountedRef.current) return;
+  const handleScan = useCallback(
+    (detectedCodes: IDetectedBarcode[]) => {
+      if (!detectedCodes.length || scanResult) return;
 
-    isTransitioning.current = true;
-    try {
-      // Pastikan bersih sebelum mulai
-      if (scannerRef.current?.isScanning) {
-        await scannerRef.current.stop();
-      }
+      const decodedText = detectedCodes[0].rawValue;
 
-      scannerRef.current = new Html5Qrcode(elementId);
-      setScanResult(null);
-      setError(null);
-      setIsScanning(true);
+      playBeep();
+      setScanResult(decodedText);
+      setIsPaused(true);
+      setTorchEnabled(false);
+      onScanSuccess(decodedText);
+    },
+    [scanResult, onScanSuccess],
+  );
 
-      const config: Html5QrcodeCameraScanConfig = {
-        fps: 20,
-        qrbox: undefined,
-        aspectRatio: 1.0,
-      };
-
-      await scannerRef.current.start(
-        { facingMode: "environment" },
-        config,
-        async (decodedText) => {
-          // Stop kamera segera setelah sukses
-          playBeep();
-          setScanResult(decodedText);
-          setIsScanning(false);
-
-          // Penting: panggil stop secara eksplisit
-          await stopScanner();
-          onScanSuccess(decodedText);
-        },
-        () => { },
-      );
-
-      setIsCameraReady(true);
-    } catch (err) {
-      console.error("Error starting scanner:", err);
-      setError("Gagal mengakses kamera.");
-      setIsScanning(false);
-    } finally {
-      isTransitioning.current = false;
-    }
+  const handleError = (err: unknown) => {
+    console.error("Error starting scanner:", err);
+    setError("Gagal mengakses kamera.");
   };
-
-  useEffect(() => {
-    startScanner();
-
-    return () => {
-      stopScanner();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleReset = () => {
-    startScanner();
+    setScanResult(null);
+    setError(null);
+    setIsPaused(false);
   };
 
-  const handleClose = async () => {
-    await stopScanner();
+  const handleClose = () => {
+    setIsPaused(true);
     onClose?.();
   };
 
@@ -223,9 +196,30 @@ export default function BarcodeScannerCamera({
 
       <CardContent className="space-y-4">
         <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden border border-border shadow-inner">
-          <div id={elementId} className="w-full h-full" />
+          <Scanner
+            key={facingMode}
+            ref={scannerRef}
+            onScan={handleScan}
+            onError={handleError}
+            paused={isPaused}
+            constraints={{ facingMode }}
+            sound={false}
+            components={{
+              onOff: false,
+              torch: false,
+              zoom: false,
+              finder: false,
+            }}
+            classNames={{
+              container: "!w-full !h-full",
+              video: "!w-full !h-full !object-cover",
+            }}
+            styles={{
+              container: { width: "100%", height: "100%" },
+            }}
+          />
 
-          {!isCameraReady && isScanning && (
+          {!isCameraReady && !isPaused && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 z-10 text-white gap-2">
               <Loader2 className="h-8 w-8 animate-spin" />
               <span className="text-sm">Memuat Kamera...</span>
@@ -246,8 +240,19 @@ export default function BarcodeScannerCamera({
                 </div>
               </div>
 
-              {/* Tombol Torch (Muncul jika kamera aktif) */}
-              <div className="absolute top-4 right-4">
+              {/* Tombol Torch & Switch Kamera */}
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="secondary"
+                  className="rounded-full h-10 w-10 bg-black/20 backdrop-blur text-white border border-white/20 hover:bg-black/40"
+                  onClick={toggleCamera}
+                  title="Ganti kamera depan/belakang"
+                >
+                  <SwitchCamera className="h-4 w-4" />
+                </Button>
+
                 <Button
                   type="button"
                   size="icon"
@@ -255,9 +260,10 @@ export default function BarcodeScannerCamera({
                   className={cn(
                     "rounded-full h-10 w-10 bg-black/20 backdrop-blur text-white border border-white/20 hover:bg-black/40",
                     torchEnabled &&
-                    "bg-yellow-500/80 text-white border-yellow-500 hover:bg-yellow-600",
+                      "bg-yellow-500/80 text-white border-yellow-500 hover:bg-yellow-600",
                   )}
                   onClick={toggleTorch}
+                  title="Nyalakan/matikan lampu"
                 >
                   <Zap
                     className={cn("h-4 w-4", torchEnabled && "fill-current")}
@@ -307,25 +313,6 @@ export default function BarcodeScannerCamera({
           )}
         </div>
       </CardContent>
-
-      <style jsx global>{`
-        @keyframes scan {
-          0%,
-          100% {
-            top: 10%;
-            opacity: 0;
-          }
-          10% {
-            opacity: 1;
-          }
-          90% {
-            opacity: 1;
-          }
-          50% {
-            top: 90%;
-          }
-        }
-      `}</style>
     </Card>
   );
 }
