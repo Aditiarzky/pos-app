@@ -40,6 +40,20 @@ export function SupplierSelect({
     );
   }, [suppliers, search]);
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+
+    if (e.key !== "Enter") return;
+
+    const bestMatch = filteredSuppliers[0];
+    if (!bestMatch) return;
+
+    e.preventDefault();
+    onValueChange(bestMatch.id);
+    setOpen(false);
+    setSearch("");
+  };
+
   const selectedSupplier = React.useMemo(
     () => suppliers.find((s) => s.id === value),
     [suppliers, value],
@@ -94,6 +108,7 @@ export function SupplierSelect({
             placeholder="Cari atau tambah supplier..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
           />
         </div>
         <div className="max-h-[200px] overflow-y-auto p-1">

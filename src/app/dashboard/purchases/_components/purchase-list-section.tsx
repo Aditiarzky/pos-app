@@ -123,8 +123,6 @@ export function PurchaseListSection({
             />
           </FilterWrap>
 
-          <Separator orientation="vertical" className="h-10" />
-
           <ViewModeSwitch value={viewMode} onChange={setViewMode} />
           <Badge className="h-10 px-4 bg-primary/10 text-primary rounded-lg hidden md:flex items-center gap-2 font-medium">
             <LayoutList className="h-4 w-4" />

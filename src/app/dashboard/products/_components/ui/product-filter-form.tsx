@@ -47,7 +47,6 @@ export const ProductFilterForm = ({
           value={categoryFilter}
           onValueChange={(v) => {
             setCategoryFilter(v);
-            setPage(1);
           }}
         >
           <SelectTrigger className="w-full h-10 px-3 bg-muted/50 border-none shadow-none focus:ring-1 focus:ring-primary/20">
@@ -77,7 +76,6 @@ export const ProductFilterForm = ({
               className="h-9 capitalize text-xs shadow-none border-muted"
               onClick={() => {
                 setStockFilter(v as "all" | "low" | "normal");
-                setPage(1);
               }}
             >
               {v === "all" ? "Semua" : v === "low" ? "Rendah" : "Normal"}
@@ -95,7 +93,6 @@ export const ProductFilterForm = ({
             value={orderBy}
             onValueChange={(v) => {
               setOrderBy(v);
-              setPage(1);
             }}
           >
             <SelectTrigger className="h-10 px-3 bg-muted/50 border-none shadow-none focus:ring-1 focus:ring-primary/20">
@@ -112,7 +109,6 @@ export const ProductFilterForm = ({
             value={order}
             onValueChange={(v: "asc" | "desc") => {
               setOrder(v);
-              setPage(1);
             }}
           >
             <SelectTrigger className="h-10 px-3 bg-muted/50 border-none shadow-none focus:ring-1 focus:ring-primary/20">

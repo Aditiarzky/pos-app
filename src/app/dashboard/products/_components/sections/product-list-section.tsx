@@ -57,6 +57,10 @@ export function ProductListSection({
   const page = filters.page as number;
   const limit = filters.limit as number;
 
+  // Tidak perlu menghapus cache manual di sini — React Query sudah otomatis
+  // membuat cache entry terpisah per kombinasi params lewat query key
+  // (productKeys.list(params)). Menghapus cache di setiap ganti filter/page
+  // justru membuang manfaat caching itu sendiri dan memaksa refetch terus.
   const setCategoryFilter = (v: string) => setFilters({ category: v, page: 1 });
   const setStockFilter = (v: "all" | "low" | "normal") =>
     setFilters({ filter: v, page: 1 });
@@ -155,7 +159,7 @@ export function ProductListSection({
         #stock-opname-print-area * {
           visibility: visible !important;
         }
-        
+
         .print-table {
           width: 100%;
           border-collapse: collapse;
@@ -225,6 +229,13 @@ export function ProductListSection({
     setIsScannerOpen(false);
     toast.success("Barcode berhasil dipindai");
   };
+
+  // Skeleton hanya untuk load pertama kali (belum ada data sama sekali).
+  // Setelah itu, ganti filter/page akan tetap menampilkan data cache lama
+  // apa adanya (lihat placeholderData: keepPreviousData di
+  // getProductsQueryOptions) sementara data baru diambil diam-diam di
+  // belakang layar — tanpa indikator apa pun, sesuai tujuan React Query.
+  const showInitialSkeleton = isAllProductsLoading;
 
   return (
     <div className="space-y-8">
@@ -333,7 +344,7 @@ export function ProductListSection({
       {/* SEMUA PRODUK SECTION */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold tracking-tight">Semua produk</h2>
-        {isAllProductsLoading ? (
+        {showInitialSkeleton ? (
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <Card key={i} className="h-48 sm:h-64 animate-pulse" />

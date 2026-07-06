@@ -49,6 +49,20 @@ export function CustomerSelect({
     );
   }, [customers, search]);
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+
+    if (e.key !== "Enter") return;
+
+    const bestMatch = filteredCustomers[0];
+    if (!bestMatch) return;
+
+    e.preventDefault();
+    onValueChange(bestMatch.id);
+    setOpen(false);
+    setSearch("");
+  };
+
   const selectedCustomer = React.useMemo(
     () => customers.find((c) => c.id === value),
     [customers, value],
@@ -107,6 +121,7 @@ export function CustomerSelect({
             placeholder="Cari atau tambah customer..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
           />
         </div>
         <div className="max-h-[200px] overflow-y-auto p-1">

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useCategories } from "@/hooks/master/use-categories";
@@ -40,6 +41,7 @@ import {
   PackageMinus,
   X,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 
 // ── Step definitions ────────────────────────────────────────────────────────
@@ -52,7 +54,7 @@ const STEPS = [
 
 // Fields validated per step (for form.trigger)
 const STEP_FIELDS: Record<number, string[]> = {
-  1: ["name", "baseUnitId"],
+  1: ["name", "baseUnitId", "categoryId"],
   2: ["variants"],
   3: ["barcodes"],
 };
@@ -80,6 +82,9 @@ export function ProductFormModal({
   );
   const [initialized, setInitialized] = useState(false);
   const [showMinStock, setShowMinStock] = useState(false);
+  // Menandai bahwa nilai stok minimum saat ini masih nilai default otomatis
+  // (belum pernah disentuh user). Dipakai untuk menampilkan hint kecil di UI.
+  const [isMinStockDefaulted, setIsMinStockDefaulted] = useState(true);
 
   const { roles } = useAuth();
   const isSystemAdmin = (roles as string[]).includes("admin sistem");
@@ -114,7 +119,7 @@ export function ProductFormModal({
     productData,
     productId: productId!,
     createMutation,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     updateMutation: updateMutation as any,
     onSuccess: () => handleClose(),
   });
@@ -188,10 +193,11 @@ export function ProductFormModal({
         shouldValidate: false,
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [minStockUnitId, minStockValue]);
 
-  // Restore saved minStock on open
+  }, [form, minStockUnitId, minStockValue]);
+
+  // Restore saved minStock on open — atau, kalau belum ada nilai tersimpan
+  // sama sekali, isi default otomatis: 1 dari satuan dengan konversi terbesar.
   useEffect(() => {
     if (!open || !baseUnitId || initialized) return;
     const units = availableUnitsRef.current;
@@ -205,6 +211,8 @@ export function ProductFormModal({
     )[0];
 
     if (savedMinStock > 0) {
+      // Ada nilai tersimpan (edit produk existing) → ini data asli, bukan default.
+      setIsMinStockDefaulted(false);
       const remainder = savedMinStock % largest.conversionToBase;
       if (remainder === 0) {
         setMinStockUnitId(largest.idx);
@@ -220,17 +228,19 @@ export function ProductFormModal({
         );
       }
     } else {
+      // Belum ada nilai sama sekali → default: 1 satuan dengan konversi terbesar.
       setMinStockUnitId(largest.idx);
-      setMinStockValue("");
-      form.setValue("minStock", "", {
+      setMinStockValue("1");
+      setIsMinStockDefaulted(true);
+      form.setValue("minStock", String(largest.conversionToBase), {
         shouldDirty: false,
         shouldValidate: false,
       });
     }
 
     setInitialized(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, baseUnitId, initialized, productData]);
+
+  }, [open, baseUnitId, initialized, productData, form]);
 
   // Recover unit selection if it becomes stale
   useEffect(() => {
@@ -246,13 +256,13 @@ export function ProductFormModal({
       (a, b) => b.conversionToBase - a.conversionToBase,
     )[0];
     setMinStockUnitId(largest.idx);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [open, baseUnitId, minStockUnitId]);
 
   // ── Image ─────────────────────────────────────────────────────────────────
 
   const { imagePreview, setImagePreview, uploading, inputRef, uploadImage } =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     useProductImage(uploadMutation, form.setValue as any, open, productData);
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -261,7 +271,7 @@ export function ProductFormModal({
 
   const goNext = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const fields = STEP_FIELDS[currentStep] as any[];
     const valid = await form.trigger(fields);
     if (valid) setCurrentStep((s) => Math.min(s + 1, STEPS.length));
@@ -308,6 +318,7 @@ export function ProductFormModal({
     setMinStockUnitId(undefined);
     setInitialized(false);
     setShowMinStock(false);
+    setIsMinStockDefaulted(true);
   };
 
   const isPending =
@@ -336,11 +347,11 @@ export function ProductFormModal({
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all duration-200",
                       currentStep === step.id &&
-                        "border-primary bg-primary/10 text-primary",
+                      "border-primary bg-primary/10 text-primary",
                       currentStep > step.id &&
-                        "border-primary bg-primary text-primary-foreground",
+                      "border-primary bg-primary text-primary-foreground",
                       currentStep < step.id &&
-                        "border-muted-foreground/30 text-muted-foreground bg-background",
+                      "border-muted-foreground/30 text-muted-foreground bg-background",
                     )}
                   >
                     {currentStep > step.id ? (
@@ -413,7 +424,7 @@ export function ProductFormModal({
                     removeVariant={removeVariant}
                     averageCost={Number(productData?.data?.averageCost ?? 0)}
                     isSystemAdmin={isSystemAdmin}
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
                     units={units as any}
                   />
 
@@ -427,7 +438,10 @@ export function ProductFormModal({
                           className="text-xs text-muted-foreground hover:text-primary transition-colors underline-offset-2 hover:underline cursor-pointer"
                         >
                           + Atur stok minimum untuk peringatan notifikasi
-                          (opsional)
+                          (opsional{isMinStockDefaulted && selectedUnit
+                            ? `, default 1 ${selectedUnit.name}`
+                            : ""}
+                          )
                         </button>
                       ) : (
                         <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-3">
@@ -438,6 +452,12 @@ export function ProductFormModal({
                               <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">
                                 Stok Minimum
                               </span>
+                              {isMinStockDefaulted && (
+                                <span className="flex items-center gap-1 text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                                  <Sparkles className="h-2.5 w-2.5" />
+                                  Default
+                                </span>
+                              )}
                             </div>
                             <button
                               type="button"
@@ -460,6 +480,7 @@ export function ProductFormModal({
                                 onChange={(e) => {
                                   const next = e.target.value;
                                   setMinStockValue(next);
+                                  setIsMinStockDefaulted(false);
                                   syncMinStock(next, minStockUnitId);
                                 }}
                                 placeholder="0"
@@ -474,6 +495,7 @@ export function ProductFormModal({
                                 onValueChange={(value) => {
                                   const idx = Number(value);
                                   setMinStockUnitId(idx);
+                                  setIsMinStockDefaulted(false);
                                   syncMinStock(minStockValue, idx);
                                 }}
                               >
@@ -507,8 +529,9 @@ export function ProductFormModal({
                               )}
 
                             <p className="text-[10px] text-muted-foreground leading-relaxed">
-                              Sistem akan menandai produk sebagai stok menipis
-                              saat jumlahnya mencapai batas ini.
+                              {isMinStockDefaulted
+                                ? "Nilai ini terisi otomatis berdasarkan satuan kemasan terbesar. Ubah angka atau satuan di atas kalau perlu."
+                                : "Sistem akan menandai produk sebagai stok menipis saat jumlahnya mencapai batas ini."}
                             </p>
                           </div>
 

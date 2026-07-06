@@ -359,7 +359,7 @@ function SalesContent() {
 
             {/* Cashier Forms */}
             {cashierMode === "sales" ? (
-              <TransactionForm onSuccess={() => {}} />
+              <TransactionForm onSuccess={() => { }} />
             ) : (
               <ReturnForm />
             )}
@@ -370,7 +370,7 @@ function SalesContent() {
             className="animate-in fade-in duration-300 space-y-8"
           >
             {/* GLOBAL FILTER & TOGGLE BAR */}
-            <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+            <div className="flex w-full flex-col sm:flex-row gap-3">
               <SearchInput
                 placeholder="Cari No. Invoice..."
                 value={saleList.searchInput}
@@ -388,7 +388,7 @@ function SalesContent() {
                   </Button>
                 }
               />
-              <div className="flex flex-1 gap-2">
+              <div className="flex gap-2">
                 <FilterWrap hasActiveFilters={hasActiveAdvancedFilters}>
                   <div className="space-y-3">
                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">

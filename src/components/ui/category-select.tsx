@@ -43,6 +43,20 @@ export function CategorySelect({
     );
   }, [categories, search]);
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+
+    if (e.key !== "Enter") return;
+
+    const bestMatch = filteredCategories[0];
+    if (!bestMatch) return;
+
+    e.preventDefault();
+    onValueChange(bestMatch.id);
+    setOpen(false);
+    setSearch("");
+  };
+
   const selectedCategory = React.useMemo(
     () => categories.find((category) => category.id === value),
     [categories, value],
@@ -94,6 +108,7 @@ export function CategorySelect({
             placeholder="Cari atau tambah kategori..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
           />
         </div>
         <div className="max-h-[200px] overflow-y-auto p-1">

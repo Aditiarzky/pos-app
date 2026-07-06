@@ -135,83 +135,91 @@ export const PurchaseCard = ({
   onEdit,
   canEdit = false,
 }: PurchaseProps) => {
+  const itemCount = purchase?.items?.length || 0;
+
   return (
     <Card className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50">
-      {/* Header with Gradient */}
-      <div className="relative h-20 sm:h-24 overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-2.5 sm:p-4 flex flex-col justify-between">
-        <div className="flex justify-between items-start">
-          <div className="flex flex-col">
-            <div className="font-mono font-bold text-primary text-xs sm:text-lg flex items-center gap-2">
+      {/* Header — tinggi otomatis mengikuti konten (dulu fixed h-20/h-24,
+          itu penyebab teks tertimpa saat konten lebih tinggi dari itu) */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-2.5 sm:p-4 flex flex-col gap-1.5">
+        <div className="flex justify-between items-start gap-1.5">
+          <div className="min-w-0 flex-1">
+            <div className="font-mono font-bold text-primary text-xs sm:text-lg truncate">
               {purchase.orderNumber}
             </div>
-            <div className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+            <div className="text-[10px] sm:text-xs text-muted-foreground font-medium truncate">
               {purchase.createdAt ? formatDate(purchase.createdAt) : "-"}
             </div>
           </div>
           {purchase.isArchived && (
-            <Badge variant="destructive" className="text-[10px] shadow-sm">
+            <Badge
+              variant="destructive"
+              className="text-[9px] sm:text-[10px] shrink-0 shadow-sm px-1.5"
+            >
               Archived
             </Badge>
           )}
         </div>
-        <div className="flex justify-between items-end">
-          <div className="text-xs text-muted-foreground font-medium flex items-center gap-1">
-            Dicatat oleh:{" "}
-            <span className="text-foreground">
-              {purchase.user?.name || "-"}
-            </span>
-          </div>
+        <div className="text-[10px] sm:text-xs text-muted-foreground font-medium truncate">
+          Dicatat:{" "}
+          <span className="text-foreground">
+            {purchase.user?.name || "-"}
+          </span>
         </div>
       </div>
 
       <CardContent className="p-2.5 sm:p-4 flex-1 flex flex-col gap-2.5 sm:gap-4">
-        {/* Total Amount & Supplier */}
-        <div className="flex justify-between items-start border-b pb-4 border-dashed">
-          <div>
-            <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
-              Total Transaksi
+        {/* Total & Supplier — ditumpuk di layar sempit (2 kolom mobile
+            membuat tiap card sangat sempit), sejajar mulai breakpoint sm */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 border-b pb-2.5 sm:pb-4 border-dashed">
+          <div className="min-w-0">
+            <span className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
+              Total
             </span>
-            <div className="text-sm sm:text-2xl font-black text-primary tracking-tight">
+            <div className="text-sm sm:text-2xl font-black text-primary tracking-tight truncate">
               {formatCurrency(Number(purchase.total))}
             </div>
           </div>
-          <div className="text-right">
-            <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
+          <div className="min-w-0 sm:text-right">
+            <span className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
               Supplier
             </span>
-            <div className="font-semibold text-[10px] sm:text-sm max-w-[120px] truncate">
+            <div className="font-semibold text-[11px] sm:text-sm truncate">
               {purchase.supplier?.name || "-"}
             </div>
           </div>
         </div>
 
         {/* Items Summary */}
-        <div className="space-y-2 flex-1">
-          <div className="flex items-center justify-between text-[10px] sm:text-xs font-medium text-muted-foreground">
-            <span>Items ({purchase?.items?.length})</span>
+        <div className="space-y-1.5 sm:space-y-2 flex-1 min-w-0">
+          <div className="text-[10px] sm:text-xs font-medium text-muted-foreground">
+            Items ({itemCount})
           </div>
-          <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
+          <div className="space-y-1 sm:space-y-1.5 max-h-[90px] sm:max-h-[100px] overflow-y-auto pr-1">
             {purchase?.items?.slice(0, 3).map((item) => (
               <div
                 key={item.id}
-                className="flex justify-between text-xs items-center bg-muted/30 p-1.5 rounded-sm"
+                className="flex justify-between gap-1.5 text-[11px] sm:text-xs items-center bg-muted/30 p-1.5 rounded-sm"
               >
-                <div className="truncate flex-1 mr-2">
+                <div className="min-w-0 flex-1 truncate">
                   <span className="text-foreground font-medium">
                     {item?.product?.name}
                   </span>
-                  <span className="text-muted-foreground ml-1 text-[10px]">
-                    ({item?.productVariant?.name})
-                  </span>
+                  {item?.productVariant?.name && (
+                    <span className="text-muted-foreground text-[10px]">
+                      {" "}
+                      ({item.productVariant.name})
+                    </span>
+                  )}
                 </div>
-                <div className="whitespace-nowrap font-mono text-[10px]">
-                  {item.qty} x
+                <div className="whitespace-nowrap font-mono text-[9px] sm:text-[10px] shrink-0 text-muted-foreground">
+                  {item.qty}x
                 </div>
               </div>
             ))}
-            {(purchase?.items?.length || 0) > 3 && (
-              <div className="text-[10px] text-center text-muted-foreground italic pt-1">
-                + {(purchase?.items?.length || 0) - 3} item lainnya...
+            {itemCount > 3 && (
+              <div className="text-[9px] sm:text-[10px] text-center text-muted-foreground italic pt-1">
+                + {itemCount - 3} item lainnya...
               </div>
             )}
           </div>
@@ -224,16 +232,16 @@ export const PurchaseCard = ({
           variant="outline"
           size="sm"
           onClick={() => onView(purchase)}
-          className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs"
+          className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs flex-1"
         >
-          <Eye className="h-3.5 w-3.5 mr-1" /> Lihat
+          <Eye className="h-3.5 w-3.5 mr-1 shrink-0" /> Lihat
         </Button>
         {canEdit && onEdit && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => onEdit(purchase)}
-            className="h-8 px-2 text-amber-600 hover:text-amber-700 hover:bg-amber-600/10"
+            className="h-7 sm:h-8 px-2 text-amber-600 hover:text-amber-700 hover:bg-amber-600/10 shrink-0"
           >
             <Pencil className="h-4 w-4" />
           </Button>

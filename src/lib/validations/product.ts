@@ -58,6 +58,11 @@ export const insertProductSchema = baseInsertSchema
         message: "Satuan terkecil harus diisi",
       }),
     }),
+    categoryId: z.number({
+      error: () => ({
+        message: "Kategori harus diisi",
+      }),
+    }),
     barcodes: z.array(z.object({ barcode: z.string() })).optional(),
     variants: z.array(productVariantSchema).optional(),
   })
