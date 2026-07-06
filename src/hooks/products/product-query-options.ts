@@ -1,4 +1,4 @@
-import { queryOptions } from "@tanstack/react-query";
+import { queryOptions, keepPreviousData } from "@tanstack/react-query";
 import { getProducts, getProduct } from "@/services/productService";
 
 export const productKeys = {
@@ -14,6 +14,9 @@ export const getProductsQueryOptions = (params?: Record<string, unknown>) => {
   return queryOptions({
     queryKey: productKeys.list(params),
     queryFn: () => getProducts(params),
+    // Data lama tetap ditampilkan selagi data baru (halaman/filter baru)
+    // sedang diambil, supaya tidak lompat ke skeleton tiap ganti filter/page.
+    placeholderData: keepPreviousData,
   });
 };
 

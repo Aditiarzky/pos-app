@@ -25,16 +25,19 @@ export const getReportsQueryOptions = (params?: ReportParams) =>
   queryOptions({
     queryKey: reportKeys.list(params),
     queryFn: () => getReports(params),
+    staleTime: 0, // laporan harus akurat dan selalu fresh
   });
 
 export const getSalesReportQueryOptions = (params?: ReportParams) =>
   queryOptions({
     queryKey: reportKeys.sales(params),
     queryFn: () => getSalesReport(params),
+    staleTime: 0, // laporan harus akurat dan selalu fresh
   });
 
 export const getPurchaseReportQueryOptions = (params?: ReportParams) =>
   queryOptions({
     queryKey: reportKeys.purchases(params),
     queryFn: () => getPurchaseReport(params),
+    staleTime: 0, // laporan harus akurat dan selalu fresh
   });

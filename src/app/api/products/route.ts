@@ -26,8 +26,10 @@ export async function GET(request: NextRequest) {
   try {
     const params = parsePagination(request);
     const { searchParams } = new URL(request.url);
+    const categoryIdParam = searchParams.get("categoryId");
     const barcodeSearch = searchParams.get("barcode");
     const lowStockOnly = searchParams.get("lowStockOnly") === "true";
+    const categoryId = categoryIdParam ? Number(categoryIdParam) : NaN;
 
     const { searchFilter, searchOrder } = getSearchAndOrderFTS(
       params.search,
@@ -51,6 +53,10 @@ export async function GET(request: NextRequest) {
 
     if (lowStockOnly) {
       finalFilter = and(finalFilter, lte(products.stock, products.minStock));
+    }
+
+    if (!Number.isNaN(categoryId)) {
+      finalFilter = and(finalFilter, eq(products.categoryId, categoryId));
     }
 
     if (barcodeSearch) {

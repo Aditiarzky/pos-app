@@ -21,7 +21,7 @@ export const FilterWrap = ({
   hasActiveFilters: boolean;
 }) => {
   const triggerClassName =
-    "relative h-10 rounded-app-lg border-border/70 bg-background shadow-sm hover:border-primary/40 hover:bg-primary/5";
+    "relative h-10 rounded-app-md border-border bg-background hover:border-primary/40 hover:bg-primary/5";
 
   return (
     <>

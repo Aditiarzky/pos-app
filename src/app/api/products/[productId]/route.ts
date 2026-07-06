@@ -20,6 +20,32 @@ import { getInitial } from "@/lib/utils";
 import { verifySession } from "@/lib/auth";
 // import { diffProduct, recordProductAudit } from "../_lib/audit";
 
+const STOCK_OPNAME_TIME_ZONE = "Asia/Jakarta";
+
+const buildStockOpnameReference = () => {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: STOCK_OPNAME_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(now).reduce<Record<string, string>>(
+    (acc, part) => {
+      if (part.type !== "literal") acc[part.type] = part.value;
+      return acc;
+    },
+    {},
+  );
+
+  return `SO-${parts.year}${parts.month}${parts.day}-${parts.hour}${parts.minute}${parts.second}`;
+};
+
 // GET detail product
 export async function GET(
   request: NextRequest,
@@ -438,7 +464,7 @@ export async function PATCH(
           variantId: product.variants[0].id,
           type: "adjustment",
           qtyBaseUnit: diff.toFixed(4),
-          reference: "Adjustment",
+          reference: buildStockOpnameReference(),
           userId: userId,
         });
       }

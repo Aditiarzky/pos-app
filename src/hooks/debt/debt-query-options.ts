@@ -13,5 +13,6 @@ export const getDebtsQueryOptions = (params: GetDebtsParams) => {
   return queryOptions({
     queryKey: debtKeys.list(params),
     queryFn: () => getDebts(params),
+    staleTime: 0, // status hutang berubah saat pembayaran, harus selalu fresh
   });
 };

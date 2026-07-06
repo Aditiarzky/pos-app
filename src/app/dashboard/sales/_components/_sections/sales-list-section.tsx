@@ -487,72 +487,78 @@ export function SalesListSection({
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
             {sales?.map((sale) => {
               const isPendingQris =
-                sale.status === "pending_payment" &&
-                sale.paymentMethod === "qris";
+                sale.status === "pending_payment" && sale.paymentMethod === "qris";
 
               return (
                 <Card
                   key={sale.id}
                   className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50"
                 >
-                  <div className="relative h-20 sm:h-24 overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-2.5 sm:p-4 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                      <div className="flex flex-col">
-                        <div className="font-mono font-bold text-primary text-xs sm:text-lg">
+                  {/* Header — tinggi otomatis mengikuti konten */}
+                  <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-2.5 sm:p-4 flex flex-col gap-1.5">
+                    <div className="flex justify-between items-start gap-1.5">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-mono font-bold text-primary text-xs sm:text-lg truncate">
                           {sale.invoiceNumber}
                         </div>
-                        <div className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+                        <div className="text-[10px] sm:text-xs text-muted-foreground font-medium truncate">
                           {formatDate(sale.createdAt || new Date())}
                         </div>
                       </div>
-                      {getStatusBadge(sale.status)}
+                      <div className="shrink-0">{getStatusBadge(sale.status)}</div>
                     </div>
                   </div>
 
                   <div className="p-2.5 sm:p-4 flex-1 flex flex-col gap-2.5 sm:gap-4">
-                    <div className="flex justify-between items-start border-b pb-4 border-dashed">
-                      <div>
-                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
-                          Total Transaksi
+                    {/* Total & Customer — ditumpuk di layar sempit, sejajar mulai sm */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 border-b pb-2.5 sm:pb-4 border-dashed">
+                      <div className="min-w-0">
+                        <span className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
+                          Total
                         </span>
-                        <div className="text-sm sm:text-2xl font-black text-primary tracking-tight">
+                        <div className="text-sm sm:text-2xl font-black text-primary tracking-tight truncate">
                           {formatCurrency(Number(sale.totalPrice))}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
+                      <div className="min-w-0 sm:text-right">
+                        <span className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
                           Customer
                         </span>
-                        <div className="font-semibold text-[10px] sm:text-sm max-w-[120px] truncate">
+                        <div className="font-semibold text-[11px] sm:text-sm truncate">
                           {sale.customer?.name || "Umum"}
                         </div>
                       </div>
                     </div>
-                    <div className="space-y-2 flex-1">
+
+                    {/* Items */}
+                    <div className="space-y-1.5 sm:space-y-2 flex-1 min-w-0">
                       <div className="text-[10px] sm:text-xs font-medium text-muted-foreground">
                         Items ({sale.items?.length || 0})
                       </div>
-                      <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
+                      <div className="space-y-1 sm:space-y-1.5 max-h-[90px] sm:max-h-[100px] overflow-y-auto pr-1">
                         {sale.items?.slice(0, 3).map((item) => (
                           <div
                             key={item.id}
-                            className="flex justify-between text-xs items-center bg-muted/30 p-1.5 rounded-sm"
+                            className="flex justify-between gap-1.5 text-[11px] sm:text-xs items-center bg-muted/30 p-1.5 rounded-sm"
                           >
-                            <div className="truncate flex-1 mr-2">
+                            <div className="min-w-0 flex-1 truncate">
                               <span className="text-foreground font-medium">
                                 {item.product?.name}
                               </span>
-                              <span className="text-muted-foreground ml-1 text-[10px]">
-                                ({item.productVariant?.name})
-                              </span>
+                              {item.productVariant?.name && (
+                                <span className="text-muted-foreground text-[10px]">
+                                  {" "}
+                                  ({item.productVariant.name})
+                                </span>
+                              )}
                             </div>
-                            <div className="whitespace-nowrap font-mono text-[10px]">
-                              {item.qty} x
+                            <div className="whitespace-nowrap font-mono text-[9px] sm:text-[10px] shrink-0 text-muted-foreground">
+                              {item.qty}x
                             </div>
                           </div>
                         ))}
                         {(sale.items?.length || 0) > 3 && (
-                          <div className="text-[10px] text-center text-muted-foreground italic pt-1">
+                          <div className="text-[9px] sm:text-[10px] text-center text-muted-foreground italic pt-1">
                             + {(sale.items?.length || 0) - 3} item lainnya...
                           </div>
                         )}
@@ -560,75 +566,77 @@ export function SalesListSection({
                     </div>
                   </div>
 
-                  <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 flex justify-between items-center gap-1.5 sm:gap-2 mt-auto">
+                  {/* Footer Actions */}
+                  <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 flex flex-col gap-1.5 mt-auto">
                     {sale.status === "pending_payment" ? (
-                      <div className="flex w-full gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            handleStatusUpdate(sale.id, "complete")
-                          }
-                          disabled={isUpdatingStatusId === sale.id}
-                          className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs border-emerald-400 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 flex-1"
-                        >
-                          {isUpdatingStatusId === sale.id ? (
-                            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Check className="mr-1 h-3.5 w-3.5" />
-                          )}
-                          Selesai
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={isUpdatingStatusId === sale.id}
-                              className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs border-destructive/50 text-destructive hover:bg-destructive/10 flex-1"
-                            >
-                              <X className="mr-1 h-3.5 w-3.5" />
-                              Batal
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Batalkan transaksi ini?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Stok akan dikembalikan dan transaksi akan
-                                ditandai sebagai dibatalkan.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Tidak</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() =>
-                                  handleStatusUpdate(sale.id, "cancel")
-                                }
-                                className="bg-destructive hover:bg-destructive/90"
+                      <>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleStatusUpdate(sale.id, "complete")}
+                            disabled={isUpdatingStatusId === sale.id}
+                            className="h-7 sm:h-8 px-1.5 sm:px-3 text-[10px] sm:text-xs border-emerald-400 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 min-w-0"
+                          >
+                            {isUpdatingStatusId === sale.id ? (
+                              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin shrink-0" />
+                            ) : (
+                              <Check className="mr-1 h-3.5 w-3.5 shrink-0" />
+                            )}
+                            <span className="truncate">Selesai</span>
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={isUpdatingStatusId === sale.id}
+                                className="h-7 sm:h-8 px-1.5 sm:px-3 text-[10px] sm:text-xs border-destructive/50 text-destructive hover:bg-destructive/10 min-w-0"
                               >
-                                Ya, Batalkan
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                                <X className="mr-1 h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">Batal</span>
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Batalkan transaksi ini?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Stok akan dikembalikan dan transaksi akan
+                                  ditandai sebagai dibatalkan.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Tidak</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() =>
+                                    handleStatusUpdate(sale.id, "cancel")
+                                  }
+                                  className="bg-destructive hover:bg-destructive/90"
+                                >
+                                  Ya, Batalkan
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+
                         {isPendingQris && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => handleReopenQris(sale.id)}
                             disabled={
-                              isLoadingQris === sale.id ||
-                              isCancellingId === sale.id
+                              isLoadingQris === sale.id || isCancellingId === sale.id
                             }
-                            className="h-7 sm:h-8 px-2 text-amber-600 hover:bg-amber-50"
+                            className="h-7 sm:h-8 w-full text-[10px] sm:text-xs text-amber-600 hover:bg-amber-50"
                           >
-                            <ScanLine className="h-3.5 w-3.5" />
+                            <ScanLine className="mr-1 h-3.5 w-3.5" />
+                            Cek QRIS
                           </Button>
                         )}
-                      </div>
+                      </>
                     ) : (
                       <Button
                         variant="outline"

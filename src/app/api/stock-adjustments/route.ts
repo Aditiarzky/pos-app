@@ -5,6 +5,35 @@ import { eq } from "drizzle-orm";
 import { handleApiError } from "@/lib/api-utils";
 import { z } from "zod";
 
+const STOCK_OPNAME_TIME_ZONE = "Asia/Jakarta";
+
+const buildStockOpnameReference = () => {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: STOCK_OPNAME_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(now).reduce<Record<string, string>>(
+    (acc, part) => {
+      if (part.type !== "literal") acc[part.type] = part.value;
+      return acc;
+    },
+    {},
+  );
+
+  const date = `${parts.year}${parts.month}${parts.day}`;
+  const time = `${parts.hour}${parts.minute}${parts.second}`;
+
+  return `SO-${date}-${time}`;
+};
+
 const adjustmentSchema = z.object({
   productId: z.number(),
   actualStock: z.number().optional(),
@@ -66,13 +95,15 @@ export async function POST(request: NextRequest) {
 
       // 2. Insert Mutation if actualStock changed
       if (actualStock !== undefined && actualStock !== currentStock) {
+        const stockOpnameReference = buildStockOpnameReference();
+
         await tx.insert(stockMutations).values({
           productId: product.id,
           variantId: product.variants[0].id,
           type: "adjustment",
           qtyBaseUnit: diff.toString(),
           unitFactorAtMutation: product.variants[0].conversionToBase,
-          reference: "Stock Adjustment",
+          reference: stockOpnameReference,
           userId: userId,
         });
       }

@@ -14,5 +14,6 @@ export const getSalesQueryOptions = (params?: Record<string, unknown>) => {
   return queryOptions({
     queryKey: saleKeys.list(params || {}),
     queryFn: () => getSales(params),
+    staleTime: 0, // transaksi penjualan harus selalu fresh
   });
 };

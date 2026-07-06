@@ -69,7 +69,9 @@ export function BasicInfoTab({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label>Kategori</Label>
+            <Label>
+              Kategori <span className="text-red-500">*</span>
+            </Label>
             <CategorySelect
               categories={categories}
               value={watch("categoryId") ?? undefined}

@@ -43,6 +43,20 @@ export function UnitSelect({
     );
   }, [units, search]);
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    e.stopPropagation();
+
+    if (e.key !== "Enter") return;
+
+    const bestMatch = filteredUnits[0];
+    if (!bestMatch) return;
+
+    e.preventDefault();
+    onValueChange(bestMatch.id);
+    setOpen(false);
+    setSearch("");
+  };
+
   const selectedUnit = React.useMemo(
     () => units.find((unit) => unit.id === value),
     [units, value],
@@ -93,6 +107,7 @@ export function UnitSelect({
             placeholder="Cari atau tambah satuan..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
           />
         </div>
         <div className="max-h-[200px] overflow-y-auto p-1">

@@ -16,5 +16,6 @@ export const getCustomerReturnsQueryOptions = (
   return queryOptions({
     queryKey: customerReturnKeys.list(params || {}),
     queryFn: () => getCustomerReturns(params),
+    staleTime: 0, // data return pelanggan harus selalu fresh
   });
 };

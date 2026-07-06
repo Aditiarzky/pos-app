@@ -16,5 +16,6 @@ export const getStockMutationsQueryOptions = (
   return queryOptions({
     queryKey: stockMutationKeys.list(params),
     queryFn: () => getStockMutations(params),
+    staleTime: 0, // mutasi stok terjadi setiap transaksi, harus selalu fresh
   });
 };
