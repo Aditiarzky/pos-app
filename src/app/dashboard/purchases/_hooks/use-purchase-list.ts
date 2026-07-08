@@ -40,6 +40,12 @@ export interface UsePurchaseListReturn {
   searchInput: string;
   setSearchInput: (search: string) => void;
 
+  // Date & Supplier Filters
+  dateRange: { startDate?: string; endDate?: string };
+  setDateRange: (range: { startDate?: string; endDate?: string }) => void;
+  supplierId: number | undefined;
+  setSupplierId: (supplierId: number | undefined) => void;
+
   // Sorting
   orderBy: PurchasesQueryParams["orderBy"];
   setOrderBy: (orderBy: PurchasesQueryParams["orderBy"]) => void;
@@ -68,9 +74,9 @@ export interface UsePurchaseListReturn {
 // ============================================
 
 export function usePurchaseList(): UsePurchaseListReturn {
-  const [searchInput, setSearchInput] = useQueryState<string>("q", "", { 
+  const [searchInput, setSearchInput] = useQueryState<string>("q", "", {
     debounce: 500,
-    syncWithUrl: false 
+    syncWithUrl: true,
   });
 
   // Pagination & Sorting state using useQueryStates
@@ -79,12 +85,18 @@ export function usePurchaseList(): UsePurchaseListReturn {
     limit: 10,
     sort: "createdAt",
     order: "desc",
+    startDate: undefined as string | undefined,
+    endDate: undefined as string | undefined,
+    supplierId: undefined as number | undefined,
   });
 
   const page = filters.page as number;
   const limit = filters.limit as number;
   const orderBy = filters.sort as PurchasesQueryParams["orderBy"];
   const order = filters.order as PurchasesQueryParams["order"];
+  const startDate = filters.startDate as string | undefined;
+  const endDate = filters.endDate as string | undefined;
+  const supplierId = filters.supplierId as number | undefined;
 
   const setPage = (newPage: number) => setFilters({ page: newPage });
   const setLimit = (newLimit: number) => setFilters({ limit: newLimit, page: 1 });
@@ -92,6 +104,10 @@ export function usePurchaseList(): UsePurchaseListReturn {
     setFilters({ sort: newOrderBy, page: 1 });
   const setOrder = (newOrder: PurchasesQueryParams["order"]) =>
     setFilters({ order: newOrder, page: 1 });
+  const setDateRange = (range: { startDate?: string; endDate?: string }) =>
+    setFilters({ startDate: range.startDate, endDate: range.endDate, page: 1 });
+  const setSupplierId = (newSupplierId: number | undefined) =>
+    setFilters({ supplierId: newSupplierId, page: 1 });
 
   // Fetch purchases
   const { data: purchasesResult, isLoading } = usePurchases({
@@ -99,6 +115,9 @@ export function usePurchaseList(): UsePurchaseListReturn {
       page,
       limit,
       search: searchInput,
+      startDate,
+      endDate,
+      supplierId,
       orderBy,
       order,
     },
@@ -111,12 +130,21 @@ export function usePurchaseList(): UsePurchaseListReturn {
   const deleteMutation = useDeletePurchase();
 
   // Check if filters are active
-  const hasActiveFilters = orderBy !== "createdAt" || order !== "desc";
+  const hasActiveFilters =
+    !!searchInput ||
+    orderBy !== "createdAt" ||
+    order !== "desc" ||
+    !!startDate ||
+    !!endDate ||
+    !!supplierId;
 
   // Reset filters
   const resetFilters = () => {
+    setSearchInput("");
     setOrderBy("createdAt");
     setOrder("desc");
+    setDateRange({});
+    setSupplierId(undefined);
     setPage(1);
   };
 
@@ -148,6 +176,12 @@ export function usePurchaseList(): UsePurchaseListReturn {
     // Search
     searchInput,
     setSearchInput,
+
+    // Date & Supplier Filters
+    dateRange: { startDate, endDate },
+    setDateRange,
+    supplierId,
+    setSupplierId,
 
     // Sorting
     orderBy,

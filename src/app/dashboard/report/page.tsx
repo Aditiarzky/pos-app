@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   useReports,
@@ -14,19 +14,14 @@ import {
   Loader2,
   Printer,
   CalendarDays,
-  CalendarIcon,
 } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { fillDailyGaps } from "@/lib/chart-utils";
 import { RoleGuard } from "@/components/role-guard";
-import { formatCurrency } from "@/lib/format";
 import { PrintReport } from "@/components/print-report";
+import { DateRange } from "react-day-picker";
+import { format, parseISO } from "date-fns";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 // Components
 import { OverviewSection } from "./_components/overview-section";
@@ -98,6 +93,10 @@ const getDefaultDateFilter = () => getRangeFromOption("thisMonth")!;
 export function ReportContent() {
   const [selectedFilter, setSelectedFilter] = useState("thisMonth");
   const [appliedFilter, setAppliedFilter] = useState(getDefaultDateFilter());
+  const [customRange, setCustomRange] = useState<DateRange | undefined>(() => ({
+    from: parseISO(getDefaultDateFilter().startDate),
+    to: parseISO(getDefaultDateFilter().endDate),
+  }));
   const [activeTab, setActiveTab] = useState("overview");
 
   const reportQuery = useReports({ params: appliedFilter });
@@ -113,12 +112,23 @@ export function ReportContent() {
   const handleFilterChange = (option: string) => {
     setSelectedFilter(option);
     const range = getRangeFromOption(option);
-    if (range) setAppliedFilter(range);
+    if (range) {
+      setAppliedFilter(range);
+      setCustomRange({
+        from: parseISO(range.startDate),
+        to: parseISO(range.endDate),
+      });
+    }
   };
 
-  const handleCustomDateChange = (start: string, end: string) => {
-    if (start && end) setAppliedFilter({ startDate: start, endDate: end });
-  };
+  useEffect(() => {
+    if (selectedFilter === "custom") {
+      setCustomRange({
+        from: parseISO(appliedFilter.startDate),
+        to: parseISO(appliedFilter.endDate),
+      });
+    }
+  }, [appliedFilter, selectedFilter]);
 
   const filterLabel =
     FILTER_OPTIONS.find((o) => o.value === selectedFilter)?.label ?? "Kustom";
@@ -131,7 +141,7 @@ export function ReportContent() {
     return fillDailyGaps(raw, appliedFilter.startDate, appliedFilter.endDate, [
       "totalSales",
       "totalPurchases",
-    ]) as { date: string; [key: string]: number | string }[];
+    ]) as { date: string;[key: string]: number | string }[];
   }, [reportQuery.data?.data?.daily, appliedFilter]);
 
   const dailySalesTable = useMemo(() => {
@@ -141,7 +151,7 @@ export function ReportContent() {
     >[];
     return fillDailyGaps(raw, appliedFilter.startDate, appliedFilter.endDate, [
       "totalSales",
-    ]) as { date: string; [key: string]: number | string }[];
+    ]) as { date: string;[key: string]: number | string }[];
   }, [salesQuery.data?.data?.daily, appliedFilter]);
 
   const dailyPurchaseTable = useMemo(() => {
@@ -152,7 +162,7 @@ export function ReportContent() {
     return fillDailyGaps(raw, appliedFilter.startDate, appliedFilter.endDate, [
       "totalPurchases",
       "totalTransactions",
-    ]) as { date: string; [key: string]: number | string }[];
+    ]) as { date: string;[key: string]: number | string }[];
   }, [purchaseQuery.data?.data?.daily, appliedFilter]);
 
   // Flatten breakdown rows once
@@ -175,15 +185,6 @@ export function ReportContent() {
   );
 
   // Derived totals for footer rows
-  const totalPurchase = dailyPurchaseTable.reduce(
-    (s, r) => s + Number(r.totalPurchases ?? 0),
-    0,
-  );
-  const totalPurchaseTx = dailyPurchaseTable.reduce(
-    (s, r) => s + Number(r.totalTransactions ?? 0),
-    0,
-  );
-
   return (
     <>
       <style jsx global>{`
@@ -298,57 +299,21 @@ export function ReportContent() {
                   </Button>
                 ))}
                 {selectedFilter === "custom" && (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 gap-2 border-primary/20 bg-primary/5 text-xs font-semibold ml-1"
-                      >
-                        <CalendarIcon className="h-3.5 w-3.5 text-primary" />
-                        {appliedFilter.startDate} — {appliedFilter.endDate}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-auto p-4 flex flex-col gap-4"
-                      align="start"
-                    >
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Mulai
-                          </label>
-                          <Input
-                            type="date"
-                            value={appliedFilter.startDate}
-                            onChange={(e) =>
-                              handleCustomDateChange(
-                                e.target.value,
-                                appliedFilter.endDate,
-                              )
-                            }
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Sampai
-                          </label>
-                          <Input
-                            type="date"
-                            value={appliedFilter.endDate}
-                            onChange={(e) =>
-                              handleCustomDateChange(
-                                appliedFilter.startDate,
-                                e.target.value,
-                              )
-                            }
-                            className="h-8 text-xs"
-                          />
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                  <DateRangePicker
+                    value={customRange}
+                    onChange={(range) => {
+                      setCustomRange(range);
+                      if (range?.from && range?.to) {
+                        setAppliedFilter({
+                          startDate: format(range.from, "yyyy-MM-dd"),
+                          endDate: format(range.to, "yyyy-MM-dd"),
+                        });
+                      }
+                    }}
+                    buttonClassName="h-7 gap-2 border-primary/20 bg-primary/5 text-xs font-semibold ml-1 w-auto"
+                    popoverContentClassName="p-0"
+                    className="[--cell-size:--spacing(8)]"
+                  />
                 )}
               </div>
             </div>
@@ -386,15 +351,15 @@ export function ReportContent() {
             {(reportQuery.isError ||
               salesQuery.isError ||
               purchaseQuery.isError) && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Gagal memuat beberapa kategori</AlertTitle>
-                <AlertDescription>
-                  Terjadi kesalahan saat mengambil detail data. Silakan coba
-                  segarkan halaman.
-                </AlertDescription>
-              </Alert>
-            )}
+                <Alert variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Gagal memuat beberapa kategori</AlertTitle>
+                  <AlertDescription>
+                    Terjadi kesalahan saat mengambil detail data. Silakan coba
+                    segarkan halaman.
+                  </AlertDescription>
+                </Alert>
+              )}
 
             <TabsContent value="overview" className="mt-0">
               <OverviewSection

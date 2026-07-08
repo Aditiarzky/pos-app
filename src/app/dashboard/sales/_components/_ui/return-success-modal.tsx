@@ -7,6 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { CheckCircle2, Printer, PlusCircle } from "lucide-react";
 import { ReturnReceipt } from "./return-receipt";
 import { ReturnResult } from "../../_hooks/use-return-form";
@@ -36,46 +37,52 @@ export function ReturnSuccessModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto p-0 gap-0 border-none sm:rounded-3xl">
-        <div className="p-6 md:p-8 space-y-6">
-          <DialogHeader className="items-center text-center space-y-4">
-            <div className="h-16 w-16 bg-emerald-100 rounded-full flex items-center justify-center animate-in zoom-in duration-500">
-              <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-            </div>
-            <div className="space-y-1">
-              <DialogTitle className="text-2xl font-black">
-                Retur Berhasil!
-              </DialogTitle>
-              <p className="text-muted-foreground text-sm">{result.message}</p>
-            </div>
-          </DialogHeader>
+      <DialogContent className="max-w-xl max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0 border-none sm:rounded-3xl">
+        {/* Scrollable area — header + summary cards + receipt */}
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="p-6 md:p-8 space-y-6">
+            <DialogHeader className="items-center text-center space-y-4">
+              <div className="h-16 w-16 bg-emerald-100 rounded-full flex items-center justify-center animate-in zoom-in duration-500">
+                <CheckCircle2 className="h-10 w-10 text-emerald-600" />
+              </div>
+              <div className="space-y-1">
+                <DialogTitle className="text-2xl font-black">
+                  Retur Berhasil!
+                </DialogTitle>
+                <p className="text-muted-foreground text-sm">{result.message}</p>
+              </div>
+            </DialogHeader>
 
-          {/* Summary Cards */}
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-muted/50 rounded-xl text-center">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Sisa Refund
+                </p>
+                <p className="text-lg font-black text-primary">
+                  {formatCurrency(Math.abs(result.netRefundAmount))}
+                </p>
+              </div>
+              <div className="p-3 bg-muted/50 rounded-xl text-center">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Kompensasi
+                </p>
+                <p className="text-sm font-bold text-primary mt-1">
+                  {compensationLabels[result.compensationType]}
+                </p>
+              </div>
+            </div>
+
+            {/* Receipt Preview */}
+            <div className="bg-white p-2 md:p-4 rounded-2xl border border-dashed border-muted-foreground/20">
+              <ReturnReceipt ref={receiptRef} result={result} />
+            </div>
+          </div>
+        </ScrollArea>
+
+        {/* Sticky action buttons — selalu terlihat di bawah */}
+        <div className="shrink-0 p-4 md:p-6 border-t bg-background">
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-muted/50 rounded-xl text-center">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Sisa Refund
-              </p>
-              <p className="text-lg font-black text-primary">
-                {formatCurrency(Math.abs(result.netRefundAmount))}
-              </p>
-            </div>
-            <div className="p-3 bg-muted/50 rounded-xl text-center">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Kompensasi
-              </p>
-              <p className="text-sm font-bold text-primary mt-1">
-                {compensationLabels[result.compensationType]}
-              </p>
-            </div>
-          </div>
-          {/* Receipt Preview */}
-          <div className="bg-white p-2 md:p-4 rounded-2xl border border-dashed border-muted-foreground/20">
-            <ReturnReceipt ref={receiptRef} result={result} />
-          </div>
-
-          {/* Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <Button
               variant="outline"
               className="h-12 border-2 gap-2 font-bold"

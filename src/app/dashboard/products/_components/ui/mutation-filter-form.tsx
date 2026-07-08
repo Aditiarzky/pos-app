@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -9,6 +8,9 @@ import {
 } from "@/components/ui/select";
 import { IconSortAscending, IconSortDescending } from "@tabler/icons-react";
 import { DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { DateRange } from "react-day-picker";
+import { format, parseISO } from "date-fns";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 interface MutationFilterFormProps {
   typeFilter: string;
@@ -39,37 +41,26 @@ export const MutationFilterForm = ({
   setEndDate,
   isDropdown,
 }: MutationFilterFormProps) => {
+  const selectedRange: DateRange | undefined = {
+    from: startDate ? parseISO(startDate) : undefined,
+    to: endDate ? parseISO(endDate) : undefined,
+  };
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-2">
-          <h4 className="font-medium leading-none text-xs text-muted-foreground uppercase tracking-wider">
-            Dari Tanggal
-          </h4>
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(e) => {
-              setStartDate(e.target.value);
-              setPage(1);
-            }}
-            className="h-10 text-xs px-3 bg-muted/50 border-none shadow-none"
-          />
-        </div>
-        <div className="space-y-2">
-          <h4 className="font-medium leading-none text-xs text-muted-foreground uppercase tracking-wider">
-            Sampai Tanggal
-          </h4>
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => {
-              setEndDate(e.target.value);
-              setPage(1);
-            }}
-            className="h-10 text-xs px-3 bg-muted/50 border-none shadow-none"
-          />
-        </div>
+      <div className="space-y-2">
+        <h4 className="font-medium leading-none text-xs text-muted-foreground uppercase tracking-wider">
+          Rentang Tanggal
+        </h4>
+        <DateRangePicker
+          value={selectedRange}
+          onChange={(range) => {
+            setStartDate(range?.from ? format(range.from, "yyyy-MM-dd") : "");
+            setEndDate(range?.to ? format(range.to, "yyyy-MM-dd") : "");
+            setPage(1);
+          }}
+          buttonClassName="h-10 text-xs px-3 bg-muted/50 border-none shadow-none"
+        />
       </div>
       <div className="space-y-2">
         <h4 className="font-medium leading-none text-xs text-muted-foreground uppercase tracking-wider">
@@ -92,9 +83,7 @@ export const MutationFilterForm = ({
             <SelectItem value="sale">Penjualan</SelectItem>
             <SelectItem value="sale_cancel">Batal Jual</SelectItem>
             <SelectItem value="adjustment">Penyesuaian</SelectItem>
-            <SelectItem value="waste">Terbuang/Rusak</SelectItem>
             <SelectItem value="return_restock">Retur (Restock)</SelectItem>
-            <SelectItem value="supplier_return">Retur ke Supplier</SelectItem>
             <SelectItem value="exchange">Tukar Barang</SelectItem>
           </SelectContent>
         </Select>
@@ -130,14 +119,14 @@ export const MutationFilterForm = ({
             }}
           >
             <SelectTrigger className="h-10 px-3 bg-muted/50 border-none shadow-none">
-              <SelectValue placeholder="A-Z" />
+              <SelectValue placeholder="Urutkan" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="asc">
-                Ascending <IconSortAscending className="h-4 w-4" />
+            <SelectItem value="asc">
+                Naik <IconSortAscending className="h-4 w-4" />
               </SelectItem>
               <SelectItem value="desc">
-                Descending <IconSortDescending className="h-4 w-4" />
+                Turun <IconSortDescending className="h-4 w-4" />
               </SelectItem>
             </SelectContent>
           </Select>

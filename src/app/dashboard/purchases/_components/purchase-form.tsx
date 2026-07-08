@@ -75,6 +75,8 @@ export function PurchaseForm({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
 
+  const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
+
   // Mutations
   const createMutation = useCreatePurchase();
   const updateMutation = useUpdatePurchase();
@@ -119,7 +121,6 @@ export function PurchaseForm({
   const {
     searchInput,
     setSearchInput,
-    debouncedSearch,
     searchResults,
     isSearching,
     isScannerOpen,
@@ -129,8 +130,7 @@ export function PurchaseForm({
     searchInputRef,
     lastScannedBarcode,
     setLastScannedBarcode,
-  } = useProductSearch({ isOpen, autoFocusOnMount: true });
-
+  } = useProductSearch({ isOpen, autoFocusOnMount: false });
   // Auto-add item when barcode is scanned
   useEffect(() => {
     if (lastScannedBarcode && searchResults.length > 0) {
@@ -162,7 +162,7 @@ export function PurchaseForm({
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [searchResults, lastScannedBarcode]);
 
   // ============================================
@@ -269,6 +269,7 @@ export function PurchaseForm({
                       placeholder="Nama / SKU / Scan..."
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
+                      onFocus={() => setIsProductSearchOpen(true)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
@@ -318,10 +319,16 @@ export function PurchaseForm({
                     </div>
 
                     {/* Search Results Dropdown */}
-                    {debouncedSearch.length > 1 && (
+                    {isProductSearchOpen && (
                       <SearchResultsDropdown
                         isSearching={isSearching}
                         searchResults={searchResults}
+                        searchValue={searchInput}
+                        onSearchChange={setSearchInput}
+                        onClose={() => {
+                          setIsProductSearchOpen(false);
+                          setSearchInput("");
+                        }}
                         onSelectProduct={handleAddProduct}
                       />
                     )}
@@ -506,7 +513,7 @@ export function PurchaseForm({
 // Items Table
 interface ItemsTableProps {
   fields: PurchaseFormItem[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   form: any;
   onRemove: (index: number) => void;
 }
@@ -576,7 +583,7 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-muted">
                             {field.image ? (
-                              // eslint-disable-next-line @next/next/no-img-element
+
                               <img
                                 src={field.image}
                                 alt={field.productName || ""}
@@ -618,7 +625,7 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                                     form.setValue(
                                       `items.${index}.price`,
                                       (field.lastPurchaseCost || 0) *
-                                        newVariant.conversionToBase,
+                                      newVariant.conversionToBase,
                                     );
                                   }
                                 }}
@@ -789,7 +796,7 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                     {/* Image */}
                     <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md border bg-muted">
                       {field.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
+
                         <img
                           src={field.image}
                           alt={field.productName || ""}
@@ -834,7 +841,7 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                                 form.setValue(
                                   `items.${index}.price`,
                                   (field.lastPurchaseCost || 0) *
-                                    newVariant.conversionToBase,
+                                  newVariant.conversionToBase,
                                 );
                               }
                             }}

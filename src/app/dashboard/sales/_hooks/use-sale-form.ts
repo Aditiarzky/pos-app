@@ -37,6 +37,8 @@ interface UseSaleFormReturn {
   change: number;
   isSubmitting: boolean;
   onSubmit: (data: SaleFormData) => Promise<void>;
+  canSubmit: boolean;
+  submitBlockedReason: string | null;
 
   transactionMode: "guest" | "customer";
   setTransactionMode: (mode: "guest" | "customer") => void;
@@ -66,6 +68,7 @@ interface UseSaleFormReturn {
   insufficientItems: InsufficientStockItem[];
   handleAdjustStock: () => Promise<void>;
   isAdjustingStock: boolean;
+  isAutoSubmitting: boolean;
 }
 
 export function useSaleForm({
@@ -91,6 +94,7 @@ export function useSaleForm({
     InsufficientStockItem[]
   >([]);
   const [isAdjustingStock, setIsAdjustingStock] = useState(false);
+  const [isAutoSubmitting, setIsAutoSubmitting] = useState(false);
 
   const form = useForm<SaleFormData>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -186,17 +190,54 @@ export function useSaleForm({
   const deficiency = Math.max(0, grandTotal - totalPaid);
   const isInsufficient = paymentMethod === "cash" && totalPaid < grandTotal;
 
+  const problematicStockItems = items.filter((item) => {
+    const requestedQty = Number(item.qty);
+    const conversionFactor = Number(item.conversionToBase || 1);
+    const requestedTotalBase = requestedQty * conversionFactor;
+    const currentStock = Number(item.currentStock || 0);
+
+    return requestedTotalBase > currentStock;
+  });
+
+  const submitBlockedReason = (() => {
+    if (createMutation.isPending) return "Transaksi sedang diproses";
+    if (isAutoSubmitting) return "Transaksi sedang diproses";
+    if (isAdjustingStock) return "Sedang menyesuaikan stok";
+    if (items.length === 0) return "Keranjang masih kosong";
+    if (!customerId && totalBalanceUsed > 0) {
+      return "Guest tidak boleh menggunakan saldo";
+    }
+    if (customerId && totalBalanceUsed > customerBalance) {
+      return "Saldo customer tidak mencukupi";
+    }
+    if (paymentMethod === "qris" && isDebt) {
+      return "QRIS tidak bisa dicatat sebagai hutang";
+    }
+    if (isDebt && !customerId) return "Hutang hanya berlaku untuk customer";
+    if (paymentMethod === "qris" && grandTotal < 500) {
+      return "Nominal QRIS minimal Rp 500";
+    }
+    if (paymentMethod === "cash" && !isDebt && totalPaid <= 0) {
+      return "Masukkan jumlah pembayaran yang diterima";
+    }
+    if (paymentMethod === "cash" && !isDebt && totalPaid < grandTotal) {
+      return "Pembayaran belum mencukupi";
+    }
+
+    return null;
+  })();
+
+  const canSubmit = submitBlockedReason === null;
+
   const validateStock = () => {
-    const problematicItems: InsufficientStockItem[] = [];
+    const problematicItems: InsufficientStockItem[] = problematicStockItems.map(
+      (item) => {
+        const requestedQty = Number(item.qty);
+        const conversionFactor = Number(item.conversionToBase || 1);
+        const requestedTotalBase = requestedQty * conversionFactor;
+        const currentStock = Number(item.currentStock || 0);
 
-    items.forEach((item) => {
-      const requestedQty = Number(item.qty);
-      const conversionFactor = Number(item.conversionToBase || 1);
-      const requestedTotalBase = requestedQty * conversionFactor;
-      const currentStock = Number(item.currentStock || 0);
-
-      if (requestedTotalBase > currentStock) {
-        problematicItems.push({
+        return {
           variantId: item.variantId,
           productId: item.productId,
           productName: item.productName || "Unknown",
@@ -206,9 +247,9 @@ export function useSaleForm({
           currentStock,
           difference: requestedTotalBase - currentStock,
           conversionToBase: conversionFactor,
-        });
-      }
-    });
+        };
+      },
+    );
 
     if (problematicItems.length > 0) {
       setInsufficientItems(problematicItems);
@@ -246,14 +287,17 @@ export function useSaleForm({
         }
       });
 
-      await handleSubmit(form.getValues());
       setIsStockModalOpen(false);
+      setIsAutoSubmitting(true);
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await handleSubmit(form.getValues(), true);
     } catch (error) {
       toast.error(
         error ? (error as ApiResponse).error : "Gagal menyesuaikan stok",
         { id: toastId },
       );
     } finally {
+      setIsAutoSubmitting(false);
       setIsAdjustingStock(false);
     }
   };
@@ -289,8 +333,11 @@ export function useSaleForm({
     setTransactionMode("guest");
   };
 
-  const handleSubmit = async (data: SaleFormData) => {
-    if (!isAdjustingStock) {
+  const handleSubmit = async (
+    data: SaleFormData,
+    skipStockValidation = false,
+  ) => {
+    if (!skipStockValidation && !isAdjustingStock) {
       const isStockValid = validateStock();
       if (!isStockValid) {
         return;
@@ -376,6 +423,8 @@ export function useSaleForm({
     change,
     isSubmitting: createMutation.isPending,
     onSubmit: handleSubmit,
+    canSubmit,
+    submitBlockedReason,
     transactionMode,
     setTransactionMode,
     isVoucherUsed,
@@ -400,5 +449,6 @@ export function useSaleForm({
     insufficientItems,
     handleAdjustStock,
     isAdjustingStock,
+    isAutoSubmitting,
   };
 }

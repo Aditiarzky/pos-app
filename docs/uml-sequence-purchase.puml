@@ -4,7 +4,7 @@ autonumber
 skinparam BoxPadding 5
 skinparam ParticipantPadding 8
 skinparam defaultFontSize 16
-skinparam maxMessageSize 300
+skinparam maxMessageSize 140
 skinparam sequenceMessageAlign center
 
 actor "Admin Toko" as Viewer
@@ -23,15 +23,15 @@ database "stock_mutations" as sm
 Viewer -> UI : Input nota supplier & list item
 UI -> Ctrl : Simpan pembelian
 activate Ctrl
-Ctrl -> po : Insert purchase_orders (orderNumber sementara)
+Ctrl -> po : Insert purchase_orders\n(orderNumber sementara)
 loop Per Item
     Ctrl -> p : Baca stok & averageCost
     Ctrl -> v : Baca conversionToBase
-    Ctrl -> p : Hitung average baru, update stok & lastPurchaseCost
-    Ctrl -> pi : Insert purchase_items (qty, price, costBefore)
-    Ctrl -> sm : Insert stock_mutations (type: purchase)
+    Ctrl -> p : Hitung average baru,\nupdate stok & lastPurchaseCost
+    Ctrl -> pi : Insert purchase_items\n(qty, price, costBefore)
+    Ctrl -> sm : Insert stock_mutations\n(type: purchase)
 end
-Ctrl -> po : Update total & orderNumber final
+Ctrl -> po : Update total &\norderNumber final
 po --> UI : Konfirmasi berhasil
 deactivate Ctrl
 
@@ -41,26 +41,26 @@ UI -> Ctrl : Buka form edit (pre-filled)
 Viewer -> UI : Ubah item & klik Update
 UI -> Ctrl : Request edit PO
 activate Ctrl
-note right: Revert & Re-apply (Reverse Average Method)
+note right: Revert & Re-apply\n(Reverse Average Method)
 
 group REVERT (Audit Trail)
     Ctrl -> pi : Fetch item lama
     loop Per Item Lama
-        Ctrl -> p : Reverse average (kurangi stok & nilai aset)
-        Ctrl -> sm : Insert purchase_cancel (qty negatif, ref: EDIT-PO)
+        Ctrl -> p : Reverse average\n(kurangi stok & nilai aset)
+        Ctrl -> sm : Insert purchase_cancel\n(qty negatif, ref: EDIT-PO)
     end
     Ctrl -> pi : Delete purchase_items lama
 end
 
 group APPLY
     loop Per Item Baru
-        Ctrl -> p : Baca stok & avgCost terbaru
+        Ctrl -> p : Baca stok &\navgCost terbaru
         Ctrl -> v : Baca conversionToBase
-        Ctrl -> p : Hitung average baru, update stok
+        Ctrl -> p : Hitung average baru,\nupdate stok
         Ctrl -> pi : Insert purchase_items baru
-        Ctrl -> sm : Insert stock_mutations (type: purchase)
+        Ctrl -> sm : Insert stock_mutations\n(type: purchase)
     end
-    Ctrl -> po : Update header (supplierId, total)
+    Ctrl -> po : Update header\n(supplierId, total)
 end
 Ctrl --> UI : Konfirmasi berhasil
 deactivate Ctrl
@@ -71,11 +71,11 @@ UI -> Ctrl : Modal konfirmasi (ketik HAPUS)
 activate Ctrl
 Ctrl -> pi : Fetch item lama
 loop Per Item
-    Ctrl -> p : Reverse average (kurangi stok)
-    Ctrl -> sm : Insert stock_mutations (purchase_cancel, qty negatif)
+    Ctrl -> p : Reverse average\n(kurangi stok)
+    Ctrl -> sm : Insert stock_mutations\n(purchase_cancel, qty negatif)
 end
 Ctrl -> pi : Delete purchase_items
-Ctrl -> po : Delete purchase_orders (hard delete)
+Ctrl -> po : Delete purchase_orders\n(hard delete)
 Ctrl --> UI : Konfirmasi berhasil
 deactivate Ctrl
 

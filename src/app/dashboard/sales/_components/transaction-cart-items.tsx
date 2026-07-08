@@ -33,7 +33,7 @@ export function TransactionCartItems({
   onRemove,
 }: TransactionCartItemsProps) {
   return (
-    <Card className="flex-1 min-h-[400px] gap-0 max-h-[600px] p-0 border-none shadow-xl bg-background/50 backdrop-blur-sm overflow-hidden flex flex-col">
+    <Card className="flex-1 min-h-[400px] gap-0 max-h-[600px] p-0 bg-background/50 backdrop-blur-sm overflow-hidden flex flex-col">
       <div className="p-5 bg-primary/5 border-b border-primary/10 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/5 rounded-lg border border-primary/10">
@@ -43,7 +43,7 @@ export function TransactionCartItems({
             <Label className="font-bold text-xs text-foreground block">
               Keranjang Belanja
             </Label>
-            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest opacity-60">
+            <p className="text-[10px] mt-1 text-muted-foreground font-medium uppercase  opacity-60">
               Daftar barang transaksi
             </p>
           </div>

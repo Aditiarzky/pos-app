@@ -495,71 +495,81 @@ export function ReturnListSection() {
                 key={ret.id}
                 className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50"
               >
-                <div className="relative h-20 sm:h-24 overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-2.5 sm:p-4 flex flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                    <div className="flex flex-col">
-                      <div className="font-mono font-bold text-primary text-xs sm:text-lg">
+                {/* Header — tinggi otomatis mengikuti konten, sama seperti sales card */}
+                <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-2.5 sm:p-4 flex flex-col gap-1.5">
+                  <div className="flex justify-between items-start gap-1.5">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-mono font-bold text-primary text-xs sm:text-lg truncate">
                         {ret.returnNumber}
                       </div>
-                      <div className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+                      <div className="text-[10px] sm:text-xs text-muted-foreground font-medium truncate">
                         {formatDate(ret.createdAt || new Date())}
                       </div>
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={`gap-1.5 ${getCompensationBadgeMeta(ret.compensationType).className}`}
-                    >
-                      {getCompensationBadgeMeta(ret.compensationType).icon}
-                      {getCompensationName(ret.compensationType)}
-                    </Badge>
+                    <div className="shrink-0">
+                      <Badge
+                        variant="outline"
+                        className={`gap-1 text-[9px] sm:text-xs ${getCompensationBadgeMeta(ret.compensationType).className}`}
+                      >
+                        {getCompensationBadgeMeta(ret.compensationType).icon}
+                        <span className="hidden sm:inline">{getCompensationName(ret.compensationType)}</span>
+                        <span className="sm:hidden">
+                          {ret.compensationType === "refund" ? "Refund" : ret.compensationType === "exchange" ? "Tukar" : "Saldo"}
+                        </span>
+                      </Badge>
+                    </div>
                   </div>
                 </div>
 
                 <div className="p-2.5 sm:p-4 flex-1 flex flex-col gap-2.5 sm:gap-4">
-                  <div className="flex justify-between items-start border-b pb-4 border-dashed">
-                    <div>
-                      <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
+                  {/* Sisa Refund & Customer — ditumpuk di layar sempit, sejajar mulai sm */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 border-b pb-2.5 sm:pb-4 border-dashed">
+                    <div className="min-w-0">
+                      <span className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
                         Sisa Refund
                       </span>
-                      <div className="text-sm sm:text-2xl font-black text-primary tracking-tight">
+                      <div className="text-sm sm:text-2xl font-black text-primary tracking-tight truncate">
                         {formatCurrency(Number(ret.totalRefund))}
                       </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-xs text-muted-foreground uppercase tracking-wider font-bold">
+                    <div className="min-w-0 sm:text-right">
+                      <span className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
                         Customer
                       </span>
-                      <div className="font-semibold text-[10px] sm:text-sm max-w-[120px] truncate">
+                      <div className="font-semibold text-[11px] sm:text-sm truncate">
                         {ret.customer?.name || "Umum"}
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center justify-between text-[10px] sm:text-xs font-medium text-muted-foreground">
-                      <span>Items Retur ({ret.items?.length || 0})</span>
+                  {/* Items Retur */}
+                  <div className="space-y-1.5 sm:space-y-2 flex-1 min-w-0">
+                    <div className="text-[10px] sm:text-xs font-medium text-muted-foreground">
+                      Items Retur ({ret.items?.length || 0})
                     </div>
-                    <div className="space-y-1.5 max-h-[100px] overflow-y-auto pr-1">
+                    <div className="space-y-1 sm:space-y-1.5 max-h-[90px] sm:max-h-[100px] overflow-y-auto pr-1">
                       {ret.items?.slice(0, 3).map((item, itemIdx) => (
                         <div
                           key={`${ret.id}-${item.variantId}-${itemIdx}`}
-                          className="flex justify-between text-xs items-center bg-muted/30 p-1.5 rounded-sm"
+                          className="flex justify-between gap-1.5 text-[11px] sm:text-xs items-center bg-muted/30 p-1.5 rounded-sm"
                         >
-                          <div className="truncate flex-1 mr-2">
+                          <div className="min-w-0 flex-1 truncate">
                             <span className="text-foreground font-medium">
                               {item.product?.name}
                             </span>
-                            <span className="text-muted-foreground ml-1 text-[10px]">
-                              ({item.productVariant?.name})
-                            </span>
+                            {item.productVariant?.name && (
+                              <span className="text-muted-foreground text-[10px]">
+                                {" "}({item.productVariant.name})
+                              </span>
+                            )}
                           </div>
-                          <div className="whitespace-nowrap font-mono text-[10px]">
-                            {item.qty} x
+                          <div className="whitespace-nowrap font-mono text-[9px] sm:text-[10px] shrink-0 text-muted-foreground">
+                            {item.qty}x
                           </div>
                         </div>
                       ))}
                       {(ret.items?.length || 0) > 3 && (
-                        <div className="text-[10px] text-center text-muted-foreground italic pt-1">
+                        <div className="text-[9px] sm:text-[10px] text-center text-muted-foreground italic pt-1">
                           + {(ret.items?.length || 0) - 3} item lainnya...
                         </div>
                       )}
@@ -567,23 +577,24 @@ export function ReturnListSection() {
                   </div>
                 </div>
 
-                <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 flex justify-between items-center gap-1.5 sm:gap-2 mt-auto">
+                {/* Footer Actions */}
+                <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 flex flex-col gap-1.5 mt-auto">
                   {/* @ts-expect-error status exists in backend response */}
                   {ret.status === "pending" ? (
-                    <div className="flex w-full gap-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleStatusUpdate(ret.id!, "complete")}
                         disabled={isUpdatingStatusId === ret.id!}
-                        className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs border-emerald-400 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 flex-1"
+                        className="h-7 sm:h-8 px-1.5 sm:px-3 text-[10px] sm:text-xs border-emerald-400 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 min-w-0"
                       >
                         {isUpdatingStatusId === ret.id! ? (
-                          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin shrink-0" />
                         ) : (
-                          <Check className="mr-1 h-3.5 w-3.5" />
+                          <Check className="mr-1 h-3.5 w-3.5 shrink-0" />
                         )}
-                        Selesai
+                        <span className="truncate">Selesai</span>
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -591,10 +602,10 @@ export function ReturnListSection() {
                             variant="outline"
                             size="sm"
                             disabled={isUpdatingStatusId === ret.id!}
-                            className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs border-destructive/50 text-destructive hover:bg-destructive/10 flex-1"
+                            className="h-7 sm:h-8 px-1.5 sm:px-3 text-[10px] sm:text-xs border-destructive/50 text-destructive hover:bg-destructive/10 min-w-0"
                           >
-                            <X className="mr-1 h-3.5 w-3.5" />
-                            Batal
+                            <X className="mr-1 h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate">Batal</span>
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>

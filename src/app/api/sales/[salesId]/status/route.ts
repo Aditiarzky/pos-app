@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   sales,
   saleItems,
@@ -13,7 +13,6 @@ import {
 } from "@/drizzle/schema";
 import { handleApiError } from "@/lib/api-utils";
 import { voidCustomerReturn } from "../../../customer-returns/_lib/return-service";
-import { processDebtPayment } from "../../../debts/_lib/debt-service";
 
 // PATCH /api/sales/[salesId]/status
 // body: { action: "complete" | "cancel", userId: number }
@@ -43,11 +42,11 @@ export async function PATCH(
 
       if (!existingSale) throw new Error("Penjualan tidak ditemukan");
       if (existingSale.isArchived) throw new Error("Penjualan sudah dibatalkan");
-      if (existingSale.status !== "pending_payment") {
-        throw new Error("Hanya transaksi berstatus PENDING yang dapat diubah");
-      }
 
       if (action === "complete") {
+        if (existingSale.status !== "pending_payment") {
+          return existingSale;
+        }
         // Tentukan status akhir berdasarkan apakah ada hutang
         const existingDebt = await tx.query.debts.findFirst({
           where: eq(debts.saleId, saleId),
@@ -60,6 +59,10 @@ export async function PATCH(
           .where(eq(sales.id, saleId))
           .returning();
         return updated;
+      }
+
+      if (action === "cancel" && existingSale.status === "cancelled") {
+        throw new Error("Penjualan sudah dibatalkan");
       }
 
       // action === "cancel": revert stok, batalkan hutang, void returns

@@ -3,8 +3,8 @@ autonumber
 
 skinparam BoxPadding 5
 skinparam ParticipantPadding 8
-skinparam defaultFontSize 16
-skinparam maxMessageSize 200
+skinparam defaultFontSize 12
+skinparam maxMessageSize 140
 skinparam sequenceMessageAlign center
 
 actor "Admin Sistem /\nAdmin Toko" as Admin
@@ -24,28 +24,28 @@ end box
 Admin -> UI : Input nota & pilih barang retur
 UI -> Ctrl : Proses retur
 activate Ctrl
-Ctrl -> s : Fetch penjualan asli (+ items, retur sebelumnya)
+Ctrl -> s : Fetch penjualan asli\n(+ items, retur lama)
 note right: Validasi: item ada di invoice, qty tidak melebihi sisa
 
 == 2. Penanganan Stok ==
 alt Barang Layak Jual (returnedToStock = true)
-    Ctrl -> p : UPDATE stok (tambah qty × conversion)
-    Ctrl -> sm : Insert stock_mutations (return_restock)
+    Ctrl -> p : UPDATE stok\n(tambah qty × conversion)
+    Ctrl -> sm : Insert stock_mutations\n(return_restock)
 else Barang Rusak
     note right: Stok tidak dikembalikan
 end
 
 == 3. Kompensasi ==
 alt Refund (Tunai)
-    note right: Kasir berikan uang tunai = totalValueReturned
+    
 else Credit Note (Saldo)
-    Ctrl -> c : UPDATE creditBalance (tambah totalRefund)
-    Ctrl -> bm : Insert balance_mutation (return_deposit)
+    Ctrl -> c : UPDATE creditBalance\n(tambah totalRefund)
+    Ctrl -> bm : Insert balance_mut.\n(return_deposit)
 end
 
 == 4. Simpan Data Retur ==
-Ctrl -> cr : Insert customer_returns (returnNumber, totalRefund, compensationType)
-Ctrl -> ri : Insert customer_return_items (qty, priceAtReturn, reason)
+Ctrl -> cr : Insert customer_returns\n(number, total, type)
+Ctrl -> ri : Insert return_items\n(qty, price, reason)
 
 Ctrl --> UI : Konfirmasi (tampilkan nota retur)
 deactivate Ctrl

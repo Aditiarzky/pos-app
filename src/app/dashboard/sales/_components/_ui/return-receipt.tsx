@@ -59,6 +59,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
         className="print-content"
         style={{
           margin: "0 auto",
+          padding: "16px",
           backgroundColor: "#fff",
           color: "#000",
           fontFamily: fontSans,

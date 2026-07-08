@@ -76,16 +76,12 @@ export function ProductFormModal({
   const isEdit = mode === "edit" && !!productId;
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [minStockValue, setMinStockValue] = useState("");
+  const [minStockValue, setMinStockValue] = useState("0");
   const [minStockUnitId, setMinStockUnitId] = useState<number | undefined>(
     undefined,
   );
   const [initialized, setInitialized] = useState(false);
   const [showMinStock, setShowMinStock] = useState(false);
-  // Menandai bahwa nilai stok minimum saat ini masih nilai default otomatis
-  // (belum pernah disentuh user). Dipakai untuk menampilkan hint kecil di UI.
-  const [isMinStockDefaulted, setIsMinStockDefaulted] = useState(true);
-
   const { roles } = useAuth();
   const isSystemAdmin = (roles as string[]).includes("admin sistem");
 
@@ -161,11 +157,13 @@ export function ProductFormModal({
     return value * selectedUnit.conversionToBase;
   }, [selectedUnit, minStockValue]);
 
+  const isMinStockDefaulted = Number(minStockValue) <= 0;
+
   const syncMinStock = (value: string, idx: number | undefined) => {
     const unit = availableUnits.find((u) => u.idx === idx);
     const numberValue = Number(value);
     if (!unit || !value || !Number.isFinite(numberValue) || numberValue < 0) {
-      form.setValue("minStock", "", {
+      form.setValue("minStock", "0", {
         shouldDirty: true,
         shouldValidate: true,
       });
@@ -196,12 +194,18 @@ export function ProductFormModal({
 
   }, [form, minStockUnitId, minStockValue]);
 
-  // Restore saved minStock on open — atau, kalau belum ada nilai tersimpan
-  // sama sekali, isi default otomatis: 1 dari satuan dengan konversi terbesar.
+  // Restore saved minStock on open.
+  // Jika nilainya 0, UI tetap menampilkan 0 dan backend yang menentukan default saat submit.
+  //
+  // Kenapa depend pada `availableUnits.length`:
+  // availableUnits dibangun dari watchedVariants yang memerlukan conversionToBase > 0.
+  // Nilai conversionToBase baru tersedia setelah RHF selesai proses reset(), yang
+  // terjadi secara async setelah render. Jadi effect ini harus re-run saat
+  // availableUnits berubah dari kosong menjadi ada isinya.
   useEffect(() => {
     if (!open || !baseUnitId || initialized) return;
     const units = availableUnitsRef.current;
-    if (units.length === 0) return;
+    if (units.length === 0) return; // tunggu sampai variants siap
 
     const savedMinStock = Number(
       productData?.data?.minStock ?? form.getValues("minStock") ?? 0,
@@ -212,7 +216,6 @@ export function ProductFormModal({
 
     if (savedMinStock > 0) {
       // Ada nilai tersimpan (edit produk existing) → ini data asli, bukan default.
-      setIsMinStockDefaulted(false);
       const remainder = savedMinStock % largest.conversionToBase;
       if (remainder === 0) {
         setMinStockUnitId(largest.idx);
@@ -228,11 +231,10 @@ export function ProductFormModal({
         );
       }
     } else {
-      // Belum ada nilai sama sekali → default: 1 satuan dengan konversi terbesar.
+      // Belum ada nilai sama sekali → biarkan 0 di UI, backend yang mengisi default.
       setMinStockUnitId(largest.idx);
-      setMinStockValue("1");
-      setIsMinStockDefaulted(true);
-      form.setValue("minStock", String(largest.conversionToBase), {
+      setMinStockValue("0");
+      form.setValue("minStock", "0", {
         shouldDirty: false,
         shouldValidate: false,
       });
@@ -240,7 +242,14 @@ export function ProductFormModal({
 
     setInitialized(true);
 
-  }, [open, baseUnitId, initialized, productData, form]);
+  }, [
+    open,
+    baseUnitId,
+    initialized,
+    productData,
+    form,
+    availableUnits.length,
+  ]);
 
   // Recover unit selection if it becomes stale
   useEffect(() => {
@@ -314,11 +323,10 @@ export function ProductFormModal({
     form.reset();
     setCurrentStep(1);
     setImagePreview(null);
-    setMinStockValue("");
+    setMinStockValue("0");
     setMinStockUnitId(undefined);
     setInitialized(false);
     setShowMinStock(false);
-    setIsMinStockDefaulted(true);
   };
 
   const isPending =
@@ -438,10 +446,7 @@ export function ProductFormModal({
                           className="text-xs text-muted-foreground hover:text-primary transition-colors underline-offset-2 hover:underline cursor-pointer"
                         >
                           + Atur stok minimum untuk peringatan notifikasi
-                          (opsional{isMinStockDefaulted && selectedUnit
-                            ? `, default 1 ${selectedUnit.name}`
-                            : ""}
-                          )
+                          (opsional, backend isi otomatis jika tetap 0)
                         </button>
                       ) : (
                         <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-3">
@@ -452,10 +457,10 @@ export function ProductFormModal({
                               <span className="text-[11px] font-semibold text-foreground uppercase tracking-wide">
                                 Stok Minimum
                               </span>
-                              {isMinStockDefaulted && (
+                              {Number(minStockValue) <= 0 && (
                                 <span className="flex items-center gap-1 text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
                                   <Sparkles className="h-2.5 w-2.5" />
-                                  Default
+                                  Backend default
                                 </span>
                               )}
                             </div>
@@ -480,7 +485,6 @@ export function ProductFormModal({
                                 onChange={(e) => {
                                   const next = e.target.value;
                                   setMinStockValue(next);
-                                  setIsMinStockDefaulted(false);
                                   syncMinStock(next, minStockUnitId);
                                 }}
                                 placeholder="0"
@@ -495,7 +499,6 @@ export function ProductFormModal({
                                 onValueChange={(value) => {
                                   const idx = Number(value);
                                   setMinStockUnitId(idx);
-                                  setIsMinStockDefaulted(false);
                                   syncMinStock(minStockValue, idx);
                                 }}
                               >
@@ -529,8 +532,8 @@ export function ProductFormModal({
                               )}
 
                             <p className="text-[10px] text-muted-foreground leading-relaxed">
-                              {isMinStockDefaulted
-                                ? "Nilai ini terisi otomatis berdasarkan satuan kemasan terbesar. Ubah angka atau satuan di atas kalau perlu."
+                              {Number(minStockValue) <= 0
+                                ? "Jika tetap 0, backend akan mengisi stok minimum otomatis bernilai 1 dari satuan dengan konversi terbesar."
                                 : "Sistem akan menandai produk sebagai stok menipis saat jumlahnya mencapai batas ini."}
                             </p>
                           </div>

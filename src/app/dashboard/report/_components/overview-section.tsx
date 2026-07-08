@@ -13,6 +13,7 @@ import {
   CircleDollarSign,
   ArrowUpRight,
   Info,
+  Minus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/format";
@@ -31,27 +32,43 @@ const calcChange = (current: number, previous: number) => {
   return ((current - previous) / previous) * 100;
 };
 
-const PercentageBadge = ({ value }: { value: number }) => {
-  if (value === 0) return null;
-  const isPositive = value > 0;
+export function PercentageBadge({ value }: { value: number }) {
+  const isPositive = value >= 0;
+  const isZero = value === 0;
+
+  // 1. Logika Capping & Formatting Angka Ekstrem
+  let displayValue: string;
+  if (value > 999) {
+    displayValue = "> 999%";
+  } else if (value < -999) {
+    displayValue = "< -999%";
+  } else {
+    displayValue = `${isPositive && !isZero ? "+" : ""}${value.toFixed(1)}%`;
+  }
+
   return (
     <div
       className={cn(
         "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold",
-        isPositive
-          ? "bg-emerald-500/10 text-emerald-600"
-          : "bg-rose-500/10 text-rose-600",
+        isZero
+          ? "bg-zinc-500/10 text-zinc-600"
+          : isPositive
+            ? "bg-emerald-500/10 text-emerald-600"
+            : "bg-rose-500/10 text-rose-600",
       )}
     >
-      {isPositive ? (
+      {/* 2. Kondisional Ikon termasuk untuk pertumbuhan 0% */}
+      {isZero ? (
+        <Minus className="h-3 w-3" />
+      ) : isPositive ? (
         <TrendingUp className="h-3 w-3" />
       ) : (
         <TrendingDown className="h-3 w-3" />
       )}
-      {Math.abs(value).toFixed(1)}%
+      {displayValue}
     </div>
   );
-};
+}
 
 export function OverviewSection({
   summary,
@@ -221,7 +238,7 @@ export function OverviewSection({
                   ? `Bisnis memiliki aliran kas positif sebesar Rp${(summary.totalSales - summary.totalPurchases).toLocaleString()}. `
                   : `Pengeluaran pembelian lebih besar dari pendapatan sebesar Rp${(summary.totalPurchases - summary.totalSales).toLocaleString()}. `}
                 {summary.prevTotalSales &&
-                summary.totalSales > summary.prevTotalSales
+                  summary.totalSales > summary.prevTotalSales
                   ? "Terdapat kenaikan pendapatan dibandingkan periode sebelumnya. "
                   : "Pendapatan cenderung menurun atau stabil dibandingkan periode sebelumnya. "}
               </p>

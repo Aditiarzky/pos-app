@@ -19,7 +19,6 @@ import {
   saleItems,
   sales,
   stockMutations,
-  purchaseOrders,
   units,
 } from "@/drizzle/schema";
 import { db } from "@/lib/db";

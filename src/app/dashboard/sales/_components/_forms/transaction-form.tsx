@@ -11,7 +11,17 @@ import { useCreateSale } from "@/hooks/sales/use-sale";
 import { Card } from "@/components/ui/card";
 import { CustomerSelect } from "@/components/ui/customer-select";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { Loader2, Search, QrCode, Ticket, Banknote } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  Search,
+  QrCode,
+  Ticket,
+  Banknote,
+  UserRound,
+  UserCheck,
+  Receipt,
+} from "lucide-react";
 import { useProductSearch } from "@/hooks/use-product-search";
 import { useSaleForm } from "../../_hooks/use-sale-form";
 import { TransactionCartItems } from "../transaction-cart-items";
@@ -61,6 +71,9 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     insufficientItems,
     handleAdjustStock,
     isAdjustingStock,
+    isAutoSubmitting,
+    canSubmit,
+    submitBlockedReason,
     paymentMethod,
     setPaymentMethod,
     qrisData,
@@ -75,7 +88,6 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   const {
     searchInput,
     setSearchInput,
-    debouncedSearch,
     searchResults,
     isSearching,
     isScannerOpen,
@@ -88,6 +100,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   } = useProductSearch({ isOpen: true, autoFocusOnMount: false });
 
   const [isMobileCheckoutOpen, setIsMobileCheckoutOpen] = useState(false);
+  const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -159,6 +172,8 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   };
 
   const handleClickSubmit = () => {
+    if (!canSubmit) return;
+
     const currentData = form.getValues();
     onSubmit(currentData).then(() => {
       setIsMobileCheckoutOpen(false);
@@ -166,7 +181,6 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
   };
 
   const isQris = paymentMethod === "qris";
-  const canSubmit = !isSubmitting && fields.length > 0;
 
   const renderPaymentUI = (isMobile: boolean = false) => {
     const suffix = isMobile ? "-mobile" : "-desktop";
@@ -185,9 +199,29 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
             }
             className="w-full mb-4"
           >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="guest">Guest</TabsTrigger>
-              <TabsTrigger value="customer">Customer</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 shadow-none p-1 bg-muted/60 rounded-xl">
+              <TabsTrigger
+                value="guest"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg text-xs font-bold uppercase tracking-wider",
+                  "data-[state=active]:shadow-none cursor-pointer data-[state=active]:text-primary",
+                  "transition-all duration-200",
+                )}
+              >
+                <UserRound className="h-3.5 w-3.5" />
+                Guest
+              </TabsTrigger>
+              <TabsTrigger
+                value="customer"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-lg text-xs font-bold uppercase tracking-wider",
+                  "data-[state=active]:shadow-none cursor-pointer data-[state=active]:text-primary",
+                  "transition-all duration-200",
+                )}
+              >
+                <UserCheck className="h-3.5 w-3.5" />
+                Customer
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -195,7 +229,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
             className={cn(
               "transition-all duration-200",
               transactionMode === "guest" &&
-                "opacity-50 pointer-events-none grayscale",
+              "opacity-50 pointer-events-none grayscale",
             )}
           >
             <CustomerSelect
@@ -240,8 +274,8 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         </Card>
 
         {/* PAYMENT METHOD TOGGLE */}
-        <Card className="p-4 border-none shadow-md bg-muted/30">
-          <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.15em] mb-4 block opacity-70">
+        <Card className="p-4 shadow-md">
+          <Label className="text-xs tracking-wider font-bold text-muted-foreground uppercase block">
             Metode Pembayaran
           </Label>
           <div className="grid grid-cols-2 gap-3">
@@ -249,7 +283,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
               type="button"
               onClick={() => setPaymentMethod("cash")}
               className={cn(
-                "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all duration-200",
+                "flex flex-col items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all duration-200",
                 paymentMethod === "cash"
                   ? "border-primary bg-background text-primary shadow-sm scale-[1.02]"
                   : "border-transparent text-muted-foreground hover:border-primary/20",
@@ -274,7 +308,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
               type="button"
               onClick={() => setPaymentMethod("qris")}
               className={cn(
-                "flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all duration-200",
+                "flex flex-col items-center gap-2 p-3 rounded-xl border-2 cursor-pointer transition-all duration-200",
                 paymentMethod === "qris"
                   ? "border-primary bg-background text-primary shadow-sm scale-[1.02]"
                   : "border-transparent text-muted-foreground hover:border-primary/20",
@@ -298,11 +332,29 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         </Card>
 
         {/* SUMMARY & PAYMENT */}
-        <Card className="p-4 md:p-6 bg-primary/5 border-primary/20">
-          <div className="space-y-4 md:space-y-6">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span className="font-semibold">{formatCurrency(total)}</span>
+        <Card
+          className="relative p-0 bg-primary/5 border-primary/20 overflow-hidden"
+
+        >
+
+          {/* HEADER STRUK */}
+          <div className="flex items-center gap-2 px-4 md:px-6 pt-4 pb-3">
+            <Receipt className="h-4 w-4 text-primary/60" />
+            <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground opacity-70">
+              Rincian Pembayaran
+            </span>
+          </div>
+
+          <div className="border-t border-dashed border-primary/20" />
+
+          <div className="space-y-4 md:space-y-5 px-4 md:px-6 py-4 md:py-5">
+            {/* SUBTOTAL - leader dots */}
+            <div className="flex items-baseline gap-2 text-sm">
+              <span className="text-muted-foreground shrink-0">Subtotal</span>
+              <span className="flex-1 border-b border-dotted border-muted-foreground/30 translate-y-[-3px]" />
+              <span className="font-semibold font-mono tabular-nums shrink-0">
+                {formatCurrency(total)}
+              </span>
             </div>
 
             {/* VOUCHER */}
@@ -330,21 +382,25 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
               </div>
             )}
 
-            <div className="h-px bg-border/50" />
-
-            {/* VOUCHER DEDUCTION */}
+            {/* VOUCHER DEDUCTION - leader dots juga */}
             {form.watch("totalBalanceUsed") > 0 && (
-              <div className="flex justify-between items-center text-sm text-emerald-600 animate-in fade-in slide-in-from-top-1">
-                <span className="flex items-center gap-1">
+              <div className="flex items-baseline gap-2 text-sm text-emerald-600 animate-in fade-in slide-in-from-top-1">
+                <span className="flex items-center gap-1 shrink-0">
                   <Ticket className="h-3 w-3" /> Voucher
                 </span>
-                <span>-{formatCurrency(form.watch("totalBalanceUsed"))}</span>
+                <span className="flex-1 border-b border-dotted border-emerald-600/30 translate-y-[-3px]" />
+                <span className="font-mono tabular-nums shrink-0">
+                  -{formatCurrency(form.watch("totalBalanceUsed"))}
+                </span>
               </div>
             )}
 
-            <div className="flex justify-between items-center py-2 border-b border-muted/50">
+            <div className="border-t border-dashed border-primary/20" />
+
+            {/* TOTAL TAGIHAN */}
+            <div className="flex justify-between items-center py-1">
               <div className="grid gap-0.5">
-                <span className="font-bold text-[10px] uppercase tracking-[0.2em] text-muted-foreground opacity-60">
+                <span className="font-bold text-xs uppercase tracking-wider text-muted-foreground opacity-60">
                   Total Tagihan
                 </span>
                 {!isQris && form.watch("shouldPayOldDebt") && (
@@ -353,7 +409,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                   </span>
                 )}
               </div>
-              <span className="font-black text-2xl text-primary tracking-tight">
+              <span className="font-black text-2xl font-mono tabular-nums text-primary tracking-tight">
                 {formatCurrency(
                   isQris
                     ? total - (form.watch("totalBalanceUsed") || 0)
@@ -364,10 +420,10 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
 
             {/* CASH: input pembayaran */}
             {!isQris && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-300">
+              <div className="space-y-2 animate-in fade-in slide-in-from-right-2 duration-300">
                 <div className="space-y-2 pt-1">
                   <div className="flex justify-between items-center mb-1">
-                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground opacity-60">
                       Uang Diterima
                     </Label>
                     <button
@@ -381,7 +437,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                   <div className="relative">
                     <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-primary/30" />
                     <CurrencyInput
-                      className="h-12 text-xl font-bold text-right pr-4 pl-10 bg-background border-2 border-muted focus:border-primary rounded-xl shadow-sm transition-all"
+                      className="h-12 text-xl font-bold font-mono text-right pr-4 pl-10 bg-background rounded-xl shadow-sm transition-all"
                       placeholder="Rp 0"
                       value={form.watch("totalPaid")}
                       onChange={(val) =>
@@ -391,7 +447,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                   </div>
                   {form.formState.errors.totalPaid && (
                     <p className="text-xs font-bold text-destructive">
-                      ⚠️ {form.formState.errors.totalPaid.message}
+                      {form.formState.errors.totalPaid.message}
                     </p>
                   )}
                 </div>
@@ -431,7 +487,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                   </span>
                   <span
                     className={cn(
-                      "font-bold text-xl tabular-nums",
+                      "font-bold text-xl font-mono tabular-nums",
                       isInsufficient ? "text-destructive" : "text-emerald-600",
                     )}
                   >
@@ -455,22 +511,42 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
               </div>
             )}
 
-            {/* ACTION BUTTON (Desktop & Mobile inside Sheet) */}
-            <div className="pt-4">
+            {/* ACTION BUTTON */}
+            <div className="pt-2">
+              {submitBlockedReason && (
+                <div className="mb-3 flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p className="font-medium leading-5">
+                    {submitBlockedReason}
+                  </p>
+                </div>
+              )}
               <Button
                 size="lg"
                 type="button"
                 className="w-full font-black uppercase tracking-[0.2em] text-lg shadow-xl shadow-primary/20 h-16 rounded-2xl transition-all hover:scale-[1.01] active:scale-95"
                 onClick={handleClickSubmit}
                 disabled={!canSubmit}
+                title={submitBlockedReason || undefined}
               >
-                {isSubmitting && (
+                {(isSubmitting || isAutoSubmitting) && (
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 )}
                 {isQris ? "Bayar QRIS" : "Selesaikan"}
               </Button>
             </div>
           </div>
+
+          {/* Zigzag bawah ala robekan struk */}
+          <div
+            className="h-3 w-full"
+            style={{
+              backgroundImage:
+                "linear-gradient(135deg, hsl(var(--background)) 25%, transparent 25%), linear-gradient(225deg, hsl(var(--background)) 25%, transparent 25%)",
+              backgroundSize: "12px 12px",
+              backgroundPosition: "0 0",
+            }}
+          />
         </Card>
       </div>
     );
@@ -551,6 +627,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                   )}
                   placeholder="Nama / SKU / Scan..."
                   value={searchInput}
+                  onFocus={() => setIsProductSearchOpen(true)}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -596,10 +673,16 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                   </Button>
                 </div>
 
-                {debouncedSearch.length > 1 && (
+                {isProductSearchOpen && (
                   <SearchResultsDropdown
                     isSearching={isSearching}
                     searchResults={searchResults}
+                    searchValue={searchInput}
+                    onSearchChange={setSearchInput}
+                    onClose={() => {
+                      setIsProductSearchOpen(false);
+                      setSearchInput("");
+                    }}
                     onSelectProduct={handleAddProduct}
                   />
                 )}

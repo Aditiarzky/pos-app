@@ -1,10 +1,10 @@
-@startuml
+@startuml User_CRUD_Sequence
 autonumber
 
 skinparam BoxPadding 5
 skinparam ParticipantPadding 8
-skinparam defaultFontSize 16
-skinparam maxMessageSize 300
+skinparam defaultFontSize 12
+skinparam maxMessageSize 140
 skinparam sequenceMessageAlign center
 
 actor "Admin Sistem" as Admin
@@ -19,8 +19,8 @@ alt CREATE - Tambah User Baru
     Admin -> UI : Input data user (nama, email, telepon, role)
     UI -> Ctrl : Insert user baru
     activate Ctrl
-    Ctrl -> u : INSERT users (name, email, phone, password, imageUrl)
-    Ctrl -> r : INSERT user_roles (userId, roleId, storeId)
+    Ctrl -> u : INSERT users\n(name, email, phone,\npassword, imageUrl)
+    Ctrl -> r : INSERT user_roles\n(userId, roleId, storeId)
     u --> UI : Konfirmasi berhasil
     deactivate Ctrl
 
@@ -28,9 +28,9 @@ else UPDATE - Perbarui User
     Admin -> UI : Edit data user (termasuk role)
     UI -> Ctrl : Update user (id)
     activate Ctrl
-    Ctrl -> u : UPDATE users (nama, email, telepon, password)
+    Ctrl -> u : UPDATE users\n(nama, email, telepon,\npassword)
     Ctrl -> r : DELETE user_roles lama
-    Ctrl -> r : INSERT user_roles baru (sync role terbaru)
+    Ctrl -> r : INSERT user_roles baru\n(sync role terbaru)
     u --> UI : Konfirmasi berhasil
     deactivate Ctrl
 

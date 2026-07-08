@@ -32,6 +32,8 @@ export const getPurchases = async (params?: {
   limit?: number;
   search?: string;
   supplierId?: number;
+  startDate?: string;
+  endDate?: string;
 }): Promise<ApiResponse<PurchaseResponse[]>> => {
   const response = await axiosInstance.get("/purchases", { params });
   return response.data;
