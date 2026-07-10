@@ -98,6 +98,7 @@ export function SalesListSection({
 
   const [qrisData, setQrisData] = useState<QrisPaymentData | null>(null);
   const [isLoadingQris, setIsLoadingQris] = useState<number | null>(null);
+
   const [isCancellingId, setIsCancellingId] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
@@ -146,30 +147,30 @@ export function SalesListSection({
     }
   };
 
-  const handleCancelQris = async (saleId: number) => {
-    setIsCancellingId(saleId);
-    const toastId = toast.loading("Membatalkan transaksi QRIS...");
-    try {
-      const res = await fetch("/api/pakasir-cancel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ saleId }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success)
-        throw new Error(json.error || `HTTP ${res.status}`);
-      toast.success("Transaksi QRIS berhasil dibatalkan", { id: toastId });
-      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
-      refetch();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Gagal membatalkan transaksi",
-        { id: toastId },
-      );
-    } finally {
-      setIsCancellingId(null);
-    }
-  };
+  // const handleCancelQris = async (saleId: number) => {
+  //   setIsCancellingId(saleId);
+  //   const toastId = toast.loading("Membatalkan transaksi QRIS...");
+  //   try {
+  //     const res = await fetch("/api/pakasir-cancel", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ saleId }),
+  //     });
+  //     const json = await res.json();
+  //     if (!res.ok || !json.success)
+  //       throw new Error(json.error || `HTTP ${res.status}`);
+  //     toast.success("Transaksi QRIS berhasil dibatalkan", { id: toastId });
+  //     await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  //     refetch();
+  //   } catch (err) {
+  //     toast.error(
+  //       err instanceof Error ? err.message : "Gagal membatalkan transaksi",
+  //       { id: toastId },
+  //     );
+  //   } finally {
+  //     setIsCancellingId(null);
+  //   }
+  // };
 
   const [isUpdatingStatusId, setIsUpdatingStatusId] = useState<number | null>(
     null,

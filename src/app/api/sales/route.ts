@@ -333,8 +333,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Status awal selalu pending_payment; dikonfirmasi via PATCH /status
-    const initialStatus = "pending_payment";
+    // Status awal disesuaikan dengan metode pembayaran
+    // Cash langsung selesai/debt, QRIS tetap pending sampai diverifikasi
+    const initialStatus =
+      paymentMethod === "qris" ? "pending_payment" : isDebt ? "debt" : "completed";
 
     const result = await db.transaction(async (tx) => {
       const invoiceNum = `INV-${Date.now()}`;
@@ -426,8 +428,8 @@ export async function POST(request: NextRequest) {
 
       const paidAmount = paymentMethod === "qris" ? netTotal : Number(totalPaid);
       let calculatedReturn = 0;
-      // Status selalu pending_payment; PATCH /status yang akan finalisasi
-      const saleStatus: "completed" | "debt" | "pending_payment" = "pending_payment";
+      const saleStatus: "completed" | "debt" | "pending_payment" =
+        paymentMethod === "qris" ? "pending_payment" : isDebt ? "debt" : "completed";
 
       // QRIS: lewati validasi pembayaran kurang karena pembayaran belum terjadi
       if (paymentMethod !== "qris") {
@@ -444,7 +446,7 @@ export async function POST(request: NextRequest) {
             );
           }
 
-          // Buat debt record, tapi status sale tetap pending_payment
+          // Buat debt record, status sale langsung debt
           const debtAmount = netTotal - paidAmount;
 
           await tx.insert(debts).values({

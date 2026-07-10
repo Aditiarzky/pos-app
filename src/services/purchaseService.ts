@@ -20,6 +20,13 @@ export interface PurchaseResponse extends PurchaseOrderType {
       averageCost?: string;
       lastPurchaseCost?: string;
       image?: string | null;
+      variants?: Array<{
+        id: number;
+        name: string;
+        sku: string;
+        conversionToBase: string;
+        sellPrice: string;
+      }>;
     };
     productVariant?: { id?: number; name: string; conversionToBase: string };
   }>;
@@ -32,6 +39,8 @@ export const getPurchases = async (params?: {
   limit?: number;
   search?: string;
   supplierId?: number;
+  startDate?: string;
+  endDate?: string;
 }): Promise<ApiResponse<PurchaseResponse[]>> => {
   const response = await axiosInstance.get("/purchases", { params });
   return response.data;

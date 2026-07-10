@@ -5,7 +5,7 @@ export const defaultProductValues = {
   sku: "",
   categoryId: undefined,
   baseUnitId: undefined,
-  minStock: "",
+  minStock: "0",
   variants: [],
   barcodes: [{ barcode: "" }],
 };
@@ -80,7 +80,7 @@ export function mapProductToForm(product: ProductResponse) {
     sku: product.sku,
     categoryId: product.categoryId ?? undefined,
     baseUnitId: product.baseUnitId,
-    minStock: product.minStock ?? "",
+    minStock: product.minStock ?? "0",
     variants: mappedVariants,
     barcodes: product.barcodes?.length
       ? product.barcodes.map((b) => ({ barcode: b.barcode }))

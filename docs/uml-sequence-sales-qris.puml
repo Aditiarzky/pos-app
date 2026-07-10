@@ -3,8 +3,8 @@ autonumber
 
 skinparam BoxPadding 5
 skinparam ParticipantPadding 8
-skinparam defaultFontSize 16
-skinparam maxMessageSize 300
+skinparam defaultFontSize 12
+skinparam maxMessageSize 140
 skinparam sequenceMessageAlign center
 
 actor "Admin Sistem /\nAdmin Toko" as Admin
@@ -21,7 +21,7 @@ Admin -> UI : Pilih metode QRIS & proses
 UI -> Ctrl : Request pembayaran QRIS
 activate Ctrl
 Ctrl -> Ctrl : Generate QRIS via Pakasir API
-Ctrl -> s : UPDATE qrisOrderId, qrisPaymentNumber, qrisExpiredAt
+Ctrl -> s : UPDATE qrisOrderId,\nqrisPaymentNumber,\nqrisExpiredAt
 Ctrl --> UI : Tampilkan QR Code & waktu kedaluwarsa
 deactivate Ctrl
 
@@ -30,15 +30,15 @@ alt User Batal / QR Expired
     Admin -> UI : Batalkan transaksi
     UI -> Ctrl : Request pembatalan
     activate Ctrl
-    Ctrl -> s : UPDATE status = cancelled, isArchived = true
-    Ctrl -> p : Kembalikan stok (revert qty per item)
+    Ctrl -> s : UPDATE status = cancelled,\nisArchived = true
+    Ctrl -> p : Kembalikan stok\n(revert qty per item)
     Ctrl --> UI : Transaksi dibatalkan
     deactivate Ctrl
 
 else Pembayaran Berhasil (Webhook dari Provider QRIS)
     UI -> Ctrl : Terima webhook pembayaran berhasil
     activate Ctrl
-    Ctrl -> s : UPDATE status = completed, totalPaid
+    Ctrl -> s : UPDATE status = completed,\ntotalPaid
     Ctrl --> UI : Transaksi selesai
     deactivate Ctrl
 end

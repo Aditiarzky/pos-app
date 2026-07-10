@@ -1,10 +1,10 @@
-@startuml
+@startuml Stock_Mutation_Sequence
 autonumber
 
 skinparam BoxPadding 5
 skinparam ParticipantPadding 8
-skinparam defaultFontSize 16
-skinparam maxMessageSize 300
+skinparam defaultFontSize 12
+skinparam maxMessageSize 200
 skinparam sequenceMessageAlign center
 
 actor "Admin Toko" as Toko
@@ -18,8 +18,8 @@ database "stock_mutations" as sm
 == 1. Cetak Lembar Kerja Stock Opname ==
 Toko -> UI : Buka halaman stok, klik cetak
 UI -> Ctrl : Fetch data produk & varian
-Ctrl -> p : SELECT produk (+ kategori, satuan)
-Ctrl -> v : SELECT varian (+ currentStock, conversionToBase)
+Ctrl -> p : SELECT produk\n(+ kategori, satuan)
+Ctrl -> v : SELECT varian\n(+ currentStock,\nconversionToBase)
 Ctrl --> UI : Render lembar kerja (PDF/print)
 note right: Lembar kerja berisi daftar produk,\nvarian, stok sistem, dan kolom stok fisik\nuntuk diisi secara offline
 
@@ -27,16 +27,16 @@ note right: Lembar kerja berisi daftar produk,\nvarian, stok sistem, dan kolom s
 Admin -> UI : Pilih produk, input qty fisik dari lembar kerja
 UI -> Ctrl : Request penyesuaian stok
 activate Ctrl
-Ctrl -> v : Hitung selisih: qty fisik − currentStock
+Ctrl -> v : Hitung selisih:\nqty fisik − currentStock
 alt Selisih < 0 (Berkurang)
-    Ctrl -> sm : Insert stock_mutations (adjustment, qty negatif)
+    Ctrl -> sm : Insert stock_mutations\n(adjustment, qty < 0)
     
 else Selisih > 0 (Bertambah)
-    Ctrl -> sm : Insert stock_mutations (adjustment, qty positif)
+    Ctrl -> sm : Insert stock_mutations\n(adjustment, qty > 0)
     
 end
-Ctrl -> v : UPDATE varian.stock (currentStock + selisih)
-Ctrl -> p : UPDATE produk.stock (sum ulang varian)
+Ctrl -> v : UPDATE varian.stock\n(currentStock + selisih)
+Ctrl -> p : UPDATE produk.stock\n(sum ulang varian)
 sm --> UI : Konfirmasi berhasil
 deactivate Ctrl
 
@@ -44,16 +44,16 @@ deactivate Ctrl
 Admin -> UI : Pilih produk & varian, input qty fisik langsung
 UI -> Ctrl : Request penyesuaian stok
 activate Ctrl
-Ctrl -> v : Hitung selisih: qty fisik − currentStock
+Ctrl -> v : Hitung selisih:\nqty fisik − currentStock
 alt Selisih < 0 (Berkurang)
-    Ctrl -> sm : Insert stock_mutations (adjustment, qty negatif)
+    Ctrl -> sm : Insert stock_mutations\n(adjustment, qty < 0)
     
 else Selisih > 0 (Bertambah)
-    Ctrl -> sm : Insert stock_mutations (adjustment, qty positif)
+    Ctrl -> sm : Insert stock_mutations\n(adjustment, qty > 0)
     
 end
-Ctrl -> v : UPDATE varian.stock (currentStock + selisih)
-Ctrl -> p : UPDATE produk.stock (sum ulang varian)
+Ctrl -> v : UPDATE varian.stock\n(currentStock + selisih)
+Ctrl -> p : UPDATE produk.stock\n(sum ulang varian)
 sm --> UI : Konfirmasi berhasil
 deactivate Ctrl
 

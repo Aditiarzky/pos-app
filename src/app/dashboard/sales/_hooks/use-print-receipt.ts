@@ -2,6 +2,61 @@
 import { useRef, useCallback, useState } from "react";
 import { toPng } from "html-to-image";
 
+// Data opsional untuk menyusun teks share yang lebih profesional.
+// Semua field opsional — kalau tidak diisi, teks fallback tetap dipakai.
+export interface ReceiptShareInfo {
+  invoiceNumber?: string; // contoh: "INV/2026/07/0001"
+  transactionDate?: Date | string; // contoh: new Date() atau "2026-07-07"
+  cashierName?: string;
+  totalAmount?: number; // dalam Rupiah, akan diformat otomatis
+  storeName?: string; // default: "Gunung Muria Grosir Snack"
+}
+
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(amount);
+}
+
+function formatDate(date: Date | string) {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "long",
+    timeStyle: "short",
+  }).format(d);
+}
+
+function buildShareText(info?: ReceiptShareInfo) {
+  const storeName = info?.storeName ?? "Gunung Muria Grosir Snack";
+  const lines: string[] = [`Nota Penjualan - ${storeName}`];
+
+  if (info?.invoiceNumber) {
+    lines.push(`No. Invoice: ${info.invoiceNumber}`);
+  }
+  if (info?.transactionDate) {
+    lines.push(`Tanggal: ${formatDate(info.transactionDate)}`);
+  }
+  if (info?.cashierName) {
+    lines.push(`Kasir: ${info.cashierName}`);
+  }
+  if (typeof info?.totalAmount === "number") {
+    lines.push(`Total: ${formatCurrency(info.totalAmount)}`);
+  }
+
+  return lines.join("\n");
+}
+
+function buildFileName(info?: ReceiptShareInfo) {
+  if (info?.invoiceNumber) {
+    // Bersihkan karakter yang tidak aman untuk nama file
+    const safeInvoice = info.invoiceNumber.replace(/[\\/:*?"<>|]/g, "-");
+    return `nota-${safeInvoice}.png`;
+  }
+  return "nota-penjualan.png";
+}
+
 export function usePrintReceipt() {
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -24,46 +79,55 @@ export function usePrintReceipt() {
     return res.blob();
   }, []);
 
-  const handleShareAsImage = useCallback(async () => {
-    setIsSharing(true);
-    try {
-      const blob = await captureReceiptAsBlob();
-      if (!blob) return;
+  const handleShareAsImage = useCallback(
+    async (info?: ReceiptShareInfo) => {
+      setIsSharing(true);
+      try {
+        const blob = await captureReceiptAsBlob();
+        if (!blob) return;
 
-      const file = new File([blob], "nota-penjualan.png", {
-        type: "image/png",
-      });
+        const fileName = buildFileName(info);
+        const shareText = buildShareText(info);
+        const shareTitle = info?.invoiceNumber
+          ? `Nota Penjualan ${info.invoiceNumber}`
+          : "Nota Penjualan";
 
-      if (
-        typeof navigator !== "undefined" &&
-        navigator.canShare &&
-        navigator.canShare({ files: [file] })
-      ) {
-        await navigator.share({
-          files: [file],
-          title: "Nota Penjualan",
-          text: "Nota penjualan toko Gunung Muria Grosir Snack",
+        const file = new File([blob], fileName, {
+          type: "image/png",
         });
-      } else {
-        // Fallback: auto-download PNG for manual sharing
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "nota-penjualan.png";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+
+        if (
+          typeof navigator !== "undefined" &&
+          navigator.canShare &&
+          navigator.canShare({ files: [file] })
+        ) {
+          await navigator.share({
+            files: [file],
+            title: shareTitle,
+            text: shareText,
+          });
+        } else {
+          // Fallback: auto-download PNG for manual sharing
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      } catch (error) {
+        // User cancelled share — bukan error nyata, abaikan
+        if ((error as Error)?.name !== "AbortError") {
+          console.error("Share failed:", error);
+        }
+      } finally {
+        setIsSharing(false);
       }
-    } catch (error) {
-      // User cancelled share — bukan error nyata, abaikan
-      if ((error as Error)?.name !== "AbortError") {
-        console.error("Share failed:", error);
-      }
-    } finally {
-      setIsSharing(false);
-    }
-  }, [captureReceiptAsBlob]);
+    },
+    [captureReceiptAsBlob]
+  );
 
   const handlePrint = useCallback(() => {
     const content = receiptRef.current;

@@ -1,11 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getStockMutations } from "@/services/productService";
+import { stockMutationKeys } from "./stock-mutation-query-options";
 
-export const stockMutationKeys = {
-  all: ["stock-mutations"] as const,
-  lists: () => [...stockMutationKeys.all, "list"] as const,
-  list: (params: unknown) => [...stockMutationKeys.lists(), params] as const,
-};
 
 type UseStockMutationsOptions = {
   params?: {

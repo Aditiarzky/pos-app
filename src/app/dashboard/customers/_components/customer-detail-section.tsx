@@ -34,6 +34,19 @@ export function CustomerDetailSection({
   const debtHistoryHref = `/dashboard/sales?tab=history-sales&customerId=${customerId}`;
   const hasDebt = Number(customer?.totalDebt ?? 0) > 0;
 
+  const getMutationTypeLabel = (type: string) => {
+    switch (type) {
+      case "sale_balance_used":
+        return "Penggunaan Saldo";
+      case "return_deposit":
+        return "Setoran Retur";
+      case "exchange_surplus":
+        return "Setoran Tukar Barang";
+      default:
+        return type.replace(/_/g, " ");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -222,7 +235,7 @@ export function CustomerDetailSection({
                   </div>
                   <div>
                     <div className="text-sm font-bold capitalize">
-                      {mutation.type.replace(/_/g, " ")}
+                      {getMutationTypeLabel(mutation.type)}
                     </div>
                     <div className="text-[10px] text-muted-foreground flex items-center gap-1">
                       <Calendar className="h-3 w-3" />

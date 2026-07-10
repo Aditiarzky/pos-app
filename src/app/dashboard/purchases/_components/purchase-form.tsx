@@ -42,6 +42,8 @@ import {
   Package,
   Minus,
   Plus,
+  ArrowLeftRight,
+  Tag,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
@@ -54,7 +56,11 @@ import {
   useDeletePurchase,
 } from "@/hooks/purchases/use-purchases";
 import { usePurchaseForm } from "../_hooks/use-purchase-form";
-import { PurchaseFormItem, PurchaseFormProps } from "../_types/purchase-type";
+import {
+  PurchaseFormData,
+  PurchaseFormItem,
+  PurchaseFormProps,
+} from "../_types/purchase-type";
 import { Switch } from "@/components/ui/switch";
 import { ProductResponse } from "@/services/productService";
 import { SearchResultsDropdown } from "@/components/ui/search-product-dropdown";
@@ -74,6 +80,8 @@ export function PurchaseForm({
   // Delete modal state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+
+  const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
 
   // Mutations
   const createMutation = useCreatePurchase();
@@ -119,7 +127,6 @@ export function PurchaseForm({
   const {
     searchInput,
     setSearchInput,
-    debouncedSearch,
     searchResults,
     isSearching,
     isScannerOpen,
@@ -129,8 +136,7 @@ export function PurchaseForm({
     searchInputRef,
     lastScannedBarcode,
     setLastScannedBarcode,
-  } = useProductSearch({ isOpen, autoFocusOnMount: true });
-
+  } = useProductSearch({ isOpen, autoFocusOnMount: false });
   // Auto-add item when barcode is scanned
   useEffect(() => {
     if (lastScannedBarcode && searchResults.length > 0) {
@@ -162,7 +168,6 @@ export function PurchaseForm({
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchResults, lastScannedBarcode]);
 
   // ============================================
@@ -191,10 +196,37 @@ export function PurchaseForm({
         lastPurchaseCost: Number(product.lastPurchaseCost || 0),
         variants: product.variants, // Store variants for dropdown
       });
+      toast.success(`Produk ${product.name} ditambahkan`);
     }
 
-    setSearchInput("");
     searchInputRef.current?.focus();
+  };
+
+  const handleVariantChange = (index: number, newVariantId: number) => {
+    const item = fields[index];
+    const newVariant = item.variants?.find((v) => v.id === newVariantId);
+    if (!newVariant) return;
+
+    const existingIndex = fields.findIndex(
+      (f, idx) => f.variantId === newVariantId && idx !== index,
+    );
+
+    if (existingIndex > -1) {
+      const currentQty = Number(form.getValues(`items.${index}.qty`)) || 0;
+      const existingQty =
+        Number(form.getValues(`items.${existingIndex}.qty`)) || 0;
+
+      form.setValue(`items.${existingIndex}.qty`, existingQty + currentQty);
+      remove(index);
+      toast.info("Varian digabungkan dengan item yang ada. Qty diperbarui.");
+    } else {
+      form.setValue(`items.${index}.variantId`, newVariantId);
+      form.setValue(`items.${index}.variantName`, newVariant.name);
+      form.setValue(
+        `items.${index}.price`,
+        (item.lastPurchaseCost || 0) * Number(newVariant.conversionToBase),
+      );
+    }
   };
 
   if (!isOpen) return null;
@@ -269,6 +301,7 @@ export function PurchaseForm({
                       placeholder="Nama / SKU / Scan..."
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
+                      onFocus={() => setIsProductSearchOpen(true)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
@@ -318,11 +351,18 @@ export function PurchaseForm({
                     </div>
 
                     {/* Search Results Dropdown */}
-                    {debouncedSearch.length > 1 && (
+                    {isProductSearchOpen && (
                       <SearchResultsDropdown
                         isSearching={isSearching}
                         searchResults={searchResults}
+                        searchValue={searchInput}
+                        onSearchChange={setSearchInput}
+                        onClose={() => {
+                          setIsProductSearchOpen(false);
+                          setSearchInput("");
+                        }}
                         onSelectProduct={handleAddProduct}
+                        keepOpenOnSelect={true}
                       />
                     )}
                   </div>
@@ -333,8 +373,9 @@ export function PurchaseForm({
               <div className="space-y-4">
                 <ItemsTable
                   fields={fields}
-                  form={form as unknown as UseFormReturn<PurchaseFormItem>}
+                  form={form}
                   onRemove={remove}
+                  onVariantChange={handleVariantChange}
                 />
               </div>
             </form>
@@ -506,12 +547,67 @@ export function PurchaseForm({
 // Items Table
 interface ItemsTableProps {
   fields: PurchaseFormItem[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  form: any;
+  form: UseFormReturn<PurchaseFormData>;
   onRemove: (index: number) => void;
+  onVariantChange: (index: number, newVariantId: number) => void;
 }
 
-function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
+type PriceMode = "unit" | "total";
+
+function ItemsTable({
+  fields,
+  form,
+  onRemove,
+  onVariantChange,
+}: ItemsTableProps) {
+  // Mode harga per baris: "unit" (harga per 1 qty) atau "total" (total harga di nota untuk baris itu).
+  // Key-nya pakai field.id (bukan index) supaya tetap stabil walau ada item lain yang dihapus.
+  const [priceModes, setPriceModes] = useState<Record<string, PriceMode>>({});
+  // Menyimpan angka total yang diketik user saat mode "total", karena price di form
+  // selalu disimpan per-1-qty (total / qty), jadi total mentahnya perlu disimpan terpisah
+  // supaya tidak hilang presisinya akibat pembulatan saat qty berubah-ubah.
+  const [totalInputs, setTotalInputs] = useState<Record<string, number>>({});
+
+  const getMode = (fieldId: string): PriceMode => priceModes[fieldId] || "unit";
+
+  const toggleMode = (fieldId: string, currentPrice: number, currentQty: number) => {
+    setPriceModes((prev) => {
+      const nextMode: PriceMode = getMode(fieldId) === "unit" ? "total" : "unit";
+      if (nextMode === "total") {
+        // Saat pindah ke mode total, isi awal totalnya = harga per satuan sekarang x qty
+        setTotalInputs((t) => ({ ...t, [fieldId]: currentPrice * currentQty }));
+      }
+      return { ...prev, [fieldId]: nextMode };
+    });
+  };
+
+  // Dipanggil saat input "Harga Beli" berubah ketika mode = total.
+  // newTotal dikonversi jadi harga per 1 qty sebelum disimpan ke form.
+  const handleTotalPriceChange = (
+    index: number,
+    fieldId: string,
+    newTotal: number,
+    qty: number,
+  ) => {
+    setTotalInputs((prev) => ({ ...prev, [fieldId]: newTotal }));
+    const safeQty = qty > 0 ? qty : 1;
+    form.setValue(`items.${index}.price`, newTotal / safeQty, {
+      shouldValidate: true,
+    });
+  };
+
+  // Dipanggil setelah qty berubah (tombol -/+ atau input manual).
+  // Kalau mode baris itu "total", harga per satuan dihitung ulang supaya
+  // total di nota tetap konsisten.
+  const syncPriceIfTotalMode = (fieldId: string, index: number, newQty: number) => {
+    if (getMode(fieldId) !== "total") return;
+    const total = totalInputs[fieldId] ?? 0;
+    const safeQty = newQty > 0 ? newQty : 1;
+    form.setValue(`items.${index}.price`, total / safeQty, {
+      shouldValidate: true,
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -535,7 +631,7 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                 <th className="px-2 py-2 text-center font-medium text-[11px] uppercase w-20">
                   Qty
                 </th>
-                <th className="px-2 py-2 text-right font-medium text-[11px] uppercase min-w-[120px]">
+                <th className="px-2 py-2 text-right font-medium text-[11px] uppercase min-w-[140px]">
                   Harga Beli
                 </th>
                 <th className="px-2 py-2 text-right font-medium text-[11px] uppercase min-w-[120px]">
@@ -565,10 +661,14 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                   const price = Number(form.watch(`items.${index}.price`)) || 0;
                   const variantId = form.watch(`items.${index}.variantId`);
                   const subtotal = qty * price;
+                  // field.id di tipe PurchaseFormItem bisa berupa number | undefined (id DB),
+                  // jadi dinormalisasi ke string yang stabil per baris dulu.
+                  const rowKey = String(field.id ?? index);
+                  const mode = getMode(rowKey);
 
                   return (
                     <tr
-                      key={field.id}
+                      key={field.id ?? index}
                       className="hover:bg-muted/30 transition-colors"
                     >
                       {/* Product Name & Image */}
@@ -576,7 +676,6 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-muted">
                             {field.image ? (
-                              // eslint-disable-next-line @next/next/no-img-element
                               <img
                                 src={field.image}
                                 alt={field.productName || ""}
@@ -600,48 +699,28 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                               <Select
                                 value={String(variantId)}
                                 onValueChange={(value) => {
-                                  const newVariantId = Number(value);
-                                  const newVariant = field.variants?.find(
-                                    (v: ProductResponse["variants"][0]) =>
-                                      v.id === newVariantId,
-                                  );
-
-                                  if (newVariant) {
-                                    form.setValue(
-                                      `items.${index}.variantId`,
-                                      newVariantId,
-                                    );
-                                    form.setValue(
-                                      `items.${index}.variantName`,
-                                      newVariant.name,
-                                    );
-                                    form.setValue(
-                                      `items.${index}.price`,
-                                      (field.lastPurchaseCost || 0) *
-                                        newVariant.conversionToBase,
-                                    );
-                                  }
+                                  onVariantChange(index, Number(value));
                                 }}
                               >
-                                <SelectTrigger className="h-7 w-full text-[10px] px-2">
+                                <SelectTrigger className="rounded-xl shadow-none cursor-pointer w-fit !text-xs !px-1.5 !py-0.5 !h-7 gap-1">
+                                  <Tag className="size-3.5 text-muted-foreground" />
                                   <SelectValue placeholder="Pilih Varian" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {field.variants.map(
-                                    (v: ProductResponse["variants"][0]) => (
-                                      <SelectItem
-                                        key={v.id}
-                                        value={String(v.id)}
-                                        className="text-xs"
-                                      >
-                                        {v.name}
-                                      </SelectItem>
-                                    ),
-                                  )}
+                                  {field.variants.map((v) => (
+                                    <SelectItem
+                                      key={v.id}
+                                      value={String(v.id)}
+                                      className="text-xs"
+                                    >
+                                      {v.name}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                             ) : (
-                              <span className="bg-muted px-1.5 rounded py-0.5 text-[10px] text-muted-foreground w-fit">
+                              <span className="bg-muted gap-1 flex rounded-xl items-center px-1.5 rounded py-1 border border-border dark:border-muted-foreground/20 text-xs text-muted-foreground w-fit">
+                                <Tag className="size-3.5 text-muted-foreground" />
                                 {field.variantName}
                               </span>
                             )}
@@ -668,7 +747,9 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                                   onClick={() => {
                                     const currentVal = Number(value) || 0;
                                     if (currentVal > 1) {
-                                      onChange(currentVal - 1);
+                                      const next = currentVal - 1;
+                                      onChange(next);
+                                      syncPriceIfTotalMode(rowKey, index, next);
                                     }
                                   }}
                                   disabled={(Number(value) || 0) <= 1}
@@ -684,11 +765,13 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                                     const val = e.target.value;
                                     if (val === "") {
                                       onChange(0);
+                                      syncPriceIfTotalMode(rowKey, index, 0);
                                       return;
                                     }
                                     const num = parseFloat(val);
                                     if (!isNaN(num)) {
                                       onChange(num);
+                                      syncPriceIfTotalMode(rowKey, index, num);
                                     }
                                   }}
                                 />
@@ -698,7 +781,9 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                                   size="icon"
                                   className="h-full w-7 rounded-none hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/20 text-muted-foreground transition-colors p-0 flex items-center justify-center border-l border-input"
                                   onClick={() => {
-                                    onChange((Number(value) || 0) + 1);
+                                    const next = (Number(value) || 0) + 1;
+                                    onChange(next);
+                                    syncPriceIfTotalMode(rowKey, index, next);
                                   }}
                                 >
                                   <Plus className="h-3 w-3" />
@@ -719,20 +804,61 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                         <Controller
                           name={`items.${index}.price`}
                           control={form.control}
-                          render={({ field, fieldState }) => (
-                            <div className="w-full max-w-[120px] ml-auto">
-                              <CurrencyInput
-                                {...field}
-                                className="h-8 w-full text-right text-xs font-medium"
-                                placeholder="0"
-                              />
-                              {fieldState.error && (
-                                <p className="text-[10px] text-destructive mt-1 leading-tight text-right">
-                                  {fieldState.error.message}
-                                </p>
-                              )}
-                            </div>
-                          )}
+                          render={({ field: priceField, fieldState }) => {
+                            const displayValue =
+                              mode === "total"
+                                ? totalInputs[rowKey] ?? priceField.value * qty
+                                : priceField.value;
+
+                            return (
+                              <div className="w-full max-w-[130px] ml-auto space-y-1">
+                                <div className="flex items-center justify-end">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      toggleMode(
+                                        rowKey,
+                                        Number(priceField.value) || 0,
+                                        qty,
+                                      )
+                                    }
+                                    className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-primary hover:underline"
+                                  >
+                                    <ArrowLeftRight className="h-2.5 w-2.5" />
+                                    {mode === "unit" ? "/ satuan" : "total nota"}
+                                  </button>
+                                </div>
+                                <CurrencyInput
+                                  value={displayValue}
+                                  onChange={(val) => {
+                                    if (mode === "total") {
+                                      handleTotalPriceChange(
+                                        index,
+                                        rowKey,
+                                        Number(val) || 0,
+                                        qty,
+                                      );
+                                    } else {
+                                      priceField.onChange(val);
+                                    }
+                                  }}
+                                  className="h-8 w-full text-right text-xs font-medium"
+                                  placeholder="0"
+                                  min={1}
+                                />
+                                {mode === "total" && (
+                                  <p className="text-[9px] text-muted-foreground text-right">
+                                    @ {formatCurrency(priceField.value || 0)}
+                                  </p>
+                                )}
+                                {fieldState.error && (
+                                  <p className="text-[10px] text-destructive mt-1 leading-tight text-right">
+                                    {fieldState.error.message}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          }}
                         />
                       </td>
 
@@ -777,10 +903,12 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
             const price = Number(form.watch(`items.${index}.price`)) || 0;
             const variantId = form.watch(`items.${index}.variantId`);
             const subtotal = qty * price;
+            const rowKey = String(field.id ?? index);
+            const mode = getMode(rowKey);
 
             return (
               <Card
-                key={field.id}
+                key={field.id ?? index}
                 className="relative p-0 overflow-hidden border-border shadow-sm"
               >
                 <div className="p-3.5 space-y-3">
@@ -789,7 +917,6 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                     {/* Image */}
                     <div className="h-9 w-9 shrink-0 overflow-hidden rounded-md border bg-muted">
                       {field.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={field.image}
                           alt={field.productName || ""}
@@ -816,53 +943,30 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                           <Select
                             value={String(variantId)}
                             onValueChange={(value) => {
-                              const newVariantId = Number(value);
-                              const newVariant = field.variants?.find(
-                                (v: ProductResponse["variants"][0]) =>
-                                  v.id === newVariantId,
-                              );
-
-                              if (newVariant) {
-                                form.setValue(
-                                  `items.${index}.variantId`,
-                                  newVariantId,
-                                );
-                                form.setValue(
-                                  `items.${index}.variantName`,
-                                  newVariant.name,
-                                );
-                                form.setValue(
-                                  `items.${index}.price`,
-                                  (field.lastPurchaseCost || 0) *
-                                    newVariant.conversionToBase,
-                                );
-                              }
+                              onVariantChange(index, Number(value));
                             }}
                           >
-                            <SelectTrigger className="h-6 w-fit text-[10px] px-2 gap-1">
+                            <SelectTrigger className="rounded-xl shadow-none cursor-pointer w-fit !text-xs !px-1.5 !py-0.5 !h-7 gap-1">
+                              <Tag className="size-3.5 text-muted-foreground" />
                               <SelectValue placeholder="Pilih Varian" />
                             </SelectTrigger>
                             <SelectContent>
-                              {field.variants.map(
-                                (v: ProductResponse["variants"][0]) => (
-                                  <SelectItem
-                                    key={v.id}
-                                    value={String(v.id)}
-                                    className="text-xs"
-                                  >
-                                    {v.name}
-                                  </SelectItem>
-                                ),
-                              )}
+                              {field.variants.map((v) => (
+                                <SelectItem
+                                  key={v.id}
+                                  value={String(v.id)}
+                                  className="text-xs"
+                                >
+                                  {v.name}
+                                </SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Badge
-                            variant="secondary"
-                            className="text-[10px] py-0 h-4 font-medium uppercase tracking-wider"
-                          >
+                          <span className="bg-muted gap-1 flex rounded-xl items-center px-1.5 rounded py-1 border border-border dark:border-muted-foreground/20 text-xs text-muted-foreground w-fit">
+                            <Tag className="size-3.5 text-muted-foreground" />
                             {field.variantName}
-                          </Badge>
+                          </span>
                         )}
                       </div>
                     </div>
@@ -905,7 +1009,9 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                                 onClick={() => {
                                   const currentVal = Number(value) || 0;
                                   if (currentVal > 1) {
-                                    onChange(currentVal - 1);
+                                    const next = currentVal - 1;
+                                    onChange(next);
+                                    syncPriceIfTotalMode(rowKey, index, next);
                                   }
                                 }}
                                 disabled={(Number(value) || 0) <= 1}
@@ -919,7 +1025,9 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                                 value={value ?? ""}
                                 onChange={(e) => {
                                   const val = e.target.value;
-                                  onChange(val === "" ? 0 : parseFloat(val));
+                                  const next = val === "" ? 0 : parseFloat(val);
+                                  onChange(next);
+                                  syncPriceIfTotalMode(rowKey, index, next || 0);
                                 }}
                               />
                               <Button
@@ -928,7 +1036,9 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
                                 size="icon"
                                 className="h-full w-8 shrink-0 rounded-none hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/20 text-muted-foreground transition-colors p-0 flex items-center justify-center border-l border-input"
                                 onClick={() => {
-                                  onChange((Number(value) || 0) + 1);
+                                  const next = (Number(value) || 0) + 1;
+                                  onChange(next);
+                                  syncPriceIfTotalMode(rowKey, index, next);
                                 }}
                               >
                                 <Plus className="h-3 w-3" />
@@ -946,26 +1056,73 @@ function ItemsTable({ fields, form, onRemove }: ItemsTableProps) {
 
                     {/* Harga Beli */}
                     <div className="space-y-1.5 text-right">
-                      <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                        Harga Beli
-                      </Label>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                          Harga Beli
+                        </Label>
+                        <Controller
+                          name={`items.${index}.price`}
+                          control={form.control}
+                          render={({ field: priceField }) => (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleMode(
+                                  rowKey,
+                                  Number(priceField.value) || 0,
+                                  qty,
+                                )
+                              }
+                              className="flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wide text-primary"
+                            >
+                              <ArrowLeftRight className="h-2.5 w-2.5" />
+                              {mode === "unit" ? "satuan" : "total"}
+                            </button>
+                          )}
+                        />
+                      </div>
                       <Controller
                         name={`items.${index}.price`}
                         control={form.control}
-                        render={({ field, fieldState }) => (
-                          <div className="relative group/input">
-                            <CurrencyInput
-                              {...field}
-                              className="h-10 w-full text-right text-sm font-bold bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/30 rounded-lg shadow-none"
-                              placeholder="0"
-                            />
-                            {fieldState.error && (
-                              <p className="text-[10px] text-destructive mt-1 font-medium text-right">
-                                {fieldState.error.message}
-                              </p>
-                            )}
-                          </div>
-                        )}
+                        render={({ field: priceField, fieldState }) => {
+                          const displayValue =
+                            mode === "total"
+                              ? totalInputs[rowKey] ?? priceField.value * qty
+                              : priceField.value;
+
+                          return (
+                            <div className="relative group/input">
+                              <CurrencyInput
+                                value={displayValue}
+                                onChange={(val) => {
+                                  if (mode === "total") {
+                                    handleTotalPriceChange(
+                                      index,
+                                      rowKey,
+                                      Number(val) || 0,
+                                      qty,
+                                    );
+                                  } else {
+                                    priceField.onChange(val);
+                                  }
+                                }}
+                                className="h-10 w-full text-right text-sm font-bold bg-muted/40 border-none focus-visible:ring-1 focus-visible:ring-primary/30 rounded-lg shadow-none"
+                                placeholder="0"
+                                min={1}
+                              />
+                              {mode === "total" && (
+                                <p className="text-[9px] text-muted-foreground text-right mt-1">
+                                  @ {formatCurrency(priceField.value || 0)} / satuan
+                                </p>
+                              )}
+                              {fieldState.error && (
+                                <p className="text-[10px] text-destructive mt-1 font-medium text-right">
+                                  {fieldState.error.message}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }}
                       />
                     </div>
                   </div>

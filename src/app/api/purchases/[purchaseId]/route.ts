@@ -47,6 +47,17 @@ export async function GET(
                 lastPurchaseCost: true,
                 image: true,
               },
+              with: {
+                variants: {
+                  columns: {
+                    id: true,
+                    name: true,
+                    sku: true,
+                    conversionToBase: true,
+                    sellPrice: true,
+                  },
+                },
+              },
             },
             productVariant: {
               columns: {

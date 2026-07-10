@@ -13,13 +13,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-/* import {
+import {
   Sheet,
   SheetContent,
-  SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet"; */
-// import { ProductAuditLogTab } from "./product-audit-log-tab";
+} from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import {
   Edit,
@@ -48,26 +47,25 @@ interface ProductCardProps {
 }
 
 // ====================== MODAL DETAIL ======================
-function ProductDetailModal({
+function ProductDetailContent({
   product,
-  open,
-  onOpenChange,
   onEdit,
   onDelete,
   onAdjust,
   handleDeleteClick,
+  onRequestClose,
   isSystemAdmin = false,
+  TitleComponent,
 }: {
   product: ProductResponse;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   onEdit?: (id: number) => void;
   onDelete?: (id: number) => void;
   onAdjust?: (product: ProductResponse) => void;
   handleDeleteClick: () => void;
+  onRequestClose: () => void;
   isSystemAdmin?: boolean;
+  TitleComponent: React.ElementType;
 }) {
-  // const [showHistory, setShowHistory] = useState(false);
   const stockNum = Number(product.stock);
   const minStockNum = Number(product.minStock);
   const isLowStock = stockNum < minStockNum && minStockNum > 0;
@@ -82,320 +80,340 @@ function ProductDetailModal({
       : `${min.toLocaleString("id-ID")} - ${max.toLocaleString("id-ID")}`;
   }, [product.variants]);
 
+  const titleClassName =
+    "text-2xl sm:text-3xl font-bold text-white mt-2 leading-7";
+
+  return (
+    <>
+      <div className="relative h-52 sm:h-60 bg-muted shrink-0 overflow-hidden rounded-t-3xl">
+        {product.image ? (
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            className="object-cover"
+            priority
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted/70">
+            <Package className="h-16 w-16 text-muted-foreground/30" />
+          </div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 p-5">
+          <div className="flex items-center gap-2 flex-wrap">
+            {product.category && (
+              <Badge className="bg-white/10 text-white border-white/20 backdrop-blur">
+                {product.category.name}
+              </Badge>
+            )}
+            <span className="text-xs font-mono bg-black/50 text-white/80 px-2 py-0.5 rounded">
+              {product.sku}
+            </span>
+          </div>
+          <TitleComponent className={titleClassName}>
+            {product.name}
+          </TitleComponent>
+        </div>
+        {isLowStock && (
+          <Badge
+            variant="destructive"
+            className="absolute top-4 left-4 gap-1 shadow"
+          >
+            <AlertCircle className="h-3.5 w-3.5" />{" "}
+            <p className="text-[10px] sm:text-xs">Stok Limit</p>
+          </Badge>
+        )}
+      </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="space-y-6 pb-4 px-5 pt-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div
+              className={cn(
+                "p-4 rounded-2xl",
+                isLowStock
+                  ? "bg-red-50/20 border-border border"
+                  : "bg-emerald-50/20 border-border border",
+              )}
+            >
+              <div className="flex justify-between">
+                <Package
+                  className={cn(
+                    "h-6 w-6",
+                    isLowStock
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-emerald-600 dark:text-emerald-200",
+                  )}
+                />
+                {isLowStock && (
+                  <Badge variant="destructive" className="text-[10px]">
+                    Perhatian
+                  </Badge>
+                )}
+              </div>
+              <div className="mt-3">
+                <p className="text-xs font-medium text-muted-foreground">
+                  STOK SAAT INI
+                </p>
+                <p
+                  className={cn(
+                    "text-xl sm:text-3xl font-black mt-1",
+                    isLowStock
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-emerald-600 dark:text-emerald-200",
+                  )}
+                >
+                  {formatCompactNumber(stockNum)}
+                  <span className="text-xs font-medium text-muted-foreground ml-1">
+                    {product.unit?.name}
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Min: {minStockNum} {product.unit?.name}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-blue-50/20 border border-border">
+              <Layers className="h-6 w-6 text-primary" />
+              <p className="text-xs font-medium text-muted-foreground mt-3">
+                HARGA JUAL
+              </p>
+              <p className="sm:text-3xl text-xl font-black text-primary mt-1">
+                Rp {priceRange}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {product.variants?.length || 0} varian
+              </p>
+            </div>
+          </div>
+
+          {product.variants && product.variants.length > 0 ? (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Layers className="h-4 w-4 text-primary" />
+                <p className="font-semibold text-sm">Varian Produk</p>
+              </div>
+              <div className="space-y-3">
+                {product.variants.map((v) => {
+                  const margin = calculateVariantMargin(
+                    v,
+                    product.averageCost,
+                  );
+                  return (
+                    <div
+                      key={v.id}
+                      className="relative group bg-muted/30 hover:bg-muted/50 rounded-3xl p-4 border border-border/50 hover:border-primary/20 transition-all duration-300"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <p className="font-bold uppercase text-sm sm:text-base text-foreground group-hover:text-primary transition-colors">
+                            {v.name}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-background/50 w-fit px-2 py-0.5 rounded-full border border-border/50">
+                            <Layers className="h-3 w-3" />
+                            <span>
+                              1 = {v.conversionToBase} {product.unit?.name}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="flex flex-col items-end">
+                            <span className="text-[9px] sm:text-[10px] uppercase font-black tracking-tighter text-muted-foreground/60 leading-none mb-1">
+                              Harga Jual
+                            </span>
+                            <p className="text-lg sm:text-xl font-black text-primary tracking-tighter leading-none">
+                              Rp {Number(v.sellPrice).toLocaleString("id-ID")}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 pt-3 border-t border-border/30 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">
+                            Stok Tersedia
+                          </span>
+                        </div>
+                        <span
+                          className={cn(
+                            "text-xs sm:text-sm font-black",
+                            Math.floor(
+                              stockNum / Number(v.conversionToBase),
+                            ) < 1
+                              ? "text-destructive"
+                              : "text-foreground",
+                          )}
+                        >
+                          {Math.floor(stockNum / Number(v.conversionToBase))}{" "}
+                          <span className="text-[10px] font-medium text-muted-foreground">
+                            unit
+                          </span>
+                        </span>
+                      </div>
+
+                      {isSystemAdmin && margin.hpp > 0 && (
+                        <div className="mt-4 pt-3 border-t border-dashed border-border/60 flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-background rounded-xl border border-border/50">
+                              <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[9px] uppercase font-bold text-muted-foreground/70 leading-none">
+                                Modal (HPP)
+                              </span>
+                              <span className="text-xs font-mono font-bold text-foreground">
+                                Rp {margin.formattedHpp}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <div className="flex flex-col items-end">
+                              <span className="text-[9px] uppercase font-bold text-muted-foreground/70 leading-none mb-1">
+                                Keuntungan
+                              </span>
+                              <Badge
+                                variant={
+                                  margin.isProfitable
+                                    ? "default"
+                                    : "destructive"
+                                }
+                                className={cn(
+                                  "h-6 px-2 text-[10px] font-black rounded-lg gap-1 border",
+                                  margin.isProfitable
+                                    ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20 shadow-none"
+                                    : "bg-red-500/10 text-red-600 hover:bg-red-500/20 border-red-500/20 shadow-none",
+                                )}
+                              >
+                                {margin.isProfitable ? (
+                                  <TrendingUp className="h-3 w-3" />
+                                ) : (
+                                  <AlertCircle className="h-3 w-3" />
+                                )}
+                                {margin.marginPercent.toFixed(0)}%
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 bg-muted/30 rounded-2xl">
+              <Package className="h-10 w-10 mx-auto text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground mt-2">
+                Tidak ada varian tambahan
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="border-t p-4 flex flex-row gap-2 bg-muted/50 shrink-0">
+        {isSystemAdmin && onAdjust && (
+          <Button
+            variant="outline"
+            className="w-full flex-3 rounded-2xl"
+            onClick={() => {
+              onAdjust(product);
+              onRequestClose();
+            }}
+          >
+            <PackagePlus className="mr-2 h-4 w-4" />
+            <p className="hidden sm:block">Atur Stok</p>
+            <p className="sm:hidden">Stok</p>
+          </Button>
+        )}
+        {isSystemAdmin && onEdit && (
+          <Button
+            className="w-full flex-3 rounded-2xl"
+            onClick={() => {
+              onEdit(product.id);
+              onRequestClose();
+            }}
+          >
+            <Edit className="mr-2 h-4 w-4" />
+            <p className="hidden sm:block">Edit Produk</p>
+            <p className="sm:hidden">Edit</p>
+          </Button>
+        )}
+        {isSystemAdmin && onDelete && (
+          <Button
+            variant="destructive"
+            className="w-full flex-1 rounded-2xl px-6"
+            onClick={handleDeleteClick}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+    </>
+  );
+}
+
+function ProductDetailModal({
+  product,
+  open,
+  onOpenChange,
+  onEdit,
+  onDelete,
+  onAdjust,
+  handleDeleteClick,
+  isSystemAdmin = false,
+  useMobileSheet = false,
+}: {
+  product: ProductResponse;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onEdit?: (id: number) => void;
+  onDelete?: (id: number) => void;
+  onAdjust?: (product: ProductResponse) => void;
+  handleDeleteClick: () => void;
+  isSystemAdmin?: boolean;
+  useMobileSheet?: boolean;
+}) {
+  if (useMobileSheet) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="bottom"
+          className="h-[92dvh] max-h-[92dvh] w-full max-w-full overflow-hidden rounded-t-3xl border-t p-0 shadow-2xl"
+        >
+          <ProductDetailContent
+            product={product}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onAdjust={onAdjust}
+            handleDeleteClick={handleDeleteClick}
+            onRequestClose={() => onOpenChange(false)}
+            isSystemAdmin={isSystemAdmin}
+            TitleComponent={SheetTitle}
+          />
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-full sm:max-w-[680px] mx-0 p-0 mt-16 sm:mt-0 rounded-3xl border-none shadow-2xl max-h-[80dvh] sm:max-h-[92vh] flex flex-col overflow-hidden">
-        {/* Header Image - shrink-0 agar tidak ikut flex */}
-        <div className="relative h-52 sm:h-60 bg-muted shrink-0 overflow-hidden rounded-t-3xl">
-          {product.image ? (
-            <Image
-              src={product.image}
-              alt={product.name}
-              fill
-              className="object-cover"
-              priority
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-muted to-muted/70">
-              <Package className="h-16 w-16 text-muted-foreground/30" />
-            </div>
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 p-5">
-            <div className="flex items-center gap-2 flex-wrap">
-              {product.category && (
-                <Badge className="bg-white/10 text-white border-white/20 backdrop-blur">
-                  {product.category.name}
-                </Badge>
-              )}
-              <span className="text-xs font-mono bg-black/50 text-white/80 px-2 py-0.5 rounded">
-                {product.sku}
-              </span>
-              {/* <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-[10px] bg-white/10 hover:bg-white/20 text-white/80 hover:text-white border border-white/20 rounded backdrop-blur ml-auto"
-                onClick={() => setShowHistory(true)}
-              >
-                <History className="h-3 w-3 mr-1" />
-                Riwayat
-              </Button> */}
-            </div>
-            <DialogTitle className="text-2xl sm:text-3xl font-bold text-white mt-2 leading-7">
-              {product.name}
-            </DialogTitle>
-          </div>
-          {isLowStock && (
-            <Badge
-              variant="destructive"
-              className="absolute top-4 left-4 gap-1 shadow"
-            >
-              <AlertCircle className="h-3.5 w-3.5" />{" "}
-              <p className="text-[10px] sm:text-xs">Stok Limit</p>
-            </Badge>
-          )}
-        </div>
-
-        {/*
-          Tabs mengambil sisa tinggi dengan flex-1 + min-h-0.
-          min-h-0 WAJIB agar flex child tidak meluber melebihi max-height parent.
-        */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
-          <div className="space-y-6 pb-4 px-5 pt-4">
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <div
-                className={cn(
-                  "p-4 rounded-2xl",
-                  isLowStock
-                    ? "bg-red-50/20 border-border border"
-                    : "bg-emerald-50/20 border-border border",
-                )}
-              >
-                <div className="flex justify-between">
-                  <Package
-                    className={cn(
-                      "h-6 w-6",
-                      isLowStock
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-emerald-600 dark:text-emerald-200",
-                    )}
-                  />
-                  {isLowStock && (
-                    <Badge variant="destructive" className="text-[10px]">
-                      Perhatian
-                    </Badge>
-                  )}
-                </div>
-                <div className="mt-3">
-                  <p className="text-xs font-medium text-muted-foreground">
-                    STOK SAAT INI
-                  </p>
-                  <p
-                    className={cn(
-                      "text-xl sm:text-3xl font-black mt-1",
-                      isLowStock
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-emerald-600 dark:text-emerald-200",
-                    )}
-                  >
-                    {formatCompactNumber(stockNum)}
-                    <span className="text-xs font-medium text-muted-foreground ml-1">
-                      {product.unit?.name}
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Min: {minStockNum} {product.unit?.name}
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-blue-50/20 border border-border">
-                <Layers className="h-6 w-6 text-primary" />
-                <p className="text-xs font-medium text-muted-foreground mt-3">
-                  HARGA JUAL
-                </p>
-                <p className="sm:text-3xl text-xl font-black text-primary mt-1">
-                  Rp {priceRange}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {product.variants?.length || 0} varian
-                </p>
-              </div>
-            </div>
-
-            {/* Variants List */}
-            {product.variants && product.variants.length > 0 ? (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Layers className="h-4 w-4 text-primary" />
-                  <p className="font-semibold text-sm">Varian Produk</p>
-                </div>
-                <div className="space-y-3">
-                  {product.variants.map((v) => {
-                    const margin = calculateVariantMargin(
-                      v,
-                      product.averageCost,
-                    );
-                    return (
-                      <div
-                        key={v.id}
-                        className="relative group bg-muted/30 hover:bg-muted/50 rounded-3xl p-4 border border-border/50 hover:border-primary/20 transition-all duration-300"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <p className="font-bold uppercase text-sm sm:text-base text-foreground group-hover:text-primary transition-colors">
-                              {v.name}
-                            </p>
-                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground bg-background/50 w-fit px-2 py-0.5 rounded-full border border-border/50">
-                              <Layers className="h-3 w-3" />
-                              <span>
-                                1 = {v.conversionToBase} {product.unit?.name}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="text-right">
-                            <div className="flex flex-col items-end">
-                              <span className="text-[9px] sm:text-[10px] uppercase font-black tracking-tighter text-muted-foreground/60 leading-none mb-1">
-                                Harga Jual
-                              </span>
-                              <p className="text-lg sm:text-xl font-black text-primary tracking-tighter leading-none">
-                                Rp {Number(v.sellPrice).toLocaleString("id-ID")}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Stok per unit varian */}
-                        <div className="mt-3 pt-3 border-t border-border/30 flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">
-                              Stok Tersedia
-                            </span>
-                          </div>
-                          <span
-                            className={cn(
-                              "text-xs sm:text-sm font-black",
-                              Math.floor(
-                                stockNum / Number(v.conversionToBase),
-                              ) < 1
-                                ? "text-destructive"
-                                : "text-foreground",
-                            )}
-                          >
-                            {Math.floor(stockNum / Number(v.conversionToBase))}{" "}
-                            <span className="text-[10px] font-medium text-muted-foreground">
-                              unit
-                            </span>
-                          </span>
-                        </div>
-
-                        {isSystemAdmin && margin.hpp > 0 && (
-                          <div className="mt-4 pt-3 border-t border-dashed border-border/60 flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-2">
-                              <div className="p-1.5 bg-background rounded-xl border border-border/50">
-                                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="text-[9px] uppercase font-bold text-muted-foreground/70 leading-none">
-                                  Modal (HPP)
-                                </span>
-                                <span className="text-xs font-mono font-bold text-foreground">
-                                  Rp {margin.formattedHpp}
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <div className="flex flex-col items-end">
-                                <span className="text-[9px] uppercase font-bold text-muted-foreground/70 leading-none mb-1">
-                                  Keuntungan
-                                </span>
-                                <Badge
-                                  variant={
-                                    margin.isProfitable
-                                      ? "default"
-                                      : "destructive"
-                                  }
-                                  className={cn(
-                                    "h-6 px-2 text-[10px] font-black rounded-lg gap-1 border",
-                                    margin.isProfitable
-                                      ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20 shadow-none"
-                                      : "bg-red-500/10 text-red-600 hover:bg-red-500/20 border-red-500/20 shadow-none",
-                                  )}
-                                >
-                                  {margin.isProfitable ? (
-                                    <TrendingUp className="h-3 w-3" />
-                                  ) : (
-                                    <AlertCircle className="h-3 w-3" />
-                                  )}
-                                  {margin.marginPercent.toFixed(0)}%
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 bg-muted/30 rounded-2xl">
-                <Package className="h-10 w-10 mx-auto text-muted-foreground/40" />
-                <p className="text-sm text-muted-foreground mt-2">
-                  Tidak ada varian tambahan
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Auditor Log Sheet */}
-        {/* <Sheet open={showHistory} onOpenChange={setShowHistory}>
-          <SheetContent
-            side="right"
-            className="w-full sm:max-w-md p-0 flex flex-col"
-          >
-            <SheetHeader className="p-6 border-b shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <History className="h-5 w-5 text-primary" />
-                </div>
-                <SheetTitle>Riwayat Perubahan</SheetTitle>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Log riwayat untuk {product.name}
-              </p>
-            </SheetHeader>
-            <div className="flex-1 overflow-y-auto px-6 py-4">
-              <ProductAuditLogTab productId={product.id} />
-            </div>
-          </SheetContent>
-        </Sheet> */}
-
-        {/* Action Buttons - shrink-0 agar tidak ikut flex */}
-        <div className="border-t p-4 flex flex-row gap-2 bg-muted/50 shrink-0">
-          {isSystemAdmin && onAdjust && (
-            <Button
-              variant="outline"
-              className="flex-1 rounded-2xl"
-              onClick={() => {
-                onAdjust(product);
-                onOpenChange(false);
-              }}
-            >
-              <PackagePlus className="mr-2 h-4 w-4" />
-              <p className="hidden sm:block">Atur Stok</p>
-              <p className="sm:hidden">Stok</p>
-            </Button>
-          )}
-          {isSystemAdmin && onEdit && (
-            <Button
-              className="flex-1 rounded-2xl"
-              onClick={() => {
-                onEdit(product.id);
-                onOpenChange(false);
-              }}
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              <p className="hidden sm:block">Edit Produk</p>
-              <p className="sm:hidden">Edit</p>
-            </Button>
-          )}
-          {isSystemAdmin && onDelete && (
-            <Button
-              variant="destructive"
-              className="rounded-2xl px-6"
-              onClick={handleDeleteClick}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Hapus
-            </Button>
-          )}
-        </div>
+        <ProductDetailContent
+          product={product}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onAdjust={onAdjust}
+          handleDeleteClick={handleDeleteClick}
+          onRequestClose={() => onOpenChange(false)}
+          isSystemAdmin={isSystemAdmin}
+          TitleComponent={DialogTitle}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -409,6 +427,7 @@ export function ProductCard({
   onAdjust,
   isSystemAdmin = false,
 }: ProductCardProps) {
+  const isMobile = useIsMobile();
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -458,6 +477,7 @@ export function ProductCard({
         onDelete={onDelete}
         onAdjust={onAdjust}
         isSystemAdmin={isSystemAdmin}
+        useMobileSheet={isMobile}
       />
 
       <Card className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50">

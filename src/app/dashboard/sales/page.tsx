@@ -390,36 +390,47 @@ function SalesContent() {
               />
               <div className="flex gap-2">
                 <FilterWrap hasActiveFilters={hasActiveAdvancedFilters}>
-                  <div className="space-y-3">
-                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Riwayat Penjualan
-                    </div>
-                    <SalesFilterForm
-                      dateRange={saleList.dateRange}
-                      setDateRange={saleList.setDateRange}
-                      status={saleList.status}
-                      setStatus={saleList.setStatus}
-                      customerId={saleList.customerId}
-                      setCustomerId={saleList.setCustomerId}
-                      setPage={saleList.setPage}
-                      resetFilters={saleList.resetFilters}
-                      isDropdown
-                    />
+                  <Tabs defaultValue="sales" className="space-y-3">
+                    <TabsList className="grid w-full grid-cols-2 p-0.5 bg-muted/40 border border-border/30 shadow-none">
+                      <TabsTrigger
+                        value="sales"
+                        className="text-xs cursor-pointer font-medium rounded-sm h-7 transition-all data-[state=active]:bg-background data-[state=active]:shadow-none data-[state=active]:border data-[state=active]:border-border/50"
+                      >
+                        Riwayat Penjualan
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="debts"
+                        className="text-xs cursor-pointer font-medium rounded-sm h-7 transition-all data-[state=active]:bg-background data-[state=active]:shadow-none data-[state=active]:border data-[state=active]:border-border/50"
+                      >
+                        Piutang
+                      </TabsTrigger>
+                    </TabsList>
 
-                    <Separator />
+                    <TabsContent value="sales" className="mt-0">
+                      <SalesFilterForm
+                        dateRange={saleList.dateRange}
+                        setDateRange={saleList.setDateRange}
+                        status={saleList.status}
+                        setStatus={saleList.setStatus}
+                        customerId={saleList.customerId}
+                        setCustomerId={saleList.setCustomerId}
+                        setPage={saleList.setPage}
+                        resetFilters={saleList.resetFilters}
+                        isDropdown
+                      />
+                    </TabsContent>
 
-                    <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Piutang
-                    </div>
-                    <DebtFilterForm
-                      status={debtStatusFilter}
-                      setStatus={setDebtStatusFilter}
-                      customerId={debtCustomerId}
-                      setCustomerId={setDebtCustomerId}
-                      resetFilters={resetDebtFilters}
-                      isDropdown
-                    />
-                  </div>
+                    <TabsContent value="debts" className="mt-0">
+                      <DebtFilterForm
+                        status={debtStatusFilter}
+                        setStatus={setDebtStatusFilter}
+                        customerId={debtCustomerId}
+                        setCustomerId={setDebtCustomerId}
+                        resetFilters={resetDebtFilters}
+                        isDropdown
+                      />
+                    </TabsContent>
+                  </Tabs>
                 </FilterWrap>
                 <ViewModeSwitch value={viewMode} onChange={setViewMode} />
               </div>

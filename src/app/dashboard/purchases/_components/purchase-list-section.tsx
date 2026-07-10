@@ -22,7 +22,6 @@ import {
 } from "../_types/purchase-type";
 import { PurchaseCard, PurchaseRow } from "./_ui/purchase-row";
 import { useState } from "react";
-import { Separator } from "@/components/ui/separator";
 import { FilterWrap } from "@/components/filter-wrap";
 import { PurchaseFilterForm } from "./_ui/purchase-filter-form";
 import {
@@ -47,6 +46,10 @@ export function PurchaseListSection({
   setLimit: injectedSetLimit,
   searchInput: injectedSearchInput,
   setSearchInput: injectedSetSearchInput,
+  dateRange: injectedDateRange,
+  setDateRange: injectedSetDateRange,
+  supplierId: injectedSupplierId,
+  setSupplierId: injectedSetSupplierId,
   orderBy: injectedOrderBy,
   setOrderBy: injectedSetOrderBy,
   order: injectedOrder,
@@ -70,6 +73,10 @@ export function PurchaseListSection({
   const setLimit = injectedSetLimit ?? internalData.setLimit;
   const searchInput = injectedSearchInput ?? internalData.searchInput;
   const setSearchInput = injectedSetSearchInput ?? internalData.setSearchInput;
+  const dateRange = injectedDateRange ?? internalData.dateRange;
+  const setDateRange = injectedSetDateRange ?? internalData.setDateRange;
+  const supplierId = injectedSupplierId ?? internalData.supplierId;
+  const setSupplierId = injectedSetSupplierId ?? internalData.setSupplierId;
   const orderBy = injectedOrderBy ?? internalData.orderBy;
   const setOrderBy = injectedSetOrderBy ?? internalData.setOrderBy;
   const order = injectedOrder ?? internalData.order;
@@ -105,7 +112,7 @@ export function PurchaseListSection({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-3 bg-background rounded-md">
         <SearchInput
-          placeholder="Cari No. Transaksi atau Supplier..."
+          placeholder="Cari No. Transaksi..."
           value={searchInput}
           onChange={setSearchInput}
         />
@@ -117,6 +124,10 @@ export function PurchaseListSection({
               setOrderBy={setOrderBy}
               order={order}
               setOrder={setOrder}
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              supplierId={supplierId}
+              setSupplierId={setSupplierId}
               setPage={setPage}
               resetFilters={resetFilters}
               isDropdown

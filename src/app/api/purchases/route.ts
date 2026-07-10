@@ -23,6 +23,10 @@ import { handleApiError } from "@/lib/api-utils";
 export async function GET(request: NextRequest) {
   try {
     const params = parsePagination(request);
+    const searchParams = request.nextUrl.searchParams;
+    const supplierId = searchParams.get("supplierId");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
     const { searchOrder } = getSearchAndOrderBasic(
       params.search,
       params.order,
@@ -32,10 +36,31 @@ export async function GET(request: NextRequest) {
 
     let searchFilter = undefined;
     if (params.search) {
-      searchFilter = sql`(${purchaseOrders.orderNumber} ILIKE ${`%${params.search}%`} OR EXISTS (
-        SELECT 1 FROM suppliers WHERE suppliers.id = ${purchaseOrders.supplierId} AND suppliers.name ILIKE ${`%${params.search}%`}
-      ))`;
+      searchFilter = sql`${purchaseOrders.orderNumber} ILIKE ${`%${params.search}%`}`;
     }
+
+    const dateFilters = [];
+    if (startDate) {
+      dateFilters.push(
+        sql`${purchaseOrders.createdAt}::date >= ${startDate}::date`,
+      );
+    }
+    if (endDate) {
+      dateFilters.push(
+        sql`${purchaseOrders.createdAt}::date <= ${endDate}::date`,
+      );
+    }
+
+    const supplierFilter = supplierId
+      ? eq(purchaseOrders.supplierId, Number(supplierId))
+      : undefined;
+
+    const purchaseFilter = and(
+      searchFilter,
+      supplierFilter,
+      ...dateFilters,
+      not(purchaseOrders.isArchived),
+    );
 
     const now = new Date();
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -59,7 +84,7 @@ export async function GET(request: NextRequest) {
       todayItemsQtyRes,
     ] = await Promise.all([
       db.query.purchaseOrders.findMany({
-        where: and(searchFilter, not(purchaseOrders.isArchived)),
+        where: purchaseFilter,
         with: {
           supplier: {
             columns: {
@@ -82,6 +107,17 @@ export async function GET(request: NextRequest) {
                   image: true,
                   lastPurchaseCost: true,
                 },
+                with: {
+                  variants: {
+                    columns: {
+                      id: true,
+                      name: true,
+                      sku: true,
+                      conversionToBase: true,
+                      sellPrice: true,
+                    },
+                  },
+                },
               },
               productVariant: {
                 columns: {
@@ -101,7 +137,7 @@ export async function GET(request: NextRequest) {
       db
         .select({ count: sql<number>`count(*)` })
         .from(purchaseOrders)
-        .where(and(searchFilter, not(purchaseOrders.isArchived))),
+        .where(purchaseFilter),
 
       // Total Purchases This Month
       db
@@ -244,8 +280,8 @@ export async function POST(request: NextRequest) {
         const newAvgCost =
           currentStock > 0
             ? (currentStock * currentAvgCost +
-                qtyInBaseUnit * pricePerBaseUnit) /
-              newStock
+              qtyInBaseUnit * pricePerBaseUnit) /
+            newStock
             : pricePerBaseUnit;
 
         // Update Produk (Stok & HPP)

@@ -24,11 +24,12 @@ import { SalesReportResponse } from "@/services/reportService";
 import { ReportPieChart } from "./report-pie-chart";
 import { formatCurrency } from "@/lib/format";
 import { ChartAreaInteractive } from "@/components/chart-area-interactive";
+import { ChartAreaSingle } from "@/components/chart-area-single";
 
 interface SalesSectionProps {
   data: SalesReportResponse | undefined;
   isLoading: boolean;
-  dailyData: { date: string; [key: string]: number | string }[];
+  dailyData: { date: string;[key: string]: number | string }[];
 }
 
 export function SalesSection({
@@ -119,13 +120,14 @@ export function SalesSection({
       </div>
 
       {/* Layer 2: Sales Trend (New) */}
-      <ChartAreaInteractive
+
+      <ChartAreaSingle
         title="Tren Pendapatan Penjualan"
         description="Statistik omset penjualan harian"
         data={dailyData}
-        config={{
-          totalSales: { label: "Penjualan", color: "var(--primary)" },
-        }}
+        dataKey="totalSales"
+        label="Penjualan"
+        color="var(--primary)"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -217,31 +219,31 @@ export function SalesSection({
                 <TableBody>
                   {isLoading
                     ? [...Array(3)].map((_, i) => (
-                        <TableRow key={i}>
-                          <TableCell colSpan={3} className="py-4 px-6">
-                            <Skeleton className="h-5 w-full" />
-                          </TableCell>
-                        </TableRow>
-                      ))
+                      <TableRow key={i}>
+                        <TableCell colSpan={3} className="py-4 px-6">
+                          <Skeleton className="h-5 w-full" />
+                        </TableCell>
+                      </TableRow>
+                    ))
                     : topCategories.map((cat, idx) => (
-                        <TableRow
-                          key={cat.categoryId}
-                          className="hover:bg-muted/10"
-                        >
-                          <TableCell className="py-3 pl-6 font-medium">
-                            <span className="mr-2 text-xs font-bold text-muted-foreground">
-                              {idx + 1}.
-                            </span>
-                            {cat.categoryName}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            {cat.qtySold}
-                          </TableCell>
-                          <TableCell className="text-right pr-6 font-bold tabular-nums">
-                            {formatCurrency(cat.revenue)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      <TableRow
+                        key={cat.categoryId}
+                        className="hover:bg-muted/10"
+                      >
+                        <TableCell className="py-3 pl-6 font-medium">
+                          <span className="mr-2 text-xs font-bold text-muted-foreground">
+                            {idx + 1}.
+                          </span>
+                          {cat.categoryName}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {cat.qtySold}
+                        </TableCell>
+                        <TableCell className="text-right pr-6 font-bold tabular-nums">
+                          {formatCurrency(cat.revenue)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </CardContent>

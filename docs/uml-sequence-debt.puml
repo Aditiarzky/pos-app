@@ -1,10 +1,10 @@
-@startuml
+@startuml Debt_Management_Sequence
 autonumber
 
 skinparam BoxPadding 5
 skinparam ParticipantPadding 8
-skinparam defaultFontSize 16
-skinparam maxMessageSize 300
+skinparam defaultFontSize 12
+skinparam maxMessageSize 140
 skinparam sequenceMessageAlign center
 
 actor "Admin Sistem /\nAdmin Toko" as Admin
@@ -17,23 +17,23 @@ database "sales" as s
 == 1. Pembayaran dari Daftar Hutang ==
 Admin -> UI : Pilih pelanggan & list hutang
 UI -> Ctrl : Fetch hutang aktif
-Ctrl -> d : SELECT debts (remainingAmount, status)
+Ctrl -> d : SELECT debts\n(remainingAmount, status)
 Ctrl --> UI : List hutang pelanggan
 
 Admin -> UI : Pilih hutang & input nominal
 UI -> Ctrl : Proses pembayaran
 activate Ctrl
 
-Ctrl -> d : Hitung: remainingAmount - nominal
+Ctrl -> d : Hitung:\nremainingAmount - nominal
 
 alt Lunas (nominal >= remainingAmount)
-    Ctrl -> dp : Insert debt_payments (paymentAmount)
-    Ctrl -> d : UPDATE remainingAmount = 0, status = paid
-    Ctrl -> s : UPDATE status = completed (jika ada sale terkait)
+    Ctrl -> dp : Insert debt_payments\n(paymentAmount)
+    Ctrl -> d : UPDATE remainingAmount = 0,\nstatus = paid
+    Ctrl -> s : UPDATE status = completed\n(jika ada sale terkait)
     note right: Transaksi = completed, hutang = paid
 else Cicilan (nominal < remainingAmount)
-    Ctrl -> dp : Insert debt_payments (paymentAmount)
-    Ctrl -> d : UPDATE remainingAmount -= nominal, status = partial
+    Ctrl -> dp : Insert debt_payments\n(paymentAmount)
+    Ctrl -> d : UPDATE remainingAmount -= nominal,\nstatus = partial
     note right: Transaksi tetap pending_payment, hutang = partial
 end
 
@@ -47,15 +47,15 @@ Admin -> UI : Proses penjualan, ada kembalian
 UI -> Ctrl : Request penjualan + bayar hutang
 activate Ctrl
 
-Ctrl -> s : Insert sales, proses item & stok
-Ctrl -> Ctrl : Hitung kembalian (totalPaid + balanceUsed - totalSale)
+Ctrl -> s : Insert sales,\nproses item & stok
+Ctrl -> Ctrl : Hitung kembalian\n(totalPaid+balanceUsed-totalSale)
 
 alt Kembalian > 0 & shouldPayOldDebt
-    Ctrl -> d : Fetch hutang aktif pelanggan (urut tertua)
+    Ctrl -> d : Fetch hutang aktif\npelanggan (urut tertua)
     loop Per Hutang Aktif
-        Ctrl -> d : payAmount = min(remainingAmount, sisaKembalian)
-        Ctrl -> dp : Insert debt_payments (payAmount, note: auto)
-        Ctrl -> d : UPDATE remainingAmount -= payAmount
+        Ctrl -> d : payAmount = min\n(remainingAmount,\nsisaKembalian)
+        Ctrl -> dp : Insert debt_payments\n(payAmount, note: auto)
+        Ctrl -> d : UPDATE remainingAmount\n-= payAmount
         alt remainingAmount = 0
             Ctrl -> d : UPDATE status = paid
             Ctrl -> s : UPDATE status = completed

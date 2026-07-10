@@ -106,9 +106,10 @@ export function NotificationPanel() {
   const unreadCount = notificationsQuery.data?.data?.unreadCount || 0;
   const readCount = notifications.filter((item) => isNotificationRead(item)).length;
 
-  // Panel selalu tampilkan berdasarkan waktu terbaru (createdAt)
+  // Panel selalu tampilkan berdasarkan waktu terbaru (createdAt) dan hanya menampilkan notifikasi yang belum terbaca
   const latestNotifications = useMemo(() => {
-    return [...notifications]
+    return notifications
+      .filter((notification) => !isNotificationRead(notification))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
       .slice(0, POPOVER_MAX_ITEMS);
   }, [notifications]);
@@ -209,7 +210,7 @@ export function NotificationPanel() {
               <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
                 <Bell className="h-6 w-6 opacity-20" />
               </div>
-              <p className="text-xs text-muted-foreground font-medium">Belum ada pemberitahuan.</p>
+              <p className="text-xs text-muted-foreground font-medium">Belum ada pemberitahuan baru.</p>
             </div>
           ) : (
             <div className="divide-y divide-primary/5">

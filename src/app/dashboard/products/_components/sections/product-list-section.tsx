@@ -343,7 +343,42 @@ export function ProductListSection({
 
       {/* SEMUA PRODUK SECTION */}
       <section className="space-y-4">
-        <h2 className="text-xl font-semibold tracking-tight">Semua produk</h2>
+        <div className="flex items-start gap-3 justify-start md:justify-between w-full md:flex-row flex-col">
+          <h2 className="text-xl font-semibold tracking-tight shrink-0">
+            Semua produk
+          </h2>
+          {/* Category filter chips — YouTube style */}
+          {categories.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1 w-full md:w-auto scrollbar-hide -mx-1 px-1">
+              <button
+                type="button"
+                onClick={() => setCategoryFilter("all")}
+                className={`cursor-pointer shrink-0 h-8 px-3.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap border ${
+                  categoryFilter === "all"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "text-foreground border-border hover:bg-muted"
+                }`}
+              >
+                Semua
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setCategoryFilter(String(cat.id))}
+                  className={`cursor-pointer shrink-0 h-8 px-3.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap border ${
+                    categoryFilter === String(cat.id)
+                      ? "bg-primary/20 text-primary border-primary/80"
+                      : "text-foreground border-border hover:bg-muted"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {showInitialSkeleton ? (
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-4">
             {Array.from({ length: 8 }).map((_, i) => (

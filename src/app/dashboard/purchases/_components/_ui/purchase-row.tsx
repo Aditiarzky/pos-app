@@ -35,61 +35,59 @@ export const PurchaseRow = ({
   const itemCount = purchase?.items?.length || 0;
 
   return (
-    <TableRow className="hover:bg-muted/30 transition-colors border-b border-border/30 last:border-none group">
-      <TableCell className="text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
+    <TableRow className="group border-b border-border/30 transition-colors hover:bg-muted/30 last:border-none">
+      <TableCell className="px-2 py-2 text-[12px] font-semibold text-muted-foreground sm:px-4 sm:text-xs">
         {idx}
       </TableCell>
-      <TableCell className="font-mono text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-bold text-primary">
+      <TableCell className="px-2 py-2 font-mono text-[12px] font-bold text-primary sm:px-4 sm:text-sm">
         {purchase.orderNumber}
         {purchase.isArchived && (
-          <Badge variant="destructive" className="text-[10px] ml-2">
+          <Badge variant="destructive" className="ml-2 text-[10px]">
             Archived
           </Badge>
         )}
       </TableCell>
-      <TableCell className="text-center text-[12px] sm:text-xs px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
+      <TableCell className="px-2 py-2 text-center text-[12px] font-semibold text-muted-foreground sm:px-4 sm:text-xs">
         {purchase.createdAt ? formatDate(purchase.createdAt) : "-"}
       </TableCell>
-      <TableCell className="px-2 sm:px-4 py-2">
+      <TableCell className="px-2 py-2">
         <div className="font-semibold">{purchase.supplier?.name || "-"}</div>
       </TableCell>
 
-      {/* Popover Items (Popup) */}
-      <TableCell className="px-2 sm:px-4 py-2">
+      <TableCell className="px-2 py-2">
         <Popover>
           <PopoverTrigger asChild>
             <Button
               variant="ghost"
-              className="text-sm font-medium text-primary hover:bg-transparent hover:underline h-auto py-1 px-2 -ml-2"
+              className="h-auto -ml-2 px-2 py-1 text-sm font-medium text-primary hover:bg-transparent hover:underline"
             >
               {itemCount} item{itemCount !== 1 ? "s" : ""}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80" align="start" sideOffset={4}>
             <div className="space-y-3">
-              <div className="font-semibold text-sm">Daftar Item Pembelian</div>
-              <div className="space-y-2 text-sm max-h-[240px] overflow-y-auto pr-1">
+              <div className="text-sm font-semibold">Daftar Item Pembelian</div>
+              <div className="max-h-[240px] space-y-2 overflow-y-auto pr-1 text-sm">
                 {purchase?.items?.slice(0, 3).map((item) => (
                   <div
                     key={item.id}
-                    className="flex justify-between border-l-2 border-primary/20 pl-3 py-1"
+                    className="flex justify-between border-l-2 border-primary/20 py-1 pl-3"
                   >
                     <div className="flex-1">
                       <span className="font-medium">
                         {item?.product?.name || "Unknown Product"}
                       </span>
-                      <span className="text-muted-foreground ml-1">
+                      <span className="ml-1 text-muted-foreground">
                         ({item?.productVariant?.name || "-"})
                       </span>
                     </div>
-                    <div className="text-right whitespace-nowrap font-mono">
-                      {item?.qty ?? 0} ×{" "}
-                      {formatCurrency(Number(item?.price ?? 0))}
+                    <div className="whitespace-nowrap font-mono text-right">
+                      {item?.qty ?? 0} x {formatCurrency(Number(item?.price ?? 0))}
                     </div>
                   </div>
                 ))}
                 {itemCount > 3 && (
-                  <div className="text-xs text-muted-foreground pt-2 border-t italic">
+                  <div className="border-t pt-2 text-xs italic text-muted-foreground">
                     + {itemCount - 3} item lainnya...
                   </div>
                 )}
@@ -99,13 +97,13 @@ export const PurchaseRow = ({
         </Popover>
       </TableCell>
 
-      <TableCell className="text-right font-black text-primary text-[12px] sm:text-base px-2 sm:px-4 py-2">
+      <TableCell className="px-2 py-2 text-right text-[12px] font-black text-primary sm:px-4 sm:text-base">
         {formatCurrency(Number(purchase.total))}
       </TableCell>
-      <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
+      <TableCell className="px-2 py-2 text-[12px] font-semibold text-muted-foreground sm:px-4 sm:text-sm">
         {purchase.user?.name || "-"}
       </TableCell>
-      <TableCell className="text-right px-2 sm:px-4 py-2">
+      <TableCell className="px-2 py-2 text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -138,87 +136,80 @@ export const PurchaseCard = ({
   const itemCount = purchase?.items?.length || 0;
 
   return (
-    <Card className="group py-0 overflow-hidden gap-0 hover:shadow-lg transition-all duration-300 flex flex-col h-full border-muted/50">
-      {/* Header — tinggi otomatis mengikuti konten (dulu fixed h-20/h-24,
-          itu penyebab teks tertimpa saat konten lebih tinggi dari itu) */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-2.5 sm:p-4 flex flex-col gap-1.5">
-        <div className="flex justify-between items-start gap-1.5">
+    <Card className="group flex h-full flex-col gap-0 overflow-hidden border-muted/50 py-0 transition-all duration-300 hover:shadow-lg">
+      <div className="relative flex flex-col gap-1.5 overflow-hidden bg-gradient-to-br from-primary/10 to-primary/5 p-2.5 sm:p-4">
+        <div className="flex items-start justify-between gap-1.5">
           <div className="min-w-0 flex-1">
-            <div className="font-mono font-bold text-primary text-xs sm:text-lg truncate">
+            <div className="truncate font-mono text-xs font-bold text-primary sm:text-lg">
               {purchase.orderNumber}
             </div>
-            <div className="text-[10px] sm:text-xs text-muted-foreground font-medium truncate">
+            <div className="truncate text-[10px] font-medium text-muted-foreground sm:text-xs">
               {purchase.createdAt ? formatDate(purchase.createdAt) : "-"}
             </div>
           </div>
           {purchase.isArchived && (
             <Badge
               variant="destructive"
-              className="text-[9px] sm:text-[10px] shrink-0 shadow-sm px-1.5"
+              className="shrink-0 px-1.5 text-[9px] shadow-sm sm:text-[10px]"
             >
               Archived
             </Badge>
           )}
         </div>
-        <div className="text-[10px] sm:text-xs text-muted-foreground font-medium truncate">
-          Dicatat:{" "}
-          <span className="text-foreground">
-            {purchase.user?.name || "-"}
-          </span>
+        <div className="truncate text-[10px] font-medium text-muted-foreground sm:text-xs">
+          Supplier:{" "}
+          <span className="text-foreground">{purchase.supplier?.name || "-"}</span>
         </div>
       </div>
 
-      <CardContent className="p-2.5 sm:p-4 flex-1 flex flex-col gap-2.5 sm:gap-4">
-        {/* Total & Supplier — ditumpuk di layar sempit (2 kolom mobile
-            membuat tiap card sangat sempit), sejajar mulai breakpoint sm */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 border-b pb-2.5 sm:pb-4 border-dashed">
+      <CardContent className="flex flex-1 flex-col gap-2.5 p-2.5 sm:gap-4 sm:p-4">
+        <div className="grid grid-cols-1 gap-2 border-b border-dashed pb-2.5 sm:grid-cols-2 sm:gap-3 sm:pb-4">
           <div className="min-w-0">
-            <span className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
+            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground sm:text-xs">
               Total
             </span>
-            <div className="text-sm sm:text-2xl font-black text-primary tracking-tight truncate">
+            <div className="truncate text-sm font-black tracking-tight text-primary sm:text-2xl">
               {formatCurrency(Number(purchase.total))}
             </div>
           </div>
           <div className="min-w-0 sm:text-right">
-            <span className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
-              Supplier
+            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground sm:text-xs">
+              Dicatat Oleh
             </span>
-            <div className="font-semibold text-[11px] sm:text-sm truncate">
-              {purchase.supplier?.name || "-"}
+            <div className="truncate text-[11px] font-semibold sm:text-sm">
+              {purchase.user?.name || "-"}
             </div>
           </div>
         </div>
 
-        {/* Items Summary */}
-        <div className="space-y-1.5 sm:space-y-2 flex-1 min-w-0">
-          <div className="text-[10px] sm:text-xs font-medium text-muted-foreground">
+        <div className="min-w-0 flex-1 space-y-1.5 sm:space-y-2">
+          <div className="text-[10px] font-medium text-muted-foreground sm:text-xs">
             Items ({itemCount})
           </div>
-          <div className="space-y-1 sm:space-y-1.5 max-h-[90px] sm:max-h-[100px] overflow-y-auto pr-1">
+          <div className="max-h-[90px] space-y-1 overflow-y-auto pr-1 sm:max-h-[100px] sm:space-y-1.5">
             {purchase?.items?.slice(0, 3).map((item) => (
               <div
                 key={item.id}
-                className="flex justify-between gap-1.5 text-[11px] sm:text-xs items-center bg-muted/30 p-1.5 rounded-sm"
+                className="flex items-center justify-between gap-1.5 rounded-sm bg-muted/30 p-1.5 text-[11px] sm:text-xs"
               >
                 <div className="min-w-0 flex-1 truncate">
-                  <span className="text-foreground font-medium">
-                    {item?.product?.name}
+                  <span className="font-medium text-foreground">
+                    {item?.product?.name || "Unknown Product"}
                   </span>
                   {item?.productVariant?.name && (
-                    <span className="text-muted-foreground text-[10px]">
+                    <span className="text-[10px] text-muted-foreground">
                       {" "}
                       ({item.productVariant.name})
                     </span>
                   )}
                 </div>
-                <div className="whitespace-nowrap font-mono text-[9px] sm:text-[10px] shrink-0 text-muted-foreground">
-                  {item.qty}x
+                <div className="shrink-0 whitespace-nowrap font-mono text-[9px] text-muted-foreground sm:text-[10px]">
+                  {item.qty}x {formatCurrency(Number(item.price ?? 0))}
                 </div>
               </div>
             ))}
             {itemCount > 3 && (
-              <div className="text-[9px] sm:text-[10px] text-center text-muted-foreground italic pt-1">
+              <div className="pt-1 text-center text-[9px] italic text-muted-foreground sm:text-[10px]">
                 + {itemCount - 3} item lainnya...
               </div>
             )}
@@ -226,26 +217,31 @@ export const PurchaseCard = ({
         </div>
       </CardContent>
 
-      {/* Footer Actions */}
-      <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 flex justify-between items-center gap-1.5 sm:gap-2 mt-auto">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onView(purchase)}
-          className="h-7 sm:h-8 px-2 sm:px-3 text-[10px] sm:text-xs flex-1"
-        >
-          <Eye className="h-3.5 w-3.5 mr-1 shrink-0" /> Lihat
-        </Button>
-        {canEdit && onEdit && (
+      <div className="mt-auto flex flex-col gap-1.5 border-t bg-muted/30 px-2.5 py-2 sm:px-4 sm:py-3">
+        <div className="grid grid-cols-2 gap-1.5">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            onClick={() => onEdit(purchase)}
-            className="h-7 sm:h-8 px-2 text-amber-600 hover:text-amber-700 hover:bg-amber-600/10 shrink-0"
+            onClick={() => onView(purchase)}
+            className="h-7 min-w-0 px-1.5 text-[10px] sm:h-8 sm:px-3 sm:text-xs"
           >
-            <Pencil className="h-4 w-4" />
+            <Eye className="mr-1 h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">Lihat</span>
           </Button>
-        )}
+          {canEdit && onEdit ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onEdit(purchase)}
+              className="h-7 min-w-0 border-primary/50 px-1.5 text-[10px] text-primary hover:bg-primary/10 dark:text-primary dark:hover:bg-primary/10 sm:h-8 sm:px-3 sm:text-xs"
+            >
+              <Pencil className="mr-1 h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">Data Salah</span>
+            </Button>
+          ) : (
+            <div className="h-7 sm:h-8" />
+          )}
+        </div>
       </div>
     </Card>
   );

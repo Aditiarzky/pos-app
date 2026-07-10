@@ -20,6 +20,7 @@ interface CustomerSelectProps {
   customers?: { id: number; name: string }[];
   placeholder?: string;
   disabled?: boolean;
+  className?: string;
 }
 
 export function CustomerSelect({
@@ -27,6 +28,7 @@ export function CustomerSelect({
   onValueChange,
   customers: propCustomers,
   placeholder = "Pilih Customer...",
+  className,
   disabled,
 }: CustomerSelectProps) {
   const [open, setOpen] = React.useState(false);
@@ -97,7 +99,7 @@ export function CustomerSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between"
+          className={`w-full justify-between ${className || ""}`}
           disabled={disabled || isLoading || createMutation.isPending}
         >
           <span className="truncate">

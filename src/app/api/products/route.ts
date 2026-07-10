@@ -6,8 +6,9 @@ import {
   productVariants,
   categories,
   stockMutations,
+  units,
 } from "@/drizzle/schema";
-import { and, eq, lte, sql, exists } from "drizzle-orm";
+import { and, eq, lte, sql, exists, asc } from "drizzle-orm";
 import {
   ProductVariantInputType,
   validateProductData,
@@ -20,6 +21,7 @@ import {
 import { handleApiError } from "@/lib/api-utils";
 import { getInitial } from "@/lib/utils";
 import { verifySession } from "@/lib/auth";
+import { resolveProductMinStock } from "./_lib/min-stock";
 // import { recordProductAudit } from "./_lib/audit";
 
 export async function GET(request: NextRequest) {
@@ -44,8 +46,8 @@ export async function GET(request: NextRequest) {
       finalFilter = and(
         eq(products.isActive, true),
         sql`(${searchFilter} OR EXISTS (
-                SELECT 1 FROM product_barcodes 
-                WHERE product_barcodes.product_id = ${products.id} 
+                SELECT 1 FROM product_barcodes
+                WHERE product_barcodes.product_id = ${products.id}
                 AND product_barcodes.barcode ILIKE ${`%${params.search}%`}
             ))`,
       );
@@ -104,6 +106,7 @@ export async function GET(request: NextRequest) {
               sellPrice: true,
             },
             with: { unit: { columns: { id: true, name: true } } },
+            orderBy: asc(productVariants.conversionToBase),
           },
         },
         orderBy: searchOrder,
@@ -197,9 +200,14 @@ export async function POST(request: NextRequest) {
       const prodCode = getInitial(productData.name);
 
       // 1. Insert Product
+      const resolvedMinStock = resolveProductMinStock(
+        productData.minStock,
+        variants ?? [],
+      );
+
       const [newProduct] = await tx
         .insert(products)
-        .values({ ...productData, sku: "TEMP-SKU" })
+        .values({ ...productData, minStock: resolvedMinStock, sku: "TEMP-SKU" })
         .returning();
 
       const parentSku = `${catCode}-${prodCode}-${newProduct.id}`;
@@ -226,22 +234,26 @@ export async function POST(request: NextRequest) {
       }
 
       // 3. Insert Variants
-      let newVariants: ProductVariantInputType[] = [];
+      const newVariants: ProductVariantInputType[] = [];
       if (variants?.length) {
-        newVariants = await tx
-          .insert(productVariants)
-          .values(
-            variants.map((v: ProductVariantInputType) => {
-              const dbVal = { ...v };
-              delete dbVal.referenceVariantIndex;
-              return {
-                ...dbVal,
-                productId: newProduct.id,
-                sku: `${parentSku}-${v.unitId}-${v.conversionToBase}`,
-              };
-            }),
-          )
-          .returning();
+        // Insert satu per satu agar bisa query nama unit untuk SKU
+        for (const v of variants) {
+          const unit = await tx.query.units.findFirst({
+            where: eq(units.id, v.unitId),
+          });
+          const unitCode = (unit?.name || String(v.unitId)).toUpperCase();
+          const dbVal = { ...v };
+          delete dbVal.referenceVariantIndex;
+          const [inserted] = await tx
+            .insert(productVariants)
+            .values({
+              ...dbVal,
+              productId: newProduct.id,
+              sku: `${parentSku}-${unitCode}-${v.conversionToBase}`,
+            })
+            .returning();
+          newVariants.push(inserted);
+        }
 
         // Update conversionReferenceVariantId based on referenceVariantIndex
         console.log(

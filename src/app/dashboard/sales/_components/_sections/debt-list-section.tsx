@@ -69,6 +69,10 @@ export function DebtListSection({
     0,
   );
 
+  if (totalDebt === 0) {
+    return null;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col md:flex-row md:items-center gap-2 justify-between">
@@ -153,56 +157,70 @@ export function DebtListSection({
           {activeDebts.map((debt) => (
             <div
               key={debt.id}
-              className="p-2.5 sm:p-4 bg-background rounded-xl border border-destructive/10 shadow-sm hover:shadow-md transition-all space-y-2 sm:space-y-3 relative group"
+              className="bg-background rounded-xl border border-destructive/10 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden group"
             >
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="font-mono text-[10px] sm:text-xs font-bold text-destructive bg-destructive/5 px-2 py-0.5 rounded-full inline-block mb-1">
-                    {debt.sale?.invoiceNumber}
+              {/* Header */}
+              <div className="bg-gradient-to-br from-destructive/10 to-destructive/5 p-2.5 sm:p-4 flex flex-col gap-1.5">
+                <div className="flex justify-between items-start gap-1.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-mono font-bold text-destructive text-xs sm:text-sm truncate">
+                      {debt.sale?.invoiceNumber}
+                    </div>
+                    <div className="text-[10px] sm:text-xs text-muted-foreground font-medium truncate">
+                      {formatDate(debt.createdAt)}
+                    </div>
                   </div>
-                  <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    {formatDate(debt.createdAt)}
+                  <div className="shrink-0">
+                    <Badge
+                      variant={debt.status === "partial" ? "secondary" : "destructive"}
+                      className="text-[9px] sm:text-xs"
+                    >
+                      {getStatusName(debt.status)}
+                    </Badge>
                   </div>
                 </div>
-                <Badge
-                  variant={
-                    debt.status === "partial" ? "secondary" : "destructive"
-                  }
-                  className="text-[10px]"
-                >
-                  {getStatusName(debt.status)}
-                </Badge>
               </div>
 
-              <div>
-                <div className="text-xs sm:text-sm font-bold truncate">
-                  {debt.customer?.name || "-"}
-                </div>
-                <div className="flex justify-between items-end mt-2">
-                  <div className="grid gap-0.5">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+              {/* Body */}
+              <div className="p-2.5 sm:p-4 flex-1 flex flex-col gap-2.5 sm:gap-3">
+                {/* Sisa Tagihan & Customer */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 border-b pb-2.5 sm:pb-3 border-dashed">
+                  <div className="min-w-0">
+                    <span className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
                       Sisa Tagihan
                     </span>
-                    <span className="text-sm sm:text-lg font-black text-destructive tabular-nums">
+                    <div className="text-sm sm:text-xl font-black text-destructive tracking-tight truncate tabular-nums">
                       {formatCurrency(Number(debt.remainingAmount))}
-                    </span>
+                    </div>
                   </div>
-                  <Button
-                    size="sm"
-                    className="h-7 sm:h-8 bg-destructive hover:bg-destructive/90 text-[10px] sm:text-xs font-bold px-2.5 sm:px-4"
-                    onClick={() => handlePay(debt)}
-                  >
-                    BAYAR
-                  </Button>
+                  <div className="min-w-0 sm:text-right">
+                    <span className="text-[9px] sm:text-xs text-muted-foreground uppercase tracking-wider font-bold">
+                      Customer
+                    </span>
+                    <div className="font-semibold text-[11px] sm:text-sm truncate">
+                      {debt.customer?.name || "-"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total Awal */}
+                <div className="flex justify-between items-center text-[10px] sm:text-xs text-muted-foreground">
+                  <span>Total Awal</span>
+                  <span className="tabular-nums font-medium">
+                    {formatCurrency(Number(debt.originalAmount))}
+                  </span>
                 </div>
               </div>
 
-              {/* Original Amount Indicator */}
-              <div className="text-[10px] text-muted-foreground pt-2 border-t border-dashed flex justify-between">
-                <span>Total Awal:</span>
-                <span className="tabular-nums">
-                  {formatCurrency(Number(debt.originalAmount))}
-                </span>
+              {/* Footer Action */}
+              <div className="px-2.5 sm:px-4 py-2 sm:py-3 border-t bg-muted/30 mt-auto">
+                <Button
+                  size="sm"
+                  className="h-7 sm:h-8 w-full bg-destructive hover:bg-destructive/90 text-[10px] sm:text-xs font-bold"
+                  onClick={() => handlePay(debt)}
+                >
+                  BAYAR
+                </Button>
               </div>
             </div>
           ))}

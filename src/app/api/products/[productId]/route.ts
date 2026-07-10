@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { and, eq, notInArray } from "drizzle-orm";
+import { and, eq, notInArray, asc } from "drizzle-orm";
 import {
   categories,
   productBarcodes,
@@ -18,6 +18,7 @@ import { variantAdjustmentSchema } from "@/lib/validations/stock-adjustment";
 import { handleApiError } from "@/lib/api-utils";
 import { getInitial } from "@/lib/utils";
 import { verifySession } from "@/lib/auth";
+import { resolveProductMinStock } from "../_lib/min-stock";
 // import { diffProduct, recordProductAudit } from "../_lib/audit";
 
 const STOCK_OPNAME_TIME_ZONE = "Asia/Jakarta";
@@ -67,6 +68,7 @@ export async function GET(
         unit: true,
         variants: {
           where: eq(productVariants.isActive, true),
+          orderBy: asc(productVariants.conversionToBase),
         },
         category: true,
         barcodes: true,
@@ -155,11 +157,16 @@ export async function PUT(
       const catCode = getInitial(category?.name || "NON");
       const prodCode = getInitial(productUpdateData.name || oldProduct.name);
       const newParentSku = `${catCode}-${prodCode}-${idNum}`;
+      const resolvedMinStock = resolveProductMinStock(
+        productUpdateData.minStock,
+        variants ?? oldProduct.variants,
+      );
 
       const [updatedProduct] = await tx
         .update(products)
         .set({
           ...productUpdateData,
+          minStock: resolvedMinStock,
           sku: newParentSku,
         })
         .where(eq(products.id, idNum))
@@ -216,8 +223,8 @@ export async function PUT(
           const unit = await tx.query.units.findFirst({
             where: eq(units.id, v.unitId),
           });
-          const unitCode = unit?.name.toUpperCase();
-          const vSku = `${newParentSku}-${unitCode}-${v.id || v.conversionToBase}`;
+          const unitCode = (unit?.name || String(v.unitId)).toUpperCase();
+          const vSku = `${newParentSku}-${unitCode}-${v.conversionToBase}`;
 
           const dbVal = { ...v };
           delete dbVal.referenceVariantIndex;

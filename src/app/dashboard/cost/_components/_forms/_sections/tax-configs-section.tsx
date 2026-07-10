@@ -83,7 +83,7 @@ export function TaxConfigsSection({ hook }: Props) {
           onChange={setSearch}
         />
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex gap-2 shrink-0">
           <FilterWrap hasActiveFilters={hasActiveFilters}>
             <TaxConfigFilterForm
               isActiveFilter={isActiveFilter}
@@ -93,7 +93,6 @@ export function TaxConfigsSection({ hook }: Props) {
             />
           </FilterWrap>
 
-          <Separator orientation="vertical" className="h-10" />
           <ViewModeSwitch value={viewMode} onChange={setViewMode} />
           <Badge className="h-10 px-4 bg-primary/10 text-primary rounded-lg hidden md:flex items-center gap-2 font-medium">
             <LayoutList className="h-4 w-4" />
@@ -286,7 +285,7 @@ function TaxTable({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => onDelete(tax)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -383,7 +382,7 @@ function TaxCard({
               </div>
             </div>
           </div>
-          <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <div className="flex gap-0.5 transition-opacity shrink-0">
             <Button
               variant="ghost"
               size="icon"
@@ -395,7 +394,7 @@ function TaxCard({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
               onClick={() => onDelete(tax)}
             >
               <Trash2 className="h-3 w-3" />

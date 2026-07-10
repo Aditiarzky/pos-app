@@ -54,6 +54,7 @@ export function useOperationalCostList() {
       description: `Apakah Anda yakin ingin menghapus biaya "${cost.name}"? Tindakan ini tidak bisa dibatalkan.`,
       confirmText: "Ya, Hapus",
       cancelText: "Batal",
+      buttonVariants: "destructive",
     });
 
     if (!ok) return;

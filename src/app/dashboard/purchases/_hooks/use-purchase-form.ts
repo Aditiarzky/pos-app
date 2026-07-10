@@ -89,6 +89,7 @@ export function usePurchaseForm({
           variantName: item.productVariant?.name ?? null,
           image: item.product?.image ?? null,
           lastPurchaseCost: Number(item.product?.lastPurchaseCost || 0),
+          variants: item.product?.variants ?? [],
         })) || [],
     },
   });
@@ -124,6 +125,7 @@ export function usePurchaseForm({
               variantName: item.productVariant?.name ?? null,
               image: item.product?.image ?? null,
               lastPurchaseCost: Number(item.product?.lastPurchaseCost || 0),
+              variants: item.product?.variants ?? [],
             })) || [],
         });
       } else {
@@ -205,6 +207,26 @@ export function usePurchaseForm({
     total,
     isEdit,
     isSubmitting,
-    onSubmit: form.handleSubmit(handleSubmit),
+    // Callback kedua ini nangkep kasus di mana zod nolak submit tapi
+    // errornya nggak punya slot render di UI (mis. error di level `items`
+    // root, bukan di salah satu field per-item) — sebelumnya ini bikin
+    // tombol Simpan/Update kelihatan nggak ngapa-ngapain padahal sebenarnya
+    // form-nya dianggap invalid oleh react-hook-form.
+    onSubmit: form.handleSubmit(handleSubmit, (errors) => {
+
+      const itemsError =
+        errors.items?.message ||
+        (errors.items as { root?: { message?: string } })?.root?.message;
+
+      if (itemsError) {
+        toast.error(itemsError);
+      } else if (errors.supplierId?.message) {
+        toast.error(errors.supplierId.message);
+      } else {
+        toast.error(
+          "Ada data yang belum valid, cek kembali item pembelian (qty & harga).",
+        );
+      }
+    }),
   };
 }

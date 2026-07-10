@@ -7,9 +7,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { CustomerSelect } from "@/components/ui/customer-select";
 import { Label } from "@/components/ui/label";
+import { DateRange } from "react-day-picker";
+import { format, parseISO } from "date-fns";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 interface ReturnFilterFormProps {
   dateRange: { startDate?: string; endDate?: string };
@@ -34,32 +36,28 @@ export const ReturnFilterForm = ({
   resetFilters,
   isDropdown,
 }: ReturnFilterFormProps) => {
+  const selectedRange: DateRange | undefined = {
+    from: dateRange.startDate ? parseISO(dateRange.startDate) : undefined,
+    to: dateRange.endDate ? parseISO(dateRange.endDate) : undefined,
+  };
+
   return (
     <div className="space-y-4 p-1">
       <div className="space-y-2">
         <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Rentang Tanggal
         </Label>
-        <div className="grid grid-cols-2 gap-2">
-          <Input
-            type="date"
-            value={dateRange.startDate || ""}
-            onChange={(e) => {
-              setDateRange({ ...dateRange, startDate: e.target.value });
-              setPage(1);
-            }}
-            className="h-9 text-xs"
-          />
-          <Input
-            type="date"
-            value={dateRange.endDate || ""}
-            onChange={(e) => {
-              setDateRange({ ...dateRange, endDate: e.target.value });
-              setPage(1);
-            }}
-            className="h-9 text-xs"
-          />
-        </div>
+        <DateRangePicker
+          value={selectedRange}
+          onChange={(range) => {
+            setDateRange({
+              startDate: range?.from ? format(range.from, "yyyy-MM-dd") : undefined,
+              endDate: range?.to ? format(range.to, "yyyy-MM-dd") : undefined,
+            });
+            setPage(1);
+          }}
+          buttonClassName="h-9 text-xs bg-muted/50 border-none shadow-none"
+        />
       </div>
 
       <div className="space-y-2">

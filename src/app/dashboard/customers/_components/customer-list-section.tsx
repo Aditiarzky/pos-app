@@ -19,17 +19,6 @@ import { formatCurrency } from "@/lib/format";
 import { toast } from "sonner";
 import { CustomerResponse } from "@/services/customerService";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -43,6 +32,7 @@ import { FilterWrap } from "@/components/filter-wrap";
 import { SearchInput } from "@/components/ui/search-input";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/use-auth";
+import { RelationAwareDeleteDialog } from "@/components/relation-aware-delete-dialog";
 
 interface CustomerListSectionProps {
   searchInput: string;
@@ -72,6 +62,9 @@ export function CustomerListSection({
     null,
   );
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<CustomerResponse | null>(
+    null,
+  );
 
   const deleteMutation = useDeleteCustomer();
 
@@ -257,11 +250,10 @@ export function CustomerListSection({
                     {/* Hutang dengan warna fungsional */}
                     <TableCell className="text-right px-2 sm:px-4 py-2">
                       <span
-                        className={`inline-block px-3 py-1 rounded-lg text-xs font-semibold tabular-nums ${
-                          (c.totalDebt || 0) > 0
+                        className={`inline-block px-3 py-1 rounded-lg text-xs font-semibold tabular-nums ${(c.totalDebt || 0) > 0
                             ? "bg-destructive/10 text-destructive"
                             : "bg-primary/10 text-primary"
-                        }`}
+                          }`}
                       >
                         {formatCurrency(c.totalDebt || 0)}
                       </span>
@@ -286,36 +278,14 @@ export function CustomerListSection({
                           <Edit2 className="h-4 w-4" />
                         </Button>
                         {isSystemAdmin && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Hapus Pelanggan?
-                                </AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Tindakan ini tidak dapat dibatalkan.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Batal</AlertDialogCancel>
-                                <AlertDialogAction
-                                  className="bg-destructive hover:bg-destructive/90"
-                                  onClick={() => handleDelete(c.id)}
-                                >
-                                  Hapus
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteTarget(c)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         )}
                       </div>
                     </TableCell>
@@ -332,126 +302,106 @@ export function CustomerListSection({
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
           {isLoading
             ? Array.from({ length: 6 }).map((_, i) => (
-                <Skeleton
-                  key={i}
-                  className="h-[190px] sm:h-[210px] rounded-2xl"
-                />
-              ))
+              <Skeleton
+                key={i}
+                className="h-[190px] sm:h-[210px] rounded-2xl"
+              />
+            ))
             : filteredCustomers.map((c: CustomerResponse) => (
-                <Card
-                  key={c.id}
-                  className="flex flex-col p-0 overflow-hidden border-none bg-card shadow-sm hover:shadow-md transition-all duration-300 group ring-1 ring-border/50"
-                >
-                  {/* Header Card: Nama & Hutang */}
-                  <div className="p-3 sm:p-5 pb-3 sm:pb-4 space-y-3 sm:space-y-4">
-                    <div className="flex justify-between items-start gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] sm:text-xs shrink-0 border border-primary/20">
-                          {c.name.substring(0, 2).toUpperCase()}
-                        </div>
-                        <div className="flex flex-col min-w-0">
-                          <h3 className="font-bold text-sm sm:text-base leading-tight truncate group-hover:text-primary transition-colors">
-                            {c.name}
-                          </h3>
-                          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                            ID: #{c.id}
-                          </span>
-                        </div>
+              <Card
+                key={c.id}
+                className="flex flex-col p-0 overflow-hidden border-none bg-card shadow-sm hover:shadow-md transition-all duration-300 group ring-1 ring-border/50"
+              >
+                {/* Header Card: Nama & Hutang */}
+                <div className="p-3 sm:p-5 pb-3 sm:pb-4 space-y-3 sm:space-y-4">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-[10px] sm:text-xs shrink-0 border border-primary/20">
+                        {c.name.substring(0, 2).toUpperCase()}
                       </div>
-                    </div>
-
-                    {/* Body: Kontak & Alamat */}
-                    <div className="space-y-2 text-sm border-t pt-3 sm:pt-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div>
-                          <p className="text-[10px] text-blue-500/80 font-medium">
-                            Saldo
-                          </p>
-                          <p className="text-xs font-semibold text-blue-500 tabular-nums">
-                            {formatCurrency(Number(c.creditBalance || 0))}
-                          </p>
-                        </div>
-                        <div>
-                          <p
-                            className={`text-[10px] font-medium ${(c.totalDebt || 0) > 0 ? "text-destructive/80" : "text-primary/80"}`}
-                          >
-                            Hutang
-                          </p>
-                          <p
-                            className={`text-xs font-semibold tabular-nums ${(c.totalDebt || 0) > 0 ? "text-destructive" : "text-primary"}`}
-                          >
-                            {formatCurrency(c.totalDebt || 0)}
-                          </p>
-                        </div>
-                      </div>
-                      <Separator className="my-2 sm:my-4" />
-                      <div className="flex items-center gap-2.5 text-muted-foreground">
-                        <Phone className="h-3.5 w-3.5 text-primary/60" />
-                        <span className="text-xs truncate">
-                          {c.phone || "Tidak ada telepon"}
-                        </span>
-                      </div>
-                      <div className="flex items-start gap-2.5 text-muted-foreground">
-                        <MapPin className="h-3.5 w-3.5 text-primary/60 mt-0.5" />
-                        <span className="text-xs line-clamp-2 leading-relaxed italic">
-                          {c.address || "Alamat belum diatur"}
+                      <div className="flex flex-col min-w-0">
+                        <h3 className="font-bold text-sm sm:text-base leading-tight truncate group-hover:text-primary transition-colors">
+                          {c.name}
+                        </h3>
+                        <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                          ID: #{c.id}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Footer: Tombol Aksi */}
-                  <div className="mt-auto p-3 sm:p-4 pt-0 flex gap-1.5 sm:gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 h-8 sm:h-9 bg-primary/5 rounded-lg text-[10px] sm:text-xs font-medium px-1 sm:px-2"
-                      onClick={() => openDetail(c.id)}
-                    >
-                      <Eye className="mr-1.5 h-3.5 w-3.5" /> Detail
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 h-8 sm:h-9 bg-primary/5 text-primary rounded-lg text-[10px] sm:text-xs font-medium px-1 sm:px-2"
-                      onClick={() => onEdit(c)}
-                    >
-                      <Edit2 className="mr-1.5 h-3.5 w-3.5" /> Edit
-                    </Button>
-
-                    {isSystemAdmin && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/5"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Hapus Pelanggan?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tindakan ini tidak dapat dibatalkan.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Batal</AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-destructive hover:bg-destructive/90"
-                              onClick={() => handleDelete(c.id)}
-                            >
-                              Hapus
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
+                  {/* Body: Kontak & Alamat */}
+                  <div className="space-y-2 text-sm border-t pt-3 sm:pt-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-[10px] text-blue-500/80 font-medium">
+                          Saldo
+                        </p>
+                        <p className="text-xs font-semibold text-blue-500 tabular-nums">
+                          {formatCurrency(Number(c.creditBalance || 0))}
+                        </p>
+                      </div>
+                      <div>
+                        <p
+                          className={`text-[10px] font-medium ${(c.totalDebt || 0) > 0 ? "text-destructive/80" : "text-primary/80"}`}
+                        >
+                          Hutang
+                        </p>
+                        <p
+                          className={`text-xs font-semibold tabular-nums ${(c.totalDebt || 0) > 0 ? "text-destructive" : "text-primary"}`}
+                        >
+                          {formatCurrency(c.totalDebt || 0)}
+                        </p>
+                      </div>
+                    </div>
+                    <Separator className="my-2 sm:my-4" />
+                    <div className="flex items-center gap-2.5 text-muted-foreground">
+                      <Phone className="h-3.5 w-3.5 text-primary/60" />
+                      <span className="text-xs truncate">
+                        {c.phone || "Tidak ada telepon"}
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-2.5 text-muted-foreground">
+                      <MapPin className="h-3.5 w-3.5 text-primary/60 mt-0.5" />
+                      <span className="text-xs line-clamp-2 leading-relaxed italic">
+                        {c.address || "Alamat belum diatur"}
+                      </span>
+                    </div>
                   </div>
-                </Card>
-              ))}
+                </div>
+
+                {/* Footer: Tombol Aksi */}
+                <div className="mt-auto p-3 sm:p-4 pt-0 flex gap-1.5 sm:gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-8 sm:h-9 bg-primary/5 rounded-lg text-[10px] sm:text-xs font-medium px-1 sm:px-2"
+                    onClick={() => openDetail(c.id)}
+                  >
+                    <Eye className="mr-1.5 h-3.5 w-3.5" /> Detail
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 h-8 sm:h-9 bg-primary/5 text-primary rounded-lg text-[10px] sm:text-xs font-medium px-1 sm:px-2"
+                    onClick={() => onEdit(c)}
+                  >
+                    <Edit2 className="mr-1.5 h-3.5 w-3.5" /> Edit
+                  </Button>
+
+                  {isSystemAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/5"
+                      onClick={() => setDeleteTarget(c)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            ))}
         </div>
       )}
 
@@ -480,6 +430,23 @@ export function CustomerListSection({
           </ScrollArea>
         </SheetContent>
       </Sheet>
+
+      <RelationAwareDeleteDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        itemName={deleteTarget?.name ?? ""}
+        relationsUrl={
+          deleteTarget ? `/api/master/customers/${deleteTarget.id}/relations` : ""
+        }
+        onConfirm={async () => {
+          if (!deleteTarget) return;
+          await handleDelete(deleteTarget.id);
+          setDeleteTarget(null);
+        }}
+        isDeleting={deleteMutation.isPending}
+      />
     </div>
   );
 }

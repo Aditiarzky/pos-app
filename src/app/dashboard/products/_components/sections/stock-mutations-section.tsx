@@ -254,7 +254,7 @@ export const StockMutationsSection = () => {
                     <TableCell className="text-[12px] sm:text-sm px-2 sm:px-4 py-2 font-semibold text-muted-foreground">
                       {mutation.user?.name
                         ? mutation.user.name.split(" ")[0]
-                        : "System"}
+                        : "Sistem"}
                     </TableCell>
                   </TableRow>
                 ))
@@ -322,7 +322,7 @@ export const StockMutationsSection = () => {
                           Oleh
                         </div>
                         <div className="font-medium truncate">
-                          {mutation.user?.name || "System"}
+                          {mutation.user?.name || "Sistem"}
                         </div>
                       </div>
                     </div>

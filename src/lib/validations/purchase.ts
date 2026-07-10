@@ -13,7 +13,7 @@ const purchaseItemInputSchema = createInsertSchema(purchaseItems)
   })
   .extend({
     qty: z.number().int().min(1, "Qty must be at least 1"),
-    price: z.number().min(0, "Price must be non-negative"),
+    price: z.number().gt(0, "Harga beli harus lebih dari 0"),
     productId: z.number().int(),
     variantId: z.number().int(),
   });

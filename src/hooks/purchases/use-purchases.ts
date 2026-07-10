@@ -13,6 +13,7 @@ import { productKeys } from "../products/product-query-options";
 import { dashboardKeys } from "../dashboard/dashboard-query-options";
 import { reportKeys } from "../report/report-query-options";
 import { notificationKeys } from "../notifications/use-notifications";
+import { stockMutationKeys } from "../stock-mutations/stock-mutation-query-options";
 
 type UseUpdatePurchaseOptions = {
   mutationConfig?: MutationConfig<typeof updatePurchase>;
@@ -56,6 +57,7 @@ export const useCreatePurchase = ({
       queryClient.invalidateQueries({ queryKey: reportKeys.purchases() });
       queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
       queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+      queryClient.invalidateQueries({ queryKey: stockMutationKeys.all });
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });
@@ -76,6 +78,10 @@ export const useUpdatePurchase = ({
       });
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
       queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+      queryClient.invalidateQueries({ queryKey: stockMutationKeys.all });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.summary() });
+      queryClient.invalidateQueries({ queryKey: reportKeys.purchases() });
+      queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });
@@ -93,6 +99,10 @@ export const useDeletePurchase = ({
       queryClient.invalidateQueries({ queryKey: purchaseKeys.lists() });
       queryClient.invalidateQueries({ queryKey: productKeys.lists() });
       queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+      queryClient.invalidateQueries({ queryKey: stockMutationKeys.all });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.summary() });
+      queryClient.invalidateQueries({ queryKey: reportKeys.purchases() });
+      queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });

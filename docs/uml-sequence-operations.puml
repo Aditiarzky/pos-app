@@ -1,10 +1,10 @@
-@startuml
+@startuml Operations_Report_Sequence
 autonumber
 
 skinparam BoxPadding 5
 skinparam ParticipantPadding 8
-skinparam defaultFontSize 16
-skinparam maxMessageSize 300
+skinparam defaultFontSize 12
+skinparam maxMessageSize 140
 skinparam sequenceMessageAlign center
 
 actor "Admin Sistem" as Admin
@@ -28,8 +28,8 @@ end box
 Admin -> UI : Input biaya operasional / pajak
 UI -> Ctrl : Simpan data
 activate Ctrl
-Ctrl -> oc : Insert/Update operational_costs (name, amount, period)
-Ctrl -> tc : Insert/Update tax_configs (name, percentage, isActive)
+Ctrl -> oc : Insert/Update costs\n(name, amount, period)
+Ctrl -> tc : Insert/Update tax\n(percentage, active)
 Ctrl --> UI : Konfirmasi berhasil
 deactivate Ctrl
 
@@ -39,22 +39,22 @@ UI -> Ctrl : Ambil data laporan
 activate Ctrl
 
 group Pendapatan
-    Ctrl -> s : SUM totalPrice, COUNT transaksi (filter periode)
-    Ctrl -> si : SUM gross profit (subtotal - costAtSale × qty)
+    Ctrl -> s : SUM totalPrice,\nCOUNT trans (period)
+    Ctrl -> si : SUM gross profit\n(subtotal-cost*qty)
 end
 
 group Pengeluaran
-    Ctrl -> po : SUM total pembelian (filter periode)
+    Ctrl -> po : SUM total purchase\n(filter period)
 end
 
 group Produk Terlaris
-    Ctrl -> si : Join sales, GROUP BY product
-    Ctrl -> p : SUM qty & revenue per produk
-    Ctrl -> cat : SUM qty & revenue per kategori
+    Ctrl -> si : Join sales,\nGROUP BY product
+    Ctrl -> p : SUM qty & rev\nper product
+    Ctrl -> cat : SUM qty & rev\nper category
 end
 
 group Kalkulasi Laba Bersih
-    Ctrl -> oc : Fetch biaya aktif (normalisasi per periode)
+    Ctrl -> oc : Fetch active costs\n(norm per period)
     Ctrl -> tc : Fetch pajak aktif
     Ctrl -> Ctrl : Net Profit = Gross - Ops - Tax
 end

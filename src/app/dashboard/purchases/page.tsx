@@ -59,6 +59,10 @@ function PurchasesContent() {
     setLimit,
     searchInput,
     setSearchInput,
+    dateRange,
+    setDateRange,
+    supplierId,
+    setSupplierId,
     orderBy,
     setOrderBy,
     order,
@@ -211,6 +215,10 @@ function PurchasesContent() {
               setLimit={setLimit}
               searchInput={searchInput}
               setSearchInput={setSearchInput}
+              dateRange={dateRange}
+              setDateRange={setDateRange}
+              supplierId={supplierId}
+              setSupplierId={setSupplierId}
               orderBy={orderBy}
               setOrderBy={setOrderBy}
               order={order}

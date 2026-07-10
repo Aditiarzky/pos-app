@@ -3,8 +3,8 @@ autonumber
 
 skinparam BoxPadding 5
 skinparam ParticipantPadding 8
-skinparam defaultFontSize 16
-skinparam maxMessageSize 300
+skinparam defaultFontSize 12
+skinparam maxMessageSize 140
 skinparam sequenceMessageAlign center
 
 actor "Admin Toko" as Viewer
@@ -19,7 +19,7 @@ database "categories" as c
 == 1. Tampil Data Produk ==
 Viewer -> UI : Buka halaman produk
 UI -> Ctrl : Fetch list produk
-Ctrl -> p : Query (+ fulltext search, barcode subquery)
+Ctrl -> p : Query\n(+ TS query, barcode)
 Ctrl -> v : Fetch variants per produk
 Ctrl -> b : Fetch barcodes per produk
 Ctrl -> c : Join categories
@@ -29,11 +29,11 @@ p --> UI : Tampilkan tabel produk
 Admin -> UI : Isi form (kategori, varian, barcode)
 UI -> Ctrl : Insert produk
 activate Ctrl
-Ctrl -> p : Insert products (name, stock, category, unit)
-Ctrl -> c : Baca category untuk generate SKU
-Ctrl -> b : Insert product_barcodes (1 atau banyak barcode)
+Ctrl -> p : Insert products\n(name, stock, cat, unit)
+Ctrl -> c : Baca category\nuntuk generate SKU
+Ctrl -> b : Insert barcodes\n(1/many barcodes)
 loop Per Varian (ukuran, warna, dll)
-    Ctrl -> v : Insert product_variants (additionalCost, priceOverride)
+    Ctrl -> v : Insert variants\n(add. cost, price)
 end
 Ctrl --> UI : Konfirmasi berhasil
 deactivate Ctrl
@@ -42,7 +42,7 @@ deactivate Ctrl
 Admin -> UI : Edit form produk
 UI -> Ctrl : Update produk
 activate Ctrl
-Ctrl -> p : UPDATE produk (name, stock, category, unit)
+Ctrl -> p : UPDATE produk\n(name, stock, cat, unit)
 Ctrl -> b : Delete & re-insert barcodes
 Ctrl -> v : Update varian lama (soft delete)
 loop Per Varian Baru
@@ -54,7 +54,7 @@ deactivate Ctrl
 == 4. Hapus Produk ==
 Admin -> UI : Klik hapus
 UI -> Ctrl : Delete produk
-Ctrl -> p : DELETE products (hard delete)
+Ctrl -> p : DELETE products\n(hard delete)
 note right: Cascade: variant & barcode terhapus
 Ctrl --> UI : Konfirmasi berhasil
 
