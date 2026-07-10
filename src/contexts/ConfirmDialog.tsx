@@ -19,6 +19,7 @@ type ConfirmDialogProps = {
   confirmText?: string;
   onConfirm?: () => void;
   onCancel?: () => void;
+  buttonVariants?: "destructive" | "default";
 };
 
 type ConfirmContextType = {
@@ -40,6 +41,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
       confirmText: newProps.confirmText ?? "Ya, Lanjutkan",
       onConfirm: newProps.onConfirm,
       onCancel: newProps.onCancel,
+      buttonVariants: newProps.buttonVariants ?? "default",
     });
     setOpen(true);
 
@@ -101,7 +103,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             <AlertDialogCancel onClick={handleCancel}>
               {props.cancelText}
             </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm}>
+            <AlertDialogAction onClick={handleConfirm} className={props.buttonVariants === "destructive" ? "bg-destructive hover:bg-destructive/90" : ""}>
               {props.confirmText}
             </AlertDialogAction>
           </AlertDialogFooter>

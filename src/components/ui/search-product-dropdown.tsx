@@ -12,6 +12,7 @@ import {
   PackageSearch,
   Search,
   SearchX,
+  X,
 } from "lucide-react";
 import {
   Dialog,
@@ -38,6 +39,13 @@ interface SearchResultsDropdownProps {
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   onClose?: () => void;
+  /**
+   * Jika true, modal TIDAK otomatis tertutup setelah memilih produk/varian.
+   * Berguna untuk mode "tambah banyak produk sekaligus" (mis. Mass Mode)
+   * supaya user tidak perlu buka-tutup modal berulang kali.
+   * Default: false (perilaku lama, modal tertutup setelah 1x pilih).
+   */
+  keepOpenOnSelect?: boolean;
 }
 
 function useIsMobile() {
@@ -63,6 +71,7 @@ export function SearchResultsDropdown({
   searchValue = "",
   onSearchChange,
   onClose,
+  keepOpenOnSelect = false,
 }: SearchResultsDropdownProps) {
   const [open, setOpen] = useState(true);
   const isMobile = useIsMobile();
@@ -80,9 +89,16 @@ export function SearchResultsDropdown({
     product: ProductResponse,
     variant: ProductResponse["variants"][0],
   ) => {
-    setOpen(false);
     onSelectProduct(product, variant);
-    onClose?.();
+
+    if (!keepOpenOnSelect) {
+      setOpen(false);
+      onClose?.();
+    }
+    // Jika keepOpenOnSelect true: modal tetap terbuka.
+    // Parent biasanya mengosongkan searchValue setelah menambahkan produk,
+    // dan useEffect(() => setOpen(true), [searchValue]) di atas + auto-focus
+    // di <SearchField /> akan otomatis menyiapkan input untuk pencarian berikutnya.
   };
 
   const handleSubmitTopProduct = () => {
@@ -115,7 +131,7 @@ export function SearchResultsDropdown({
       />
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isSearching, searchResults, searchValue],
+    [isSearching, searchResults, searchValue, keepOpenOnSelect],
   );
 
   if (isMobile) {
@@ -201,7 +217,7 @@ function SearchField({
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <input
         ref={inputRef}
-        className="h-11 w-full rounded-2xl border bg-muted/40 pl-10 pr-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-primary/25"
+        className="h-11 w-full rounded-2xl border bg-muted/40 pl-10 pr-9 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-primary/25"
         placeholder="Cari nama produk / SKU..."
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -212,6 +228,19 @@ function SearchField({
           onSubmit?.();
         }}
       />
+      {value && (
+        <button
+          type="button"
+          onClick={() => {
+            onChange("");
+            inputRef.current?.focus();
+          }}
+          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          aria-label="Hapus pencarian"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }
@@ -357,7 +386,7 @@ function ProductSearchContent({
                             HPP{" "}
                             {formatCurrency(
                               Number(product.averageCost) *
-                                Number(variant.conversionToBase),
+                              Number(variant.conversionToBase),
                             )}
                           </div>
                         )}

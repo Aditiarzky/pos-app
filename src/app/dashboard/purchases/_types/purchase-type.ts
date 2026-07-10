@@ -41,7 +41,15 @@ export interface PurchaseItemResponse {
   qty: string;
   price: string;
   subtotal: string;
-  product?: PurchaseProductInfo;
+  product?: PurchaseProductInfo & {
+    variants?: Array<{
+      id: number;
+      name: string;
+      sku: string;
+      conversionToBase: string;
+      sellPrice: string;
+    }>;
+  };
   productVariant?: PurchaseVariantInfo;
 }
 
@@ -66,8 +74,14 @@ export interface PurchaseFormItem {
   image?: string | null;
   /** Product's lastPurchaseCost per base unit (carried for variant-switch recalc) */
   lastPurchaseCost?: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  variants?: any[]; // Using any[] temporarily or import ProductResponse["variants"] if possible, but for now we keep it loose or I will import it. Let's try to be specific if I can import types.
+  /** All available variants for this product (for variant dropdown) */
+  variants?: Array<{
+    id: number;
+    name: string;
+    sku: string;
+    conversionToBase: string;
+    sellPrice: string;
+  }>;
 }
 
 export interface PurchaseFormData {

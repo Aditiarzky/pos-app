@@ -6,6 +6,9 @@ import { useCallback, useEffect } from "react";
 import { invalidateBusinessData } from "@/lib/query-utils";
 import { getUserTimezone } from "@/lib/timezone";
 import { useQueryState, useQueryStates } from "@/hooks/use-query-state";
+import { stockMutationKeys } from "../stock-mutations/stock-mutation-query-options";
+import { dashboardKeys } from "../dashboard/dashboard-query-options";
+import { reportKeys } from "../report/report-query-options";
 
 type UseCreateSaleOptions = {
   mutationConfig?: MutationConfig<typeof createSale>;
@@ -51,7 +54,7 @@ export const useSaleList = ({
   const setLimit = useCallback((l: number) => setFilters({ limit: l, page: 1 }), [setFilters]);
   const setStatus = useCallback((s: string | undefined) => setFilters({ status: s, page: 1 }), [setFilters]);
   const setCustomerId = useCallback((c: number | undefined) => setFilters({ customerId: c, page: 1 }), [setFilters]);
-  const setDateRange = useCallback((range: { startDate?: string; endDate?: string }) => 
+  const setDateRange = useCallback((range: { startDate?: string; endDate?: string }) =>
     setFilters({ startDate: range.startDate, endDate: range.endDate, page: 1 }), [setFilters]);
 
   const timezone = getUserTimezone();
@@ -119,6 +122,10 @@ export const useCreateSale = ({
     onSuccess: (data, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({ queryKey: saleKeys.lists() });
       invalidateBusinessData(queryClient);
+      queryClient.invalidateQueries({ queryKey: stockMutationKeys.all });
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.summary() });
+      queryClient.invalidateQueries({ queryKey: reportKeys.purchases() });
+      queryClient.invalidateQueries({ queryKey: reportKeys.lists() });
       mutationConfig?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });

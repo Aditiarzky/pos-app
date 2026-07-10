@@ -7,12 +7,12 @@ import { CardBg } from "@/assets/card-background/card-bg";
 import { Receipt, ArrowUpRight, Info } from "lucide-react";
 import { PurchaseReportResponse } from "@/services/reportService";
 import { formatCurrency } from "@/lib/format";
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
+import { ChartAreaSingle } from "@/components/chart-area-single";
 
 interface PurchaseSectionProps {
   data: PurchaseReportResponse | undefined;
   isLoading: boolean;
-  dailyData: { date: string; [key: string]: number | string }[];
+  dailyData: { date: string;[key: string]: number | string }[];
 }
 
 export function PurchaseSection({
@@ -73,13 +73,21 @@ export function PurchaseSection({
       </div>
 
       {/* Layer 2: Breakdown (Daily trend) */}
-      <ChartAreaInteractive
+      {/*<ChartAreaInteractive
         title="Tren Pengeluaran Pembelian"
         description="Statistik pembelian stok harian"
         data={dailyData}
         config={{
           totalPurchases: { label: "Pembelian", color: "var(--destructive)" },
         }}
+      />*/}
+      <ChartAreaSingle
+        title="Tren Pengeluaran Pembelian"
+        description="Statistik pembelian stok harian"
+        data={dailyData}
+        dataKey="totalPurchases"
+        label="Pembelian"
+        color="var(--destructive)"
       />
 
       {/* Layer 3: Interpretation */}
@@ -96,7 +104,7 @@ export function PurchaseSection({
                 ).toLocaleString()}
                 .
                 {summary.prevTotalPurchases &&
-                summary.totalPurchases > summary.prevTotalPurchases
+                  summary.totalPurchases > summary.prevTotalPurchases
                   ? " Terdapat peningkatan pengadaan stok dibandingkan periode lalu."
                   : " Pengadaan stok cenderung stabil atau menurun."}
               </p>

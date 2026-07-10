@@ -204,7 +204,6 @@ export function ChartAreaInteractive({
                   fill={`url(#fill${key})`}
                   stroke={`var(--color-${key})`}
                   strokeWidth={2}
-                  stackId="a"
                 />
               ))}
               <YAxis hide domain={["auto", "dataMax + (dataMax * 0.1)"]} />

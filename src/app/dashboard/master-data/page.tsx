@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode, Suspense, useMemo, useState } from "react";
-import { FolderTree, Loader2, MoreHorizontal, Package2, Pencil, Plus, SearchX } from "lucide-react";
+import { type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
+import { FolderTree, Loader2, MoreHorizontal, Package2, Pencil, Plus, SearchX, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { RoleGuard } from "@/components/role-guard";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AppPagination } from "@/components/app-pagination";
 import { formatDate } from "@/lib/format";
 import { CategoryResponse } from "@/services/categoryService";
 import { UnitResponse } from "@/services/unitService";
@@ -63,11 +64,27 @@ function EntitySection({
   const [editingItem, setEditingItem] = useState<ManagedItem | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ManagedItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
 
   const filteredRows = useMemo(() => {
     const kw = search.trim().toLowerCase();
     return kw ? rows.filter((r) => r.name.toLowerCase().includes(kw)) : rows;
   }, [rows, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / limit));
+  const paginatedRows = useMemo(() => {
+    const start = (page - 1) * limit;
+    return filteredRows.slice(start, start + limit);
+  }, [filteredRows, limit, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    setPage((currentPage) => Math.min(currentPage, totalPages));
+  }, [totalPages]);
 
   const handleSubmit = async () => {
     const name = draftName.trim();
@@ -82,6 +99,7 @@ function EntitySection({
     setDialogOpen(false);
     setEditingItem(null);
     setDraftName("");
+    setPage(1);
   };
 
   const handleConfirmDelete = async () => {
@@ -104,7 +122,7 @@ function EntitySection({
         <div className="space-y-2">
           <CardTitle className="flex items-center gap-2 text-lg">{icon}{title}</CardTitle>
           <p className="text-sm text-muted-foreground">{description}</p>
-          <Badge variant="secondary">{rows.length} data</Badge>
+          <Badge variant="secondary">{filteredRows.length} data</Badge>
         </div>
         <Button onClick={() => { setEditingItem(null); setDraftName(""); setDialogOpen(true); }}
           className="bg-gradient-to-br from-primary to-green-600 dark:to-green-400 hover:brightness-90 rounded-xl">
@@ -128,42 +146,53 @@ function EntitySection({
             <h3 className="mt-4 font-semibold">{emptyLabel}</h3>
           </Card>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-muted/20 border-t border-b border-border/50">
-                <TableRow className="border-none">
-                  <TableHead className="h-9 px-4 font-semibold text-muted-foreground uppercase tracking-wide text-xs">Nama</TableHead>
-                  <TableHead className="h-9 px-4 font-semibold text-muted-foreground uppercase tracking-wide text-xs">Dibuat</TableHead>
-                  <TableHead className="w-16 text-right h-9 px-4" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredRows.map((row) => (
-                  <TableRow key={row.id} className="hover:bg-muted/50 border-b border-border/30 last:border-none">
-                    <TableCell className="px-4 py-2 font-medium">{row.name}</TableCell>
-                    <TableCell className="px-4 py-2 text-muted-foreground text-sm">
-                      {row.createdAt ? formatDate(row.createdAt) : "-"}
-                    </TableCell>
-                    <TableCell className="text-right px-4 py-2">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => { setEditingItem(row); setDraftName(row.name); setDialogOpen(true); }}>
-                            <Pencil className="mr-2 h-4 w-4" />Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget(row)}>
-                            Hapus
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+          <>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/20 border-t border-b border-border/50">
+                  <TableRow className="border-none">
+                    <TableHead className="h-9 px-4 font-semibold text-muted-foreground uppercase tracking-wide text-xs">Nama</TableHead>
+                    <TableHead className="h-9 px-4 font-semibold text-muted-foreground uppercase tracking-wide text-xs">Dibuat</TableHead>
+                    <TableHead className="w-16 text-right h-9 px-4" />
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {paginatedRows.map((row) => (
+                    <TableRow key={row.id} className="hover:bg-muted/50 border-b border-border/30 last:border-none">
+                      <TableCell className="px-4 py-2 font-medium">{row.name}</TableCell>
+                      <TableCell className="px-4 py-2 text-muted-foreground text-sm">
+                        {row.createdAt ? formatDate(row.createdAt) : "-"}
+                      </TableCell>
+                      <TableCell className="text-right px-4 py-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => { setEditingItem(row); setDraftName(row.name); setDialogOpen(true); }}>
+                              <Pencil className="mr-2 h-4 w-4" />Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget(row)}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Hapus
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <AppPagination
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              limit={limit}
+              onLimitChange={setLimit}
+            />
+          </>
         )}
       </CardContent>
 

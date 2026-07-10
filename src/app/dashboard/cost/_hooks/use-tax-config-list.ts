@@ -51,6 +51,7 @@ export function useTaxConfigList() {
       description: `Apakah Anda yakin ingin menghapus pajak "${tax.name}"? Tindakan ini tidak bisa dibatalkan.`,
       confirmText: "Ya, Hapus",
       cancelText: "Batal",
+      buttonVariants: "destructive",
     });
 
     if (!ok) return;

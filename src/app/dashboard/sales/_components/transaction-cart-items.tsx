@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { Trash2, ShoppingCart, Package, Minus, Plus } from "lucide-react";
+import { Trash2, ShoppingCart, Package, Minus, Plus, Tag } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { UseFormReturn } from "react-hook-form";
 import { ProductResponse } from "@/services/productService";
@@ -159,7 +159,8 @@ export function TransactionCartItems({
                                     }
                                   }}
                                 >
-                                  <SelectTrigger className="mt-1 h-6 w-fit min-w-[100px] text-[10px] px-2 py-0 bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary font-bold rounded-full transition-colors whitespace-nowrap">
+                                  <SelectTrigger className="rounded-xl shadow-none cursor-pointer w-fit !text-xs !px-1.5 !py-0.5 !h-7 gap-1">
+                                    <Tag className="size-3.5 text-muted-foreground" />
                                     <SelectValue placeholder="Ganti Varian" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -177,9 +178,10 @@ export function TransactionCartItems({
                                   </SelectContent>
                                 </Select>
                               ) : (
-                                <div className="text-[11px] text-muted-foreground font-medium italic">
+                                <span className="bg-muted gap-1 flex rounded-xl items-center px-1.5 rounded py-1 border border-border dark:border-muted-foreground/20 text-xs text-muted-foreground w-fit">
+                                  <Tag className="size-3.5 text-muted-foreground" />
                                   {field.variantName}
-                                </div>
+                                </span>
                               )}
                             </div>
                           </div>
@@ -323,8 +325,9 @@ export function TransactionCartItems({
                                   }
                                 }}
                               >
-                                <SelectTrigger className="h-6 w-fit text-[10px] px-2 gap-2">
-                                  <SelectValue placeholder="Pilih Varian" />
+                                <SelectTrigger className="rounded-xl shadow-none cursor-pointer w-fit !text-xs !px-1.5 !py-0.5 !h-7 gap-1">
+                                  <Tag className="size-3.5 text-muted-foreground" />
+                                  <SelectValue placeholder="Ganti Varian" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   {field.variants.map(
@@ -341,12 +344,10 @@ export function TransactionCartItems({
                                 </SelectContent>
                               </Select>
                             ) : (
-                              <Badge
-                                variant="secondary"
-                                className="text-[10px] py-0 h-4 font-medium uppercase tracking-wider"
-                              >
+                              <span className="bg-muted gap-1 flex rounded-xl items-center px-1.5 rounded py-1 border border-border dark:border-muted-foreground/20 text-xs text-muted-foreground w-fit">
+                                <Tag className="size-3.5 text-muted-foreground" />
                                 {field.variantName}
-                              </Badge>
+                              </span>
                             )}
                           </div>
                         </div>

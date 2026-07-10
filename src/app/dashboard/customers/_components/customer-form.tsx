@@ -43,7 +43,7 @@ export function CustomerForm({ initialData, onSuccess }: CustomerFormProps) {
           name: "",
           phone: "",
           address: "",
-        },
+      },
   });
 
   const onSubmit = async (data: CustomerData) => {

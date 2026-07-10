@@ -41,10 +41,14 @@ export async function GET(request: NextRequest) {
 
     const dateFilters = [];
     if (startDate) {
-      dateFilters.push(sql`${purchaseOrders.createdAt}::date >= ${startDate}::date`);
+      dateFilters.push(
+        sql`${purchaseOrders.createdAt}::date >= ${startDate}::date`,
+      );
     }
     if (endDate) {
-      dateFilters.push(sql`${purchaseOrders.createdAt}::date <= ${endDate}::date`);
+      dateFilters.push(
+        sql`${purchaseOrders.createdAt}::date <= ${endDate}::date`,
+      );
     }
 
     const supplierFilter = supplierId
@@ -102,6 +106,17 @@ export async function GET(request: NextRequest) {
                   name: true,
                   image: true,
                   lastPurchaseCost: true,
+                },
+                with: {
+                  variants: {
+                    columns: {
+                      id: true,
+                      name: true,
+                      sku: true,
+                      conversionToBase: true,
+                      sellPrice: true,
+                    },
+                  },
                 },
               },
               productVariant: {
@@ -265,8 +280,8 @@ export async function POST(request: NextRequest) {
         const newAvgCost =
           currentStock > 0
             ? (currentStock * currentAvgCost +
-                qtyInBaseUnit * pricePerBaseUnit) /
-              newStock
+              qtyInBaseUnit * pricePerBaseUnit) /
+            newStock
             : pricePerBaseUnit;
 
         // Update Produk (Stok & HPP)
