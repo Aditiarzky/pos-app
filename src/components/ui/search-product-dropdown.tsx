@@ -38,6 +38,7 @@ interface SearchResultsDropdownProps {
   ) => void;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
+  onSearchEnter?: (value: string) => void;
   onClose?: () => void;
   /**
    * Jika true, modal TIDAK otomatis tertutup setelah memilih produk/varian.
@@ -70,6 +71,7 @@ export function SearchResultsDropdown({
   onSelectProduct,
   searchValue = "",
   onSearchChange,
+  onSearchEnter,
   onClose,
   keepOpenOnSelect = false,
 }: SearchResultsDropdownProps) {
@@ -101,10 +103,15 @@ export function SearchResultsDropdown({
     // di <SearchField /> akan otomatis menyiapkan input untuk pencarian berikutnya.
   };
 
-  const handleSubmitTopProduct = () => {
+  const handleSubmitTopProduct = (enteredValue: string) => {
+    if (onSearchEnter) {
+      onSearchEnter(enteredValue);
+      return;
+    }
+
     if (isSearching || searchResults.length === 0) return;
 
-    const trimmedSearch = searchValue.trim();
+    const trimmedSearch = enteredValue.trim();
     const exactProduct = searchResults.find((product) =>
       product.variants?.some((variant) => variant.sku === trimmedSearch),
     );
@@ -195,7 +202,7 @@ function SearchField({
   value: string;
   onChange?: (value: string) => void;
   className?: string;
-  onSubmit?: () => void;
+  onSubmit?: (value: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -225,7 +232,7 @@ function SearchField({
           if (event.key !== "Enter") return;
 
           event.preventDefault();
-          onSubmit?.();
+          onSubmit?.(event.currentTarget.value);
         }}
       />
       {value && (
@@ -386,7 +393,7 @@ function ProductSearchContent({
                             HPP{" "}
                             {formatCurrency(
                               Number(product.averageCost) *
-                              Number(variant.conversionToBase),
+                                Number(variant.conversionToBase),
                             )}
                           </div>
                         )}

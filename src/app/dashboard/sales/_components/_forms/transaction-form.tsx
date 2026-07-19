@@ -125,16 +125,17 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
 
   useEffect(() => {
     if (lastScannedBarcode && searchResults.length > 0) {
-      const product =
-        searchResults.find((p) =>
-          p.variants.some((v) => v.sku === lastScannedBarcode),
-        ) || searchResults[0];
-      if (product) {
+      const exactProduct = searchResults.find(
+        (p) =>
+          p.variants.some((v) => v.sku === lastScannedBarcode) ||
+          p.barcodes?.some((b) => b.barcode === lastScannedBarcode),
+      );
+      if (exactProduct) {
         const matchedVariant =
-          product.variants.find((v) => v.sku === lastScannedBarcode) ||
-          product.variants[0];
+          exactProduct.variants.find((v) => v.sku === lastScannedBarcode) ||
+          exactProduct.variants[0];
         if (matchedVariant) {
-          handleAddProduct(product, matchedVariant);
+          handleAddProduct(exactProduct, matchedVariant);
           setLastScannedBarcode(null);
           toast.success("Item ditambahkan otomatis");
         }
@@ -626,11 +627,19 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
-                      const currentInput = searchInput.trim();
+                      const currentInput = e.currentTarget.value.trim();
                       if (!currentInput) return;
+                      // Pastikan state setter sinkron dengan input asli sebelum proses
+                      setSearchInput(currentInput);
 
-                      const exactProduct = searchResults.find((product) =>
-                        product.variants.some((v) => v.sku === currentInput),
+                      const exactProduct = searchResults.find(
+                        (product) =>
+                          product.variants.some(
+                            (v) => v.sku === currentInput,
+                          ) ||
+                          product.barcodes?.some(
+                            (b) => b.barcode === currentInput,
+                          ),
                       );
 
                       if (exactProduct) {
@@ -640,14 +649,6 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                           ) || exactProduct.variants[0];
                         if (matchedVariant)
                           handleAddProduct(exactProduct, matchedVariant);
-                        return;
-                      }
-
-                      if (searchResults.length > 0 && !isSearching) {
-                        const product = searchResults[0];
-                        const matchedVariant = product.variants[0];
-                        if (matchedVariant)
-                          handleAddProduct(product, matchedVariant);
                         return;
                       }
 
@@ -673,6 +674,29 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                     searchResults={searchResults}
                     searchValue={searchInput}
                     onSearchChange={setSearchInput}
+                    onSearchEnter={(currentInput) => {
+                      const trimmed = currentInput.trim();
+                      if (!trimmed) return;
+                      setSearchInput(trimmed);
+
+                      const exactProduct = searchResults.find(
+                        (product) =>
+                          product.variants.some((v) => v.sku === trimmed) ||
+                          product.barcodes?.some((b) => b.barcode === trimmed),
+                      );
+
+                      if (exactProduct) {
+                        const matchedVariant =
+                          exactProduct.variants.find(
+                            (v) => v.sku === trimmed,
+                          ) || exactProduct.variants[0];
+                        if (matchedVariant)
+                          handleAddProduct(exactProduct, matchedVariant);
+                        return;
+                      }
+
+                      setLastScannedBarcode(trimmed);
+                    }}
                     onClose={() => {
                       setIsProductSearchOpen(false);
                       setSearchInput("");

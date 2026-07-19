@@ -4,7 +4,7 @@ import { useEffect, useMemo } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2, Info } from "lucide-react";
+import { Loader2, Info, Minus, Plus } from "lucide-react";
 import {
   variantAdjustmentSchema,
   VariantAdjustmentInput,
@@ -179,13 +179,15 @@ export function StockAdjustmentModal({
                     key={field.id}
                     className="flex items-end gap-4 p-3 bg-muted/30 rounded-lg border"
                   >
-                    <div className="flex-1 space-y-1">
-                      <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
-                        {variant?.name}
-                      </FormLabel>
-                      <div className="text-[10px] text-muted-foreground pb-1">
-                        Konversi: 1 produk isi {variant?.conversionToBase}{" "}
-                        {product.unit?.name}
+                    <div className="flex-1 space-y-1 md:flex-row flex-col flex justify-between">
+                      <div className="space-y-1">
+                        <FormLabel className="text-xs font-bold uppercase text-muted-foreground">
+                          {variant?.name}
+                        </FormLabel>
+                        <div className="text-[10px] text-muted-foreground pb-1">
+                          Konversi: 1 produk isi {variant?.conversionToBase}{" "}
+                          {product.unit?.name}
+                        </div>
                       </div>
                       <FormField
                         control={form.control}
@@ -193,16 +195,53 @@ export function StockAdjustmentModal({
                         render={({ field }) => (
                           <FormItem>
                             <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                {...field}
-                                autoFocus={index === 0}
-                                value={(field.value as number) ?? ""}
-                                onChange={(e) =>
-                                  field.onChange(e.target.valueAsNumber || 0)
-                                }
-                              />
+                              <div className="flex items-center border border-input rounded-xl h-9 w-fit overflow-hidden bg-background shadow-xs hover:border-primary/40 transition-colors">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-full w-8 rounded-none hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/20 text-muted-foreground transition-colors p-0 flex items-center justify-center border-r border-input"
+                                  onClick={() => {
+                                    const currentVal = Number(field.value) || 0;
+                                    if (currentVal > 0) {
+                                      field.onChange(currentVal - 1);
+                                    }
+                                  }}
+                                  disabled={(Number(field.value) || 0) <= 0}
+                                >
+                                  <Minus className="h-3.5 w-3.5" />
+                                </Button>
+                                <input
+                                  type="number"
+                                  min={0}
+                                  className="w-full md:w-16 text-center text-sm font-bold bg-transparent border-0 p-0 focus:outline-none focus:ring-0 focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                  value={field.value ?? ""}
+                                  autoFocus={index === 0}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === "") {
+                                      field.onChange(0);
+                                      return;
+                                    }
+                                    let num = parseFloat(val);
+                                    if (isNaN(num)) num = 0;
+                                    if (num < 0) num = 0;
+                                    field.onChange(num);
+                                  }}
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-full w-8 rounded-none hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-950/20 text-muted-foreground transition-colors p-0 flex items-center justify-center border-l border-input"
+                                  onClick={() => {
+                                    const next = (Number(field.value) || 0) + 1;
+                                    field.onChange(next);
+                                  }}
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>

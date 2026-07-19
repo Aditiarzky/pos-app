@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import { SearchResultsDropdown } from "@/components/ui/search-product-dropdown";
 import { ProductResponse } from "@/services/productService";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import BarcodeScannerCamera from "@/components/barcode-scanner-camera";
+import { toast } from "sonner";
 
 interface ExchangeItemPickerProps {
   items: ExchangeItemEntry[];
@@ -39,7 +41,6 @@ export function ExchangeItemPicker({
   const {
     searchInput,
     setSearchInput,
-    debouncedSearch,
     searchResults,
     isSearching,
     isScannerOpen,
@@ -47,7 +48,11 @@ export function ExchangeItemPicker({
     closeScanner,
     handleScanSuccess,
     searchInputRef,
+    lastScannedBarcode,
+    setLastScannedBarcode,
   } = useProductSearch({ isOpen: true, autoFocusOnMount: false });
+
+  const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
 
   const handleAddProduct = (
     product: ProductResponse,
@@ -56,6 +61,57 @@ export function ExchangeItemPicker({
     onAdd(product, variant);
     setSearchInput("");
     searchInputRef.current?.focus();
+  };
+
+  // Auto-add item when barcode is scanned
+  useEffect(() => {
+    if (lastScannedBarcode && searchResults.length > 0) {
+      const exactProduct = searchResults.find(
+        (p) =>
+          p.variants.some((v) => v.sku === lastScannedBarcode) ||
+          p.barcodes?.some((b) => b.barcode === lastScannedBarcode),
+      );
+
+      if (exactProduct) {
+        const matchedVariant =
+          exactProduct.variants.find((v) => v.sku === lastScannedBarcode) ||
+          exactProduct.variants[0];
+
+        if (matchedVariant) {
+          handleAddProduct(exactProduct, matchedVariant);
+          setLastScannedBarcode(null);
+          toast.success("Item ditambahkan otomatis");
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchResults, lastScannedBarcode]);
+
+  const findExactProduct = (query: string) => {
+    return searchResults.find(
+      (product) =>
+        product.variants.some((v) => v.sku === query) ||
+        product.barcodes?.some((b) => b.barcode === query),
+    );
+  };
+
+  const handleSearchEnter = (currentInput: string) => {
+    const trimmed = currentInput.trim();
+    if (!trimmed) return;
+    setSearchInput(trimmed);
+
+    const exactProduct = findExactProduct(trimmed);
+    if (exactProduct) {
+      const matchedVariant =
+        exactProduct.variants.find((v) => v.sku === trimmed) ||
+        exactProduct.variants[0];
+      if (matchedVariant) {
+        handleAddProduct(exactProduct, matchedVariant);
+      }
+      return;
+    }
+
+    setLastScannedBarcode(trimmed);
   };
 
   const remainingBudget = totalValueReturned - totalValueExchange;
@@ -108,19 +164,12 @@ export function ExchangeItemPicker({
           )}
           placeholder="Cari barang pengganti..."
           value={searchInput}
+          onFocus={() => setIsProductSearchOpen(true)}
           onChange={(e) => setSearchInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              if (searchResults.length > 0) {
-                const product = searchResults[0];
-                const matchedVariant =
-                  product.variants.find((v) => v.sku === searchInput) ||
-                  product.variants[0];
-                if (matchedVariant) {
-                  handleAddProduct(product, matchedVariant);
-                }
-              }
+              handleSearchEnter(e.currentTarget.value);
             }
           }}
         />
@@ -136,10 +185,18 @@ export function ExchangeItemPicker({
           </Button>
         </div>
 
-        {debouncedSearch.length > 1 && (
+        {isProductSearchOpen && (
           <SearchResultsDropdown
             isSearching={isSearching}
             searchResults={searchResults}
+            searchValue={searchInput}
+            onSearchChange={setSearchInput}
+            onSearchEnter={handleSearchEnter}
+            onClose={() => {
+              setIsProductSearchOpen(false);
+              setSearchInput("");
+            }}
+            keepOpenOnSelect={true}
             onSelectProduct={handleAddProduct}
           />
         )}
