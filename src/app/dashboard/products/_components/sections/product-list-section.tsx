@@ -230,6 +230,11 @@ export function ProductListSection({
     toast.success("Barcode berhasil dipindai");
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    setPage(1);
+  };
+
   // Skeleton hanya untuk load pertama kali (belum ada data sama sekali).
   // Setelah itu, ganti filter/page akan tetap menampilkan data cache lama
   // apa adanya (lihat placeholderData: keepPreviousData di
@@ -245,7 +250,7 @@ export function ProductListSection({
           <SearchInput
             placeholder="Cari nama produk atau SKU..."
             value={searchInput}
-            onChange={setSearchInput}
+            onChange={handleSearchChange}
             rightAction={
               <Button
                 type="button"
@@ -344,8 +349,11 @@ export function ProductListSection({
       {/* SEMUA PRODUK SECTION */}
       <section className="space-y-4">
         <div className="flex items-start gap-3 justify-start md:justify-between w-full md:flex-row flex-col">
-          <h2 className="text-xl font-semibold tracking-tight shrink-0">
+          <h2 className="text-xl font-semibold items-center flex tracking-tight shrink-0">
             Semua produk
+            <Badge variant="outline" className="ml-2">
+              {allProductsData?.meta?.total || 0}
+            </Badge>
           </h2>
           {/* Category filter chips — YouTube style */}
           {categories.length > 0 && (

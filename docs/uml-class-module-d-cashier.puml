@@ -83,17 +83,4 @@ package "External Reference" {
     class User <<external>>
 }
 
-' Catatan Fungsional
-note top of Sale
-  Jantung dari sistem transaksi POS.
-  Mengelola state pembayaran (Pending -> Completed/Debt).
-  shouldPayOldDebt = auto-bayar hutang dari kembalian tunai.
-  allocateChangeToDebts() mengalokasikan kembalian ke hutang aktif pelanggan.
-end note
-
-note right of SaleItem
-  Snapshot rincian item saat transaksi terjadi.
-  Menyimpan harga & HPP saat itu untuk akurasi laporan.
-end note
-
 @enduml

@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Loader2, AlertTriangle, AlertCircle } from "lucide-react";
 
 type Relation = { label: string; count: number };
 
@@ -54,21 +54,26 @@ export function RelationAwareDeleteDialog({
       .then((json) => {
         if (json.success) {
           setHasRelations(json.data.hasRelations);
-          setRelations(json.data.relations.filter((r: Relation) => r.count > 0));
+          setRelations(
+            json.data.relations.filter((r: Relation) => r.count > 0),
+          );
         }
       })
       .catch(() => {})
       .finally(() => setIsChecking(false));
   }, [open, relationsUrl]);
 
-  const canConfirm = !isChecking && !isDeleting && (!hasRelations || confirmInput === "HAPUS");
+  const canConfirm =
+    !isChecking && !isDeleting && (!hasRelations || confirmInput === "HAPUS");
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
-            {hasRelations && <AlertTriangle className="h-5 w-5 text-destructive" />}
+            {hasRelations && (
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+            )}
             Hapus {itemName}?
           </AlertDialogTitle>
 
@@ -80,18 +85,22 @@ export function RelationAwareDeleteDialog({
           ) : hasRelations ? (
             <div className="space-y-3 text-sm">
               <p className="text-destructive font-semibold">
-                ⚠️ Data ini memiliki relasi yang akan ikut terhapus secara permanen:
+                Data ini memiliki relasi yang akan ikut terhapus secara
+                permanen:
               </p>
               <ul className="space-y-1 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
                 {relations.map((r) => (
                   <li key={r.label} className="flex justify-between">
                     <span className="text-muted-foreground">{r.label}</span>
-                    <span className="font-bold text-destructive">{r.count.toLocaleString("id-ID")}</span>
+                    <span className="font-bold text-destructive">
+                      {r.count.toLocaleString("id-ID")}
+                    </span>
                   </li>
                 ))}
               </ul>
               <p className="text-muted-foreground">
-                Ketik <strong>HAPUS</strong> untuk mengkonfirmasi penghapusan permanen.
+                Ketik <strong>HAPUS</strong> untuk mengkonfirmasi penghapusan
+                permanen.
               </p>
               <Input
                 value={confirmInput}
@@ -102,7 +111,8 @@ export function RelationAwareDeleteDialog({
             </div>
           ) : (
             <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus <strong>{itemName}</strong>? Tindakan ini tidak dapat dibatalkan.
+              Apakah Anda yakin ingin menghapus <strong>{itemName}</strong>?
+              Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           )}
         </AlertDialogHeader>
@@ -114,7 +124,9 @@ export function RelationAwareDeleteDialog({
             disabled={!canConfirm}
             className="bg-destructive hover:bg-destructive/90"
           >
-            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {isDeleting ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            ) : null}
             Hapus Permanen
           </AlertDialogAction>
         </AlertDialogFooter>

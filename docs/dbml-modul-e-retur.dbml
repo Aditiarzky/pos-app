@@ -75,9 +75,4 @@ Table customer_balance_mutations {
   user_id integer
 }
 
-// External references
-Table sales { id serial [pk] }
-Table products { id serial [pk] }
-Table product_variants { id serial [pk] }
-Table customers { id serial [pk] }
-Table users { id serial [pk] }
+

@@ -110,6 +110,11 @@ export function ReturnListSection() {
     toast.success("Barcode berhasil dipindai");
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    setPage(1);
+  };
+
   const [isUpdatingStatusId, setIsUpdatingStatusId] = useState<number | null>(
     null,
   );
@@ -251,7 +256,7 @@ export function ReturnListSection() {
           <SearchInput
             placeholder="Cari No. Retur / No. Invoice..."
             value={searchInput}
-            onChange={setSearchInput}
+            onChange={handleSearchChange}
             rightAction={
               <Button
                 type="button"
@@ -512,9 +517,15 @@ export function ReturnListSection() {
                         className={`gap-1 text-[9px] sm:text-xs ${getCompensationBadgeMeta(ret.compensationType).className}`}
                       >
                         {getCompensationBadgeMeta(ret.compensationType).icon}
-                        <span className="hidden sm:inline">{getCompensationName(ret.compensationType)}</span>
+                        <span className="hidden sm:inline">
+                          {getCompensationName(ret.compensationType)}
+                        </span>
                         <span className="sm:hidden">
-                          {ret.compensationType === "refund" ? "Refund" : ret.compensationType === "exchange" ? "Tukar" : "Saldo"}
+                          {ret.compensationType === "refund"
+                            ? "Refund"
+                            : ret.compensationType === "exchange"
+                              ? "Tukar"
+                              : "Saldo"}
                         </span>
                       </Badge>
                     </div>
@@ -559,7 +570,8 @@ export function ReturnListSection() {
                             </span>
                             {item.productVariant?.name && (
                               <span className="text-muted-foreground text-[10px]">
-                                {" "}({item.productVariant.name})
+                                {" "}
+                                ({item.productVariant.name})
                               </span>
                             )}
                           </div>

@@ -64,15 +64,6 @@ package "Domain Model: Return" {
         CREDIT_BALANCE
     }
 
-    ' Relationships
-    CustomerReturn "1" *-- "0..*" CustomerReturnItem : records return >
-    CustomerReturn "1" *-- "0..*" CustomerExchangeItem : includes exchange >
-    CustomerReturn ..> CompensationType : compensation type >
-    CustomerReturn ..> SurplusStrategy : surplus strategy >
-    CustomerReturn "0..*" -- "1" Customer : performed by >
-}
-
-package "External Reference" {
     class Sale <<external>>
     class Customer <<external>> {
         + updateSaldo(nominal: Decimal): void
@@ -81,17 +72,15 @@ package "External Reference" {
         + updateStock(amount: Decimal): void
     }
     class User <<external>>
+
+    ' Relationships
+    CustomerReturn "1" *-- "0..*" CustomerReturnItem : records return >
+    CustomerReturn "1" *-- "0..*" CustomerExchangeItem : includes exchange >
+    CustomerReturn ..> CompensationType : compensation type >
+    CustomerReturn ..> SurplusStrategy : surplus strategy >
+    CustomerReturn "0..*" -- "1" Customer : performed by >
 }
 
-' Catatan Fungsional
-note top of CustomerReturn
-  Mengelola alur pengembalian barang dari Customer.
-  Mendukung kompensasi berupa uang, saldo, atau tukar barang.
-end note
 
-note bottom of CustomerReturnItem
-  Data barang yang dibawa balik oleh pelanggan (Customer).
-  Status 'returnedToStock' menentukan apakah stok aktif bertambah.
-end note
 
 @enduml
