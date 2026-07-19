@@ -229,7 +229,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
             className={cn(
               "transition-all duration-200",
               transactionMode === "guest" &&
-              "opacity-50 pointer-events-none grayscale",
+                "opacity-50 pointer-events-none grayscale",
             )}
           >
             <CustomerSelect
@@ -332,11 +332,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
         </Card>
 
         {/* SUMMARY & PAYMENT */}
-        <Card
-          className="relative p-0 bg-primary/5 border-primary/20 overflow-hidden"
-
-        >
-
+        <Card className="relative p-0 bg-primary/5 border-primary/20 overflow-hidden">
           {/* HEADER STRUK */}
           <div className="flex items-center gap-2 px-4 md:px-6 pt-4 pb-3">
             <Receipt className="h-4 w-4 text-primary/60" />
@@ -516,9 +512,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
               {submitBlockedReason && (
                 <div className="mb-3 flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <p className="font-medium leading-5">
-                    {submitBlockedReason}
-                  </p>
+                  <p className="font-medium leading-5">{submitBlockedReason}</p>
                 </div>
               )}
               <Button
@@ -683,6 +677,7 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
                       setIsProductSearchOpen(false);
                       setSearchInput("");
                     }}
+                    keepOpenOnSelect={true}
                     onSelectProduct={handleAddProduct}
                   />
                 )}

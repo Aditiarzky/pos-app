@@ -39,7 +39,7 @@ export function ReturnSuccessModal({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-xl max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0 border-none sm:rounded-3xl">
         {/* Scrollable area — header + summary cards + receipt */}
-        <ScrollArea className="flex-1 min-h-0">
+        <ScrollArea className="flex-1 h-[90vh] min-h-0 overflow-y-scroll">
           <div className="p-6 md:p-8 space-y-6">
             <DialogHeader className="items-center text-center space-y-4">
               <div className="h-16 w-16 bg-emerald-100 rounded-full flex items-center justify-center animate-in zoom-in duration-500">
@@ -49,7 +49,9 @@ export function ReturnSuccessModal({
                 <DialogTitle className="text-2xl font-black">
                   Retur Berhasil!
                 </DialogTitle>
-                <p className="text-muted-foreground text-sm">{result.message}</p>
+                <p className="text-muted-foreground text-sm">
+                  {result.message}
+                </p>
               </div>
             </DialogHeader>
 

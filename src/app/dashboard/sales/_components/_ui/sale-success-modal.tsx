@@ -28,7 +28,10 @@ import {
 } from "lucide-react";
 import { SaleReceipt } from "./sale-receipt";
 import { SaleResponse } from "../../_types/sale-type";
-import { usePrintReceipt, ReceiptShareInfo } from "../../_hooks/use-print-receipt";
+import {
+  usePrintReceipt,
+  ReceiptShareInfo,
+} from "../../_hooks/use-print-receipt";
 import { useUpdateSaleStatus } from "@/hooks/sales/use-sale";
 import { useGetStoreSetting } from "@/hooks/store-setting/use-setting";
 import { toast } from "sonner";
@@ -73,7 +76,9 @@ export function SaleSuccessModal({
       toast.success("Transaksi berhasil diselesaikan");
       onNewTransaction();
     } catch (err) {
-      toast.error((err as { error?: string })?.error || "Gagal menyelesaikan transaksi");
+      toast.error(
+        (err as { error?: string })?.error || "Gagal menyelesaikan transaksi",
+      );
       isProcessing.current = false;
     }
   };
@@ -87,7 +92,9 @@ export function SaleSuccessModal({
       onClose();
       onNewTransaction();
     } catch (err) {
-      toast.error((err as { error?: string })?.error || "Gagal membatalkan transaksi");
+      toast.error(
+        (err as { error?: string })?.error || "Gagal membatalkan transaksi",
+      );
       isProcessing.current = false;
     }
   };
@@ -111,9 +118,7 @@ export function SaleSuccessModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleModalClose}>
-      <DialogContent
-        className="max-w-xl max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0 border-none sm:rounded-3xl"
-      >
+      <DialogContent className="max-w-xl max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0 border-none sm:rounded-3xl">
         {/* Scrollable area — header + receipt + print/share buttons */}
         <ScrollArea className="flex-1 h-[90vh] min-h-0 overflow-y-scroll">
           <div className="p-6 md:p-8 space-y-6 max-w-[100vw]">
@@ -132,7 +137,7 @@ export function SaleSuccessModal({
             </DialogHeader>
 
             {/* Receipt Preview */}
-            <div className="bg-muted/30 bg-white p-2 md:p-4 rounded-2xl border border-dashed border-muted-foreground/20">
+            <div className=" bg-white p-2 md:p-4 rounded-2xl border border-dashed border-muted-foreground/20">
               <SaleReceipt ref={receiptRef} sale={sale} />
             </div>
 
@@ -144,7 +149,11 @@ export function SaleSuccessModal({
                 onClick={handlePrint}
                 disabled={isPrinting}
               >
-                {isPrinting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
+                {isPrinting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Printer className="h-4 w-4" />
+                )}
                 {isPrinting ? "Mencetak..." : "Cetak Nota"}
               </Button>
 
@@ -157,14 +166,19 @@ export function SaleSuccessModal({
                     transactionDate: sale.createdAt ?? new Date(),
                     cashierName: sale.user?.name,
                     totalAmount:
-                      Number(sale.totalPrice) - Number(sale.totalBalanceUsed ?? 0),
+                      Number(sale.totalPrice) -
+                      Number(sale.totalBalanceUsed ?? 0),
                     storeName: settingResult?.data?.storeName,
                   };
                   handleShareAsImage(shareInfo);
                 }}
                 disabled={isSharing}
               >
-                {isSharing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                {isSharing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Share2 className="h-4 w-4" />
+                )}
                 {isSharing ? "Menyiapkan..." : "Share WA"}
               </Button>
             </div>
@@ -181,7 +195,11 @@ export function SaleSuccessModal({
                 onClick={handleCancel}
                 disabled={updateStatus.isPending}
               >
-                {updateStatus.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-5 w-5" />}
+                {updateStatus.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <XCircle className="h-5 w-5" />
+                )}
                 Batalkan Transaksi
               </Button>
 
@@ -190,7 +208,11 @@ export function SaleSuccessModal({
                 onClick={handleComplete}
                 disabled={updateStatus.isPending}
               >
-                {updateStatus.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
+                {updateStatus.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="h-5 w-5" />
+                )}
                 Selesai
               </Button>
             </div>
@@ -217,7 +239,8 @@ export function SaleSuccessModal({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Batalkan transaksi ini?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Stok akan dikembalikan dan transaksi akan dihapus dari riwayat.
+                      Stok akan dikembalikan dan transaksi akan dihapus dari
+                      riwayat.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

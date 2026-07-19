@@ -137,6 +137,11 @@ function SalesContent() {
     toast.success("Barcode berhasil dipindai");
   };
 
+  const handleSalesSearchChange = (value: string) => {
+    saleList.setSearchInput(value);
+    saleList.setPage(1);
+  };
+
   return (
     <>
       {/* Header Section */}
@@ -359,7 +364,7 @@ function SalesContent() {
 
             {/* Cashier Forms */}
             {cashierMode === "sales" ? (
-              <TransactionForm onSuccess={() => { }} />
+              <TransactionForm onSuccess={() => {}} />
             ) : (
               <ReturnForm />
             )}
@@ -374,7 +379,7 @@ function SalesContent() {
               <SearchInput
                 placeholder="Cari No. Invoice..."
                 value={saleList.searchInput}
-                onChange={saleList.setSearchInput}
+                onChange={handleSalesSearchChange}
                 rightAction={
                   <Button
                     type="button"

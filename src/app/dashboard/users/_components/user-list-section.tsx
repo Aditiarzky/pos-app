@@ -17,16 +17,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { RelationAwareDeleteDialog } from "@/components/relation-aware-delete-dialog";
 import {
   LayoutList,
   Loader2,
@@ -377,40 +368,14 @@ export function UserListSection({ onEdit }: UserListSectionProps) {
       )}
 
       {/* Delete Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tindakan ini tidak dapat dibatalkan. User{" "}
-              <span className="font-bold">{userToDelete?.name}</span> akan
-              dihapus permanen dari sistem.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteUserMutation.isPending}>
-              Batal
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                confirmDelete();
-              }}
-              disabled={deleteUserMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {deleteUserMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menghapus...
-                </>
-              ) : (
-                "Hapus"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <RelationAwareDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        itemName={`User ${userToDelete?.name}`}
+        relationsUrl={userToDelete ? `/api/users/${userToDelete.id}/relations` : ""}
+        onConfirm={confirmDelete}
+        isDeleting={deleteUserMutation.isPending}
+      />
     </div>
   );
 }

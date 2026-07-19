@@ -93,15 +93,5 @@ package "External Reference" {
     class User <<external>>
 }
 
-' Catatan Fungsional
-note top of PerformanceReport
-  Objek virtual yang mengagregasikan data dari berbagai modul 
-  untuk menyajikan ringkasan finansial (laba/rugi).
-end note
-
-note right of OperationalCost
-  Mencatat beban rutin toko.
-  Mendukung kalkulasi biaya proporsional berdasarkan periode PerformanceReport.
-end note
 
 @enduml

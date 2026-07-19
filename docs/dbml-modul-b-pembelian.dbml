@@ -43,8 +43,3 @@ Table purchase_items {
   cost_before decimal(12,4) [not null]
   subtotal decimal(12,2) [not null]
 }
-
-// External references (simplified)
-Table users { id serial [pk] }
-Table products { id serial [pk] }
-Table product_variants { id serial [pk] }

@@ -55,15 +55,6 @@ package "Domain Model: Authentication & Authorization" {
     UserRoleMapping ..> RoleType : role type >
 }
 
-' Catatan Fungsional
-note top of User
-  Pusat data identitas User sistem. 
-  Mengelola logika keamanan dasar.
-end note
 
-note bottom of UserRoleMapping
-  Mendukung Role-Based Access Control (RBAC).
-  Memisahkan hak akses Admin Toko dan Admin Sistem.
-end note
 
 @enduml
