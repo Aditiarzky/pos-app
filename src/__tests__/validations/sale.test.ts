@@ -75,6 +75,16 @@ describe("insertSaleSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("passes when cash non-debt totalPaid is 0 if customer uses balance/voucher", () => {
+    const result = insertSaleSchema.safeParse({
+      ...base,
+      totalPaid: 0,
+      customerId: 3,
+      totalBalanceUsed: 5000,
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("fails when item qty is not positive", () => {
     const result = insertSaleSchema.safeParse({
       ...base,

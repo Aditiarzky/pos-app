@@ -140,30 +140,20 @@ export function PurchaseForm({
   // Auto-add item when barcode is scanned
   useEffect(() => {
     if (lastScannedBarcode && searchResults.length > 0) {
-      // Find exact match for barcode
-      // NOTE: product search returns products that MATCH the search term.
-      // If we scanned a barcode, the backend *should* return the product with that barcode.
-      // We need to find the specific variant that matches the barcode if possible.
-      // For now, if strict match isn't available in search results (since search might be fuzzy),
-      // we take the first result.
-      // Ideally, the backend should return exact match first.
+      const exactProduct = searchResults.find(
+        (p) =>
+          p.variants.some((v) => v.sku === lastScannedBarcode) ||
+          p.barcodes?.some((b) => b.barcode === lastScannedBarcode),
+      );
 
-      const product =
-        searchResults.find((p) =>
-          p.variants.some((v) => v.sku === lastScannedBarcode),
-        ) || searchResults[0];
-      if (product) {
-        // Auto select first variant if no specific logic, or ideally find variant matching barcode?
-        // Since search API is general, we might not know WHICH variant matched if multiple share similar codes (unlikely)
-        // But usually barcode is unique to variant.
-        // Let's check if any variant sku matches searchInput (barcode)
+      if (exactProduct) {
         const matchedVariant =
-          product.variants.find((v) => v.sku === lastScannedBarcode) ||
-          product.variants[0];
+          exactProduct.variants.find((v) => v.sku === lastScannedBarcode) ||
+          exactProduct.variants[0];
 
         if (matchedVariant) {
-          handleAddProduct(product, matchedVariant);
-          setLastScannedBarcode(null); // Reset after adding
+          handleAddProduct(exactProduct, matchedVariant);
+          setLastScannedBarcode(null);
           toast.success("Item ditambahkan otomatis");
         }
       }
@@ -189,7 +179,9 @@ export function PurchaseForm({
         productId: product.id,
         variantId: variant.id,
         qty: 1,
-        price: Number(product.lastPurchaseCost || 0),
+        price:
+          Number(product.lastPurchaseCost || 0) *
+          Number(variant.conversionToBase || 1),
         productName: product.name,
         variantName: variant.name,
         image: product.image,
@@ -305,13 +297,19 @@ export function PurchaseForm({
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault();
-                          const currentInput = searchInput.trim();
+                          const currentInput = e.currentTarget.value.trim();
                           if (!currentInput) return;
 
-                          const exactProduct = searchResults.find((product) =>
-                            product.variants.some(
-                              (v) => v.sku === currentInput,
-                            ),
+                          setSearchInput(currentInput);
+
+                          const exactProduct = searchResults.find(
+                            (product) =>
+                              product.variants.some(
+                                (v) => v.sku === currentInput,
+                              ) ||
+                              product.barcodes?.some(
+                                (b) => b.barcode === currentInput,
+                              ),
                           );
 
                           if (exactProduct) {
@@ -321,15 +319,6 @@ export function PurchaseForm({
                               ) || exactProduct.variants[0];
                             if (matchedVariant) {
                               handleAddProduct(exactProduct, matchedVariant);
-                            }
-                            return;
-                          }
-
-                          if (searchResults.length > 0 && !isSearching) {
-                            const product = searchResults[0];
-                            const matchedVariant = product.variants[0];
-                            if (matchedVariant) {
-                              handleAddProduct(product, matchedVariant);
                             }
                             return;
                           }
@@ -357,6 +346,31 @@ export function PurchaseForm({
                         searchResults={searchResults}
                         searchValue={searchInput}
                         onSearchChange={setSearchInput}
+                        onSearchEnter={(currentInput) => {
+                          const trimmed = currentInput.trim();
+                          if (!trimmed) return;
+                          setSearchInput(trimmed);
+
+                          const exactProduct = searchResults.find(
+                            (product) =>
+                              product.variants.some((v) => v.sku === trimmed) ||
+                              product.barcodes?.some(
+                                (b) => b.barcode === trimmed,
+                              ),
+                          );
+
+                          if (exactProduct) {
+                            const matchedVariant =
+                              exactProduct.variants.find(
+                                (v) => v.sku === trimmed,
+                              ) || exactProduct.variants[0];
+                            if (matchedVariant)
+                              handleAddProduct(exactProduct, matchedVariant);
+                            return;
+                          }
+
+                          setLastScannedBarcode(trimmed);
+                        }}
                         onClose={() => {
                           setIsProductSearchOpen(false);
                           setSearchInput("");
@@ -570,9 +584,14 @@ function ItemsTable({
 
   const getMode = (fieldId: string): PriceMode => priceModes[fieldId] || "unit";
 
-  const toggleMode = (fieldId: string, currentPrice: number, currentQty: number) => {
+  const toggleMode = (
+    fieldId: string,
+    currentPrice: number,
+    currentQty: number,
+  ) => {
     setPriceModes((prev) => {
-      const nextMode: PriceMode = getMode(fieldId) === "unit" ? "total" : "unit";
+      const nextMode: PriceMode =
+        getMode(fieldId) === "unit" ? "total" : "unit";
       if (nextMode === "total") {
         // Saat pindah ke mode total, isi awal totalnya = harga per satuan sekarang x qty
         setTotalInputs((t) => ({ ...t, [fieldId]: currentPrice * currentQty }));
@@ -599,7 +618,11 @@ function ItemsTable({
   // Dipanggil setelah qty berubah (tombol -/+ atau input manual).
   // Kalau mode baris itu "total", harga per satuan dihitung ulang supaya
   // total di nota tetap konsisten.
-  const syncPriceIfTotalMode = (fieldId: string, index: number, newQty: number) => {
+  const syncPriceIfTotalMode = (
+    fieldId: string,
+    index: number,
+    newQty: number,
+  ) => {
     if (getMode(fieldId) !== "total") return;
     const total = totalInputs[fieldId] ?? 0;
     const safeQty = newQty > 0 ? newQty : 1;
@@ -807,7 +830,8 @@ function ItemsTable({
                           render={({ field: priceField, fieldState }) => {
                             const displayValue =
                               mode === "total"
-                                ? totalInputs[rowKey] ?? priceField.value * qty
+                                ? (totalInputs[rowKey] ??
+                                  priceField.value * qty)
                                 : priceField.value;
 
                             return (
@@ -825,7 +849,9 @@ function ItemsTable({
                                     className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-primary hover:underline"
                                   >
                                     <ArrowLeftRight className="h-2.5 w-2.5" />
-                                    {mode === "unit" ? "/ satuan" : "total nota"}
+                                    {mode === "unit"
+                                      ? "/ satuan"
+                                      : "total nota"}
                                   </button>
                                 </div>
                                 <CurrencyInput
@@ -1027,7 +1053,11 @@ function ItemsTable({
                                   const val = e.target.value;
                                   const next = val === "" ? 0 : parseFloat(val);
                                   onChange(next);
-                                  syncPriceIfTotalMode(rowKey, index, next || 0);
+                                  syncPriceIfTotalMode(
+                                    rowKey,
+                                    index,
+                                    next || 0,
+                                  );
                                 }}
                               />
                               <Button
@@ -1087,7 +1117,7 @@ function ItemsTable({
                         render={({ field: priceField, fieldState }) => {
                           const displayValue =
                             mode === "total"
-                              ? totalInputs[rowKey] ?? priceField.value * qty
+                              ? (totalInputs[rowKey] ?? priceField.value * qty)
                               : priceField.value;
 
                           return (
@@ -1112,7 +1142,8 @@ function ItemsTable({
                               />
                               {mode === "total" && (
                                 <p className="text-[9px] text-muted-foreground text-right mt-1">
-                                  @ {formatCurrency(priceField.value || 0)} / satuan
+                                  @ {formatCurrency(priceField.value || 0)} /
+                                  satuan
                                 </p>
                               )}
                               {fieldState.error && (

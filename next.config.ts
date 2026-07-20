@@ -1,4 +1,10 @@
 import type { NextConfig } from "next";
+import os from "os";
+
+const localIPs = Object.values(os.networkInterfaces())
+  .flatMap((net) => net || [])
+  .filter((net) => net.family === "IPv4" && !net.internal)
+  .map((net) => `http://${net.address}:3000`);
 
 const nextConfig: NextConfig = {
   images: {
@@ -13,6 +19,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  allowedDevOrigins: ["192.168.0.104"],
 };
 
 export default nextConfig;

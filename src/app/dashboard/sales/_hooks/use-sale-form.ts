@@ -217,7 +217,12 @@ export function useSaleForm({
     if (paymentMethod === "qris" && grandTotal < 500) {
       return "Nominal QRIS minimal Rp 500";
     }
-    if (paymentMethod === "cash" && !isDebt && totalPaid <= 0) {
+    if (
+      paymentMethod === "cash" &&
+      !isDebt &&
+      grandTotal > 0 &&
+      totalPaid <= 0
+    ) {
       return "Masukkan jumlah pembayaran yang diterima";
     }
     if (paymentMethod === "cash" && !isDebt && totalPaid < grandTotal) {
@@ -289,7 +294,9 @@ export function useSaleForm({
 
       setIsStockModalOpen(false);
       setIsAutoSubmitting(true);
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => resolve()),
+      );
       await handleSubmit(form.getValues(), true);
     } catch (error) {
       toast.error(
@@ -344,7 +351,12 @@ export function useSaleForm({
       }
     }
 
-    if (paymentMethod === "cash" && !isDebt && Number(data.totalPaid) <= 0) {
+    if (
+      paymentMethod === "cash" &&
+      !isDebt &&
+      grandTotal > 0 &&
+      Number(data.totalPaid) <= 0
+    ) {
       toast.error("Masukkan jumlah pembayaran yang diterima");
       return;
     }

@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,9 +65,9 @@ export function SaleSuccessModal({
 
   if (!sale) return null;
 
-  const isPendingQris =
-    sale.status === "pending_payment" && sale.paymentMethod === "qris";
-  const canCancel = sale.status !== "cancelled";
+  const isQris = sale.paymentMethod === "qris";
+  const isPendingQris = sale.status === "pending_payment" && isQris;
+  const canCancel = sale.status !== "cancelled" && !isQris;
 
   const handleComplete = async () => {
     if (!sale.id || isProcessing.current) return;
@@ -188,20 +189,27 @@ export function SaleSuccessModal({
         {/* Sticky action buttons — selalu terlihat di bawah */}
         <div className="shrink-0 p-4 md:p-6 border-t bg-background">
           {isPendingQris && (
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                className="h-12 border-2 border-destructive text-destructive hover:bg-destructive/10 gap-2 font-bold"
-                onClick={handleCancel}
-                disabled={updateStatus.isPending}
-              >
-                {updateStatus.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <XCircle className="h-5 w-5" />
-                )}
-                Batalkan Transaksi
-              </Button>
+            <div
+              className={cn(
+                "grid gap-3",
+                isQris ? "grid-cols-1" : "grid-cols-2",
+              )}
+            >
+              {!isQris && (
+                <Button
+                  variant="outline"
+                  className="h-12 border-2 border-destructive text-destructive hover:bg-destructive/10 gap-2 font-bold"
+                  onClick={handleCancel}
+                  disabled={updateStatus.isPending}
+                >
+                  {updateStatus.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <XCircle className="h-5 w-5" />
+                  )}
+                  Batalkan Transaksi
+                </Button>
+              )}
 
               <Button
                 className="h-12 gap-2 font-black uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
@@ -218,42 +226,51 @@ export function SaleSuccessModal({
             </div>
           )}
 
-          {!isPendingQris && canCancel && (
-            <div className="grid grid-cols-2 gap-3">
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="h-12 border-2 border-destructive text-destructive hover:bg-destructive/10 gap-2 font-bold"
-                    disabled={updateStatus.isPending}
-                  >
-                    {updateStatus.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <XCircle className="h-5 w-5" />
-                    )}
-                    Batalkan Transaksi
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Batalkan transaksi ini?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Stok akan dikembalikan dan transaksi akan dihapus dari
-                      riwayat.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Tidak</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleCancel}
-                      className="bg-destructive hover:bg-destructive/90"
+          {!isPendingQris && (
+            <div
+              className={cn(
+                "grid gap-3",
+                canCancel ? "grid-cols-2" : "grid-cols-1",
+              )}
+            >
+              {canCancel && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-12 border-2 border-destructive text-destructive hover:bg-destructive/10 gap-2 font-bold"
+                      disabled={updateStatus.isPending}
                     >
-                      Ya, Batalkan
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                      {updateStatus.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <XCircle className="h-5 w-5" />
+                      )}
+                      Batalkan Transaksi
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Batalkan transaksi ini?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Stok akan dikembalikan dan transaksi akan dihapus dari
+                        riwayat.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Tidak</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleCancel}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        Ya, Batalkan
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
 
               <Button
                 className="h-12 gap-2 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"

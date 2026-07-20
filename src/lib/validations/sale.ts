@@ -60,8 +60,13 @@ export const insertSaleSchema = z
   )
   .refine(
     (data) => {
-      // Cash non-hutang harus ada totalPaid > 0
-      if (data.paymentMethod === "cash" && !data.isDebt && data.totalPaid <= 0) {
+      // Cash non-hutang harus ada totalPaid > 0, kecuali jika menggunakan saldo
+      if (
+        data.paymentMethod === "cash" &&
+        !data.isDebt &&
+        data.totalBalanceUsed <= 0 &&
+        data.totalPaid <= 0
+      ) {
         return false;
       }
       return true;
