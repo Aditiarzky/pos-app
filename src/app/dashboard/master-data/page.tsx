@@ -28,6 +28,7 @@ import { useUpdateUnit } from "@/hooks/units/use-update-unit";
 import { useDeleteUnit } from "@/hooks/units/use-delete-unit";
 import { AccessDenied } from "@/components/access-denied";
 import { RelationAwareDeleteDialog } from "@/components/relation-aware-delete-dialog";
+import { cn } from "@/lib/utils";
 
 type ManagedItem = CategoryResponse | UnitResponse;
 
@@ -157,30 +158,45 @@ function EntitySection({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedRows.map((row) => (
-                    <TableRow key={row.id} className="hover:bg-muted/50 border-b border-border/30 last:border-none">
-                      <TableCell className="px-4 py-2 font-medium">{row.name}</TableCell>
-                      <TableCell className="px-4 py-2 text-muted-foreground text-sm">
-                        {row.createdAt ? formatDate(row.createdAt) : "-"}
-                      </TableCell>
-                      <TableCell className="text-right px-4 py-2">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => { setEditingItem(row); setDraftName(row.name); setDialogOpen(true); }}>
-                              <Pencil className="mr-2 h-4 w-4" />Edit
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget(row)}>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Hapus
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {paginatedRows.map((row) => {
+                    const isRowDeleting = isDeleting && deleteTarget?.id === row.id;
+                    return (
+                      <TableRow
+                        key={row.id}
+                        className={cn(
+                          "hover:bg-muted/50 border-b border-border/30 last:border-none transition-opacity",
+                          isRowDeleting && "opacity-50 pointer-events-none",
+                        )}
+                      >
+                        <TableCell className="px-4 py-2 font-medium">{row.name}</TableCell>
+                        <TableCell className="px-4 py-2 text-muted-foreground text-sm">
+                          {row.createdAt ? formatDate(row.createdAt) : "-"}
+                        </TableCell>
+                        <TableCell className="text-right px-4 py-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" disabled={isRowDeleting}>
+                                {isRowDeleting ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <MoreHorizontal className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => { setEditingItem(row); setDraftName(row.name); setDialogOpen(true); }}>
+                                <Pencil className="mr-2 h-4 w-4" />Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget(row)}>
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Hapus
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

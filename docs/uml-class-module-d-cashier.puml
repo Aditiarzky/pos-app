@@ -10,8 +10,6 @@ skinparam defaultFontSize 14
 skinparam titleFontSize 20
 
 title Pengelolaan Kasir
-
-package "Domain Model: Sale" {
     class Sale {
         - id: Integer
         - invoiceNumber: String
@@ -69,18 +67,33 @@ package "Domain Model: Sale" {
     Sale ..> SaleStatus : has status >
     Sale ..> PaymentMethod : uses method >
     Sale "0..*" -- "0..1" Customer : performed by >
+    Sale "0..*" -- "1" User : created by >
     SaleItem "0..*" -- "1" ProductVariant : refers to >
-}
+    SaleItem "0..*" -- "1" Product : refers to >
 
-package "External Reference" {
+
+
     class Customer <<external>> {
+        - id: Integer
+        - name: String
         + updateSaldo(nominal: Decimal): void
         + cekLimitKredit(): Decimal
     }
     class ProductVariant <<external>> {
+        - id: Integer
+        - name: String
+        - sku: String
         + updateStock(amount: Decimal): void
     }
-    class User <<external>>
-}
+    class Product <<external>> {
+        - id: Integer
+        - name: String
+        - sku: String
+    }
+    class User <<external>> {
+        - id: Integer
+        - name: String
+    }
+
 
 @enduml

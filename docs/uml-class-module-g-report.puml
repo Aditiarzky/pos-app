@@ -11,7 +11,6 @@ skinparam titleFontSize 20
 
 title Pengelolaan Laporan
 
-package "Domain Model: Finance & Report" {
     class PerformanceReport {
         - startPeriod: Date
         - endPeriod: Date
@@ -47,7 +46,7 @@ package "Domain Model: Finance & Report" {
         - fixedAmount: Decimal
         - appliesTo: TaxAppliesTo
         - isActive: Boolean
-        + calculateTax(revenueBasis: Decimal, grossProfitBasis: Decimal): Decimal
+        + calculateTax(revenueBasis: Decimal, netProfitBasis: Decimal): Decimal
     }
 
     enum CostCategory {
@@ -75,7 +74,7 @@ package "Domain Model: Finance & Report" {
 
     enum TaxAppliesTo {
         REVENUE
-        GROSS_PROFIT
+        NET_PROFIT
     }
 
     ' Relationships
@@ -85,13 +84,23 @@ package "Domain Model: Finance & Report" {
     OperationalCost ..> CostPeriod : period >
     TaxConfig ..> TaxType : type >
     TaxConfig ..> TaxAppliesTo : basis object >
-}
+    PerformanceReport "1" ..> "0..*" Sale : calculates from >
+    PerformanceReport "1" ..> "0..*" PurchaseOrder : calculates from >
+    OperationalCost "0..*" -- "1" User : created by >
+    TaxConfig "0..*" -- "1" User : created by >
 
-package "External Reference" {
-    class Sale <<external>>
-    class PurchaseOrder <<external>>
-    class User <<external>>
-}
+    class Sale <<external>> {
+        - id: Integer
+        - invoiceNumber: String
+    }
+    class PurchaseOrder <<external>> {
+        - id: Integer
+        - orderNumber: String
+    }
+    class User <<external>> {
+        - id: Integer
+        - name: String
+    }
 
 
 @enduml

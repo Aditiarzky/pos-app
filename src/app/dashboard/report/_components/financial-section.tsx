@@ -36,8 +36,19 @@ export function FinancialSection({
   // HPP = Pendapatan − Laba Kotor
   const hpp = totalSales - grossProfit;
 
-  // Total beban = HPP + Biaya Operasional + Pajak
-  const totalBeban = hpp + totalOperationalCost + totalTax;
+  // Hitung pajak laba bersih vs pajak lainnya
+  const netProfitTaxes =
+    breakdown?.taxes
+      ?.filter((t) => t.appliesTo === "net_profit")
+      ?.reduce((sum, t) => sum + t.amount, 0) ?? 0;
+
+  const otherTaxes = totalTax - netProfitTaxes;
+
+  // Laba sebelum pajak (EBT) = Laba Kotor - Biaya Operasional - Pajak Lainnya
+  const ebt = grossProfit - totalOperationalCost - otherTaxes;
+
+  // Total beban = HPP + Biaya Operasional + Pajak Lainnya + Pajak Laba Bersih
+  const totalBeban = hpp + totalOperationalCost + otherTaxes + netProfitTaxes;
 
   return (
     <div className="space-y-6">
@@ -97,10 +108,10 @@ export function FinancialSection({
             </div>
           </div>
 
-          {/* ── Beban ── */}
+          {/* ── Beban Operasional & Pajak Lainnya ── */}
           <div className="space-y-2">
             <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-              Beban
+              Beban Operasional & Pajak Lainnya
             </p>
 
             {/* Biaya Operasional */}
@@ -116,18 +127,50 @@ export function FinancialSection({
               </span>
             </div>
 
-            {/* Pajak */}
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="text-sm font-medium">Pajak</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {breakdown?.taxes?.length ?? 0} jenis pajak
-                </p>
+            {/* Pajak Lainnya */}
+            {otherTaxes > 0 && (
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm font-medium">Pajak Lainnya</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Pajak omset/pendapatan & pajak tetap
+                  </p>
+                </div>
+                <span className="font-bold text-sm tabular-nums text-rose-500 shrink-0">
+                  −{formatCurrency(otherTaxes)}
+                </span>
               </div>
-              <span className="font-bold text-sm tabular-nums text-rose-500 shrink-0">
-                −{formatCurrency(totalTax)}
+            )}
+
+            {/* Subtotal Laba Sebelum Pajak Penghasilan */}
+            <div className="flex items-center justify-between border-t border-border/50 pt-2">
+              <p className="text-sm font-semibold">
+                Laba Sebelum Pajak Penghasilan (EBT)
+              </p>
+              <span
+                className={cn(
+                  "font-bold text-sm tabular-nums",
+                  ebt >= 0 ? "text-emerald-600" : "text-rose-500",
+                )}
+              >
+                {formatCurrency(ebt)}
               </span>
             </div>
+
+            {/* Pajak Penghasilan (Laba Bersih) */}
+            {netProfitTaxes > 0 && (
+              <div className="flex items-start justify-between gap-2 pt-2 border-t border-border/30">
+                <div>
+                  <p className="text-sm font-medium">Pajak Penghasilan (PPh)</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Dihitung dari laba bersih sebelum pajak
+                  </p>
+                </div>
+                <span className="font-bold text-sm tabular-nums text-rose-500 shrink-0">
+                  −{formatCurrency(netProfitTaxes)}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* ── Laba/Rugi Bersih ── */}
@@ -226,18 +269,11 @@ export function FinancialSection({
               <div className="text-xs space-y-1">
                 <p className="font-bold text-primary">Analisis Margin</p>
                 <p className="text-muted-foreground leading-relaxed">
-                  Dari total pendapatan{" "}
-                  {formatCurrency(totalSales)}, beban usaha sebesar{" "}
-                  {formatCurrency(totalBeban)} ({" "}
-                  {(
-                    (totalBeban / (totalSales || 1)) *
-                    100
-                  ).toFixed(1)}
+                  Dari total pendapatan {formatCurrency(totalSales)}, beban
+                  usaha sebesar {formatCurrency(totalBeban)} ({" "}
+                  {((totalBeban / (totalSales || 1)) * 100).toFixed(1)}
                   %). Margin laba bersih Anda adalah{" "}
-                  {(
-                    (netProfit / (totalSales || 1)) *
-                    100
-                  ).toFixed(1)}
+                  {((netProfit / (totalSales || 1)) * 100).toFixed(1)}
                   %.
                   {netProfit > 0
                     ? " Bisnis Anda menghasilkan keuntungan yang sehat periode ini."

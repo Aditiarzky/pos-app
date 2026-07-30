@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { and, desc, eq, not, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { categories, products, purchaseOrders, saleItems, sales } from "@/drizzle/schema";
-import { handleApiError } from "@/lib/api-utils";
 import {
-  MS_DAY,
-  normalizeTimezone,
-  getLocalMidnightUtc,
-} from "@/lib/timezone";
+  categories,
+  products,
+  purchaseOrders,
+  saleItems,
+  sales,
+} from "@/drizzle/schema";
+import { handleApiError } from "@/lib/api-utils";
+import { MS_DAY, normalizeTimezone, getLocalMidnightUtc } from "@/lib/timezone";
 import { calculateNetProfit } from "@/lib/net-profit-helper";
 
 type ReportType = "overview" | "sales" | "purchase";
@@ -67,7 +69,8 @@ const parseDateRange = (request: NextRequest) => {
       day: "numeric",
     });
     const parts = Object.fromEntries(
-      f.formatToParts(todayMidnight)
+      f
+        .formatToParts(todayMidnight)
         .filter((p) => p.type !== "literal")
         .map((p) => [p.type, p.value]),
     );
@@ -103,14 +106,15 @@ const parseType = (request: NextRequest): ReportType => {
 
 export async function GET(request: NextRequest) {
   try {
-    const { startStr, endStr, prevStartStr, prevEndStr, timezone } = parseDateRange(request);
+    const { startStr, endStr, prevStartStr, prevEndStr, timezone } =
+      parseDateRange(request);
     const type = parseType(request);
 
-    // Date objects for calculateNetProfit (range days calculation)
-    const [sY, sM, sD] = startStr.split("-").map(Number);
-    const [eY, eM, eD] = endStr.split("-").map(Number);
-    const start = new Date(sY, sM - 1, sD);
-    const end = new Date(eY, eM - 1, eD);
+    // NOTE: calculateNetProfit menerima startStr/endStr (string 'YYYY-MM-DD',
+    // sudah dalam timezone toko) LANGSUNG — jangan bikin ulang Date object lalu
+    // di-toISOString() di dalam helper, karena itu bisa geser tanggal mundur 1
+    // hari kalau timezone environment tempat kode berjalan != UTC (bug yang
+    // sama seperti yang sudah difix di salesFilter/purchaseFilter di bawah).
 
     // ── SQL date filter ─────────────────────────────────────────────────────────
     // Gunakan ::date cast agar perbandingan konsisten dengan to_char() yang
@@ -251,20 +255,29 @@ export async function GET(request: NextRequest) {
 
       const revenue = Number(salesBaseTotals[0]?.totalSales || 0);
       const grossProfit = Number(salesGrossProfit[0]?.grossProfit || 0);
-      const netProfitData = await calculateNetProfit(grossProfit, revenue, start, end);
+      const netProfitData = await calculateNetProfit(
+        grossProfit,
+        revenue,
+        startStr,
+        endStr,
+      );
 
       return NextResponse.json({
         success: true,
         data: {
           summary: {
             totalSales: revenue,
-            totalTransactions: Number(salesBaseTotals[0]?.totalTransactions || 0),
+            totalTransactions: Number(
+              salesBaseTotals[0]?.totalTransactions || 0,
+            ),
             grossProfit,
             netProfit: netProfitData.netProfit,
             totalOperationalCost: netProfitData.totalOperationalCost,
             totalTax: netProfitData.totalTax,
             prevTotalSales: Number(prevSalesBaseTotals[0]?.totalSales || 0),
-            prevTotalTransactions: Number(prevSalesBaseTotals[0]?.totalTransactions || 0),
+            prevTotalTransactions: Number(
+              prevSalesBaseTotals[0]?.totalTransactions || 0,
+            ),
             prevGrossProfit: Number(prevSalesGrossProfit[0]?.grossProfit || 0),
           },
           netProfitBreakdown: netProfitData.breakdown,
@@ -309,9 +322,15 @@ export async function GET(request: NextRequest) {
         data: {
           summary: {
             totalPurchases: Number(purchaseTotals[0]?.totalPurchases || 0),
-            totalTransactions: Number(purchaseTotals[0]?.totalTransactions || 0),
-            prevTotalPurchases: Number(prevPurchaseTotals[0]?.totalPurchases || 0),
-            prevTotalTransactions: Number(prevPurchaseTotals[0]?.totalTransactions || 0),
+            totalTransactions: Number(
+              purchaseTotals[0]?.totalTransactions || 0,
+            ),
+            prevTotalPurchases: Number(
+              prevPurchaseTotals[0]?.totalPurchases || 0,
+            ),
+            prevTotalTransactions: Number(
+              prevPurchaseTotals[0]?.totalTransactions || 0,
+            ),
           },
           daily: dailyPurchases,
         },
@@ -397,13 +416,22 @@ export async function GET(request: NextRequest) {
     const grossProfit = Number(salesGrossProfit[0]?.grossProfit || 0);
     const totalPurchases = Number(purchaseTotals[0]?.totalPurchases || 0);
 
-    const netProfitData = await calculateNetProfit(grossProfit, revenue, start, end);
+    const netProfitData = await calculateNetProfit(
+      grossProfit,
+      revenue,
+      startStr,
+      endStr,
+    );
 
     const summary = {
       totalSales: revenue,
       totalPurchases,
-      totalSalesTransactions: Number(salesBaseTotals[0]?.totalTransactions || 0),
-      totalPurchaseTransactions: Number(purchaseTotals[0]?.totalTransactions || 0),
+      totalSalesTransactions: Number(
+        salesBaseTotals[0]?.totalTransactions || 0,
+      ),
+      totalPurchaseTransactions: Number(
+        purchaseTotals[0]?.totalTransactions || 0,
+      ),
       totalTransactions:
         Number(salesBaseTotals[0]?.totalTransactions || 0) +
         Number(purchaseTotals[0]?.totalTransactions || 0),

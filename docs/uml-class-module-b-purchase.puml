@@ -11,7 +11,6 @@ skinparam titleFontSize 20
 
 title Pengelolaan Pembelian
 
-package "Domain Model: Purchase" {
     class PurchaseOrder {
         - id: Integer
         - orderNumber: String
@@ -57,28 +56,30 @@ package "Domain Model: Purchase" {
     PurchaseOrder "1" *-- "1..*" PurchaseItem : contains >
     PurchaseOrder "0..*" -- "1" Supplier : directed to >
     PurchaseItem "0..*" -- "1" ProductVariant : refers to >
-}
+    PurchaseItem "0..*" -- "1" Product : refers to >
+    PurchaseOrder "0..*" -- "1" User : created by >
 
-package "External Reference" {
+
+
     class ProductVariant <<external>> {
+        - id: Integer
+        - name: String
+        - sku: String
         ' Digunakan untuk update stok dan HPP
         + updateStock(amount: Decimal): void
         + recalculateHPP(newCost: Decimal, newQty: Decimal): void
     }
-    class User <<external>>
-}
+    class Product <<external>> {
+        - id: Integer
+        - name: String
+        - sku: String
+    }
+    class User <<external>> {
+        - id: Integer
+        - name: String
+    }
 
-' Catatan Fungsional
-note top of PurchaseOrder
-  Mengelola data transaksi masuk dari Supplier.
-  editNote() = "Data Salah" (Revert & Re-apply, Admin Sistem & Admin Toko).
-  hardDelete() = "Data Tidak Berguna" (Admin Sistem only, hard delete).
-  reverseAverageCost() membatalkan pengaruh HPP item pada stok produk.
-end note
 
-note right of PurchaseItem
-  Mendata rincian item per baris dalam nota.
-  Menyimpan kondisi HPP (costBefore) sebelum transaksi.
-end note
+
 
 @enduml

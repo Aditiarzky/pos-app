@@ -19,8 +19,8 @@ enum payment_method {
 Table sales {
   id serial [pk, increment]
   invoice_number varchar(60) [not null, unique]
-  customer_id integer 
-  user_id integer [not null]
+  customer_id integer [ref: > customers.id]
+  user_id integer [not null, ref: > users.id]
   total_price decimal(12,2) [not null]
   total_paid decimal(12,2) [not null]
   total_return decimal(12,2) [not null]
@@ -42,8 +42,8 @@ Table sales {
 Table sale_items {
   id serial [pk, increment]
   sale_id integer [not null, ref: > sales.id]
-  product_id integer [not null]
-  variant_id integer [not null]
+  product_id integer [not null, ref: > products.id]
+  variant_id integer [not null, ref: > product_variants.id]
   qty decimal(12,3) [not null]
   price_at_sale decimal(12,2) [not null]
   unit_factor_at_sale decimal(12,3) [not null]
@@ -51,3 +51,22 @@ Table sale_items {
   subtotal decimal(12,2) [not null]
 }
 
+// External references
+Table customers { 
+  id serial [pk] 
+  name varchar(150)
+}
+Table users { 
+  id serial [pk] 
+  name text
+}
+Table products { 
+  id serial [pk] 
+  name varchar(150)
+  sku varchar(50)
+}
+Table product_variants { 
+  id serial [pk] 
+  name varchar(100)
+  sku varchar(60)
+}

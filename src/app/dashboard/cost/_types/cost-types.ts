@@ -45,14 +45,14 @@ export const TAX_TYPE_LABELS: Record<string, string> = {
 
 export const TAX_APPLIES_TO_LABELS: Record<string, string> = {
   revenue: "Dari Omset (Pendapatan)",
-  gross_profit: "Dari Laba Kotor",
+  net_profit: "Dari Laba Bersih",
 };
 
 export const TAX_APPLIES_TO_DESCRIPTIONS: Record<string, string> = {
   revenue:
     "Pajak dihitung dari total penjualan. Contoh: PPh Final UMKM 0.5% dari omset.",
-  gross_profit:
-    "Pajak dihitung dari laba kotor (omset - HPP). Contoh: PPh Badan.",
+  net_profit:
+    "Pajak dihitung dari laba bersih (omset - HPP - biaya ops - pajak non-laba bersih).",
 };
 
 export const CATEGORY_COLORS: Record<string, string> = {

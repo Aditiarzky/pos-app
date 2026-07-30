@@ -20,15 +20,10 @@ export type CostCategory =
   | "maintenance"
   | "other";
 
-export type CostPeriod =
-  | "daily"
-  | "weekly"
-  | "monthly"
-  | "yearly"
-  | "one_time";
+export type CostPeriod = "daily" | "weekly" | "monthly" | "yearly" | "one_time";
 
 export type TaxType = "percentage" | "fixed";
-export type TaxAppliesTo = "revenue" | "gross_profit";
+export type TaxAppliesTo = "revenue" | "net_profit";
 
 export interface OperationalCost {
   id: number;
@@ -189,7 +184,9 @@ export const deleteTaxConfig = async (
 
 // --- Analytics ---
 
-export const getCostAnalytics = async (): Promise<ApiResponse<CostAnalytics>> => {
+export const getCostAnalytics = async (): Promise<
+  ApiResponse<CostAnalytics>
+> => {
   const response = await axiosInstance.get("/cost-analytics");
   return response.data;
 };

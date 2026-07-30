@@ -63,7 +63,7 @@ Table customer_exchange_items {
 
 Table customer_balance_mutations {
   id serial [pk, increment]
-  customer_id integer [not null]
+  customer_id integer [not null, ref: > customers.id]
   amount decimal(15,2) [not null]
   balance_before decimal(15,2) [not null]
   balance_after decimal(15,2) [not null]
@@ -72,7 +72,29 @@ Table customer_balance_mutations {
   reference_type text
   note text
   created_at timestamp
-  user_id integer
+  user_id integer [ref: > users.id]
 }
 
-
+// External references
+Table sales { 
+  id serial [pk] 
+  invoice_number varchar(60)
+}
+Table customers { 
+  id serial [pk] 
+  name varchar(150)
+}
+Table users { 
+  id serial [pk] 
+  name text
+}
+Table products { 
+  id serial [pk] 
+  name varchar(150)
+  sku varchar(50)
+}
+Table product_variants { 
+  id serial [pk] 
+  name varchar(100)
+  sku varchar(60)
+}

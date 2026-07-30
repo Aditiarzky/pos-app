@@ -43,3 +43,19 @@ Table purchase_items {
   cost_before decimal(12,4) [not null]
   subtotal decimal(12,2) [not null]
 }
+
+// External references
+Table users { 
+  id serial [pk] 
+  name text
+}
+Table products { 
+  id serial [pk] 
+  name varchar(150)
+  sku varchar(50)
+}
+Table product_variants { 
+  id serial [pk] 
+  name varchar(100)
+  sku varchar(60)
+}

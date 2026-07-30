@@ -191,7 +191,6 @@ export function ProductFormModal({
         shouldValidate: false,
       });
     }
-
   }, [form, minStockUnitId, minStockValue]);
 
   // Restore saved minStock on open.
@@ -241,15 +240,7 @@ export function ProductFormModal({
     }
 
     setInitialized(true);
-
-  }, [
-    open,
-    baseUnitId,
-    initialized,
-    productData,
-    form,
-    availableUnits.length,
-  ]);
+  }, [open, baseUnitId, initialized, productData, form, availableUnits.length]);
 
   // Recover unit selection if it becomes stale
   useEffect(() => {
@@ -265,13 +256,11 @@ export function ProductFormModal({
       (a, b) => b.conversionToBase - a.conversionToBase,
     )[0];
     setMinStockUnitId(largest.idx);
-
   }, [open, baseUnitId, minStockUnitId]);
 
   // ── Image ─────────────────────────────────────────────────────────────────
 
   const { imagePreview, setImagePreview, uploading, inputRef, uploadImage } =
-
     useProductImage(uploadMutation, form.setValue as any, open, productData);
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -332,6 +321,15 @@ export function ProductFormModal({
   const isPending =
     createMutation.isPending || updateMutation.isPending || uploading;
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === "Enter") {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "SELECT") {
+        e.preventDefault();
+      }
+    }
+  };
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
@@ -355,11 +353,11 @@ export function ProductFormModal({
                     className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all duration-200",
                       currentStep === step.id &&
-                      "border-primary bg-primary/10 text-primary",
+                        "border-primary bg-primary/10 text-primary",
                       currentStep > step.id &&
-                      "border-primary bg-primary text-primary-foreground",
+                        "border-primary bg-primary text-primary-foreground",
                       currentStep < step.id &&
-                      "border-muted-foreground/30 text-muted-foreground bg-background",
+                        "border-muted-foreground/30 text-muted-foreground bg-background",
                     )}
                   >
                     {currentStep > step.id ? (
@@ -395,6 +393,7 @@ export function ProductFormModal({
         {/* ── Body (scrollable) ────────────────────────────────────────── */}
         <form
           onSubmit={handleFormSubmit}
+          onKeyDown={handleKeyDown}
           className="flex flex-1 min-h-0 flex-col overflow-hidden"
         >
           <ScrollArea className="flex-1 min-h-0">
@@ -432,7 +431,6 @@ export function ProductFormModal({
                     removeVariant={removeVariant}
                     averageCost={Number(productData?.data?.averageCost ?? 0)}
                     isSystemAdmin={isSystemAdmin}
-
                     units={units as any}
                   />
 

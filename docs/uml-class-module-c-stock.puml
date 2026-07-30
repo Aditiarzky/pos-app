@@ -10,8 +10,6 @@ skinparam defaultFontSize 14
 skinparam titleFontSize 20
 
 title Penyelarasan Stok
-
-package "Domain Model: Inventory" {
     class StockMutation {
         - id: Integer
         - productId: Integer
@@ -49,36 +47,25 @@ package "Domain Model: Inventory" {
     StockMutation "0..*" -- "1" ProductVariant : via variant >
     StockMutation ..> StockMutationType : using >
     StockOpnameWorksheet ..> StockMutation : triggers >
-}
+    StockMutation "0..*" -- "1" User : executed by >
 
-package "External Reference" {
     class Product <<external>> {
+        - id: Integer
+        - name: String
+        - sku: String
         + updateStock(amount: Decimal): void
     }
-    class ProductVariant <<external>>
-    class User <<external>>
-}
+    class ProductVariant <<external>> {
+        - id: Integer
+        - name: String
+        - sku: String
+    }
+    class User <<external>> {
+        - id: Integer
+        - name: String
+    }
 
-' Catatan Fungsional
-note bottom of StockMutation
-  Objek ini merepresentasikan 
-  setiap perubahan stok.
-  Data ini menjadi acuan 
-  utama untuk audit log stok.
-  PURCHASE_CANCEL digunakan 
-  saat edit/hapus purchase.
-end note
 
-note bottom of StockOpnameWorksheet
-  Lembar kerja cetak 
-  untuk stock opname offline.
-  Admin Toko cetak, 
-  Admin Sistem input hasil.
-end note
 
-note bottom of StockMutationType
-  Mendefinisikan sumber perubahan stok
-  (Sale, Purchase, Stock Adjustment, dll).
-end note
 
 @enduml

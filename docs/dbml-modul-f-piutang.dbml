@@ -31,5 +31,11 @@ Table debt_payments {
 }
 
 // External references
-Table sales { id serial [pk] }
-Table customers { id serial [pk] }
+Table sales { 
+  id serial [pk] 
+  invoice_number varchar(60)
+}
+Table customers { 
+  id serial [pk] 
+  name varchar(150)
+}

@@ -6,15 +6,37 @@ import { operationalCosts, taxConfigs } from "@/drizzle/schema";
 /**
  * Normalisasi biaya/pajak tetap ke jumlah hari periode laporan.
  */
-const normalizeToRange = (amount: number, period: string, rangeDays: number): number => {
+const normalizeToRange = (
+  amount: number,
+  period: string,
+  rangeDays: number,
+): number => {
   switch (period) {
-    case "daily": return amount * rangeDays;
-    case "weekly": return amount * (rangeDays / 7);
-    case "monthly": return amount * (rangeDays / 30);
-    case "yearly": return amount * (rangeDays / 365);
-    case "one_time": return amount;
-    default: return amount;
+    case "daily":
+      return amount * rangeDays;
+    case "weekly":
+      return amount * (rangeDays / 7);
+    case "monthly":
+      return amount * (rangeDays / 30);
+    case "yearly":
+      return amount * (rangeDays / 365);
+    case "one_time":
+      return amount;
+    default:
+      return amount;
   }
+};
+
+// Hitung jumlah hari antara dua tanggal string 'YYYY-MM-DD' (inclusive).
+// Pakai Date.UTC murni dari komponen Y-M-D agar TIDAK terpengaruh timezone
+// environment tempat kode berjalan (beda dengan `new Date(str).toISOString()`
+// yang bisa geser 1 hari kalau local timezone server != UTC).
+const rangeDaysBetween = (startStr: string, endStr: string): number => {
+  const [sY, sM, sD] = startStr.split("-").map(Number);
+  const [eY, eM, eD] = endStr.split("-").map(Number);
+  const startUtc = Date.UTC(sY, sM - 1, sD);
+  const endUtc = Date.UTC(eY, eM - 1, eD);
+  return Math.max(1, Math.round((endUtc - startUtc) / (1000 * 60 * 60 * 24)) + 1);
 };
 
 export type NetProfitResult = {
@@ -50,32 +72,30 @@ export type NetProfitResult = {
  *   Laba Kotor     = grossProfit (sudah dihitung dari saleItems)
  *   Biaya Ops      = Σ biaya aktif, dinormalisasi ke jumlah hari periode
  *   Pajak % Omset  = Σ rate × revenue       (applies_to = revenue)
- *   Pajak % Laba   = Σ rate × grossProfit   (applies_to = gross_profit)
+ *   Pajak % Laba   = Σ rate × EBT           (applies_to = net_profit)
  *   Pajak Tetap    = Σ fixedAmount, dinormalisasi
  *   Laba Bersih    = Laba Kotor − Biaya Ops − Semua Pajak
  *
  * @param grossProfit - Laba kotor (pendapatan - HPP)
  * @param revenue     - Total pendapatan (omset)
- * @param startDate   - Awal periode laporan
- * @param endDate     - Akhir periode laporan
+ * @param startStr    - Awal periode laporan, format 'YYYY-MM-DD' (sudah dalam timezone toko)
+ * @param endStr      - Akhir periode laporan, format 'YYYY-MM-DD' (sudah dalam timezone toko)
  */
 export const calculateNetProfit = async (
   grossProfit: number,
   revenue: number,
-  startDate: Date,
-  endDate: Date,
+  startStr: string,
+  endStr: string,
 ): Promise<NetProfitResult> => {
-  const startStr = startDate.toISOString().slice(0, 10);
-  const endStr = endDate.toISOString().slice(0, 10);
-
   // Jumlah hari periode laporan (minimal 1)
-  const rangeDays = Math.max(
-    1,
-    Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1,
-  );
+  const rangeDays = rangeDaysBetween(startStr, endStr);
 
   // Filter: aktif dan effectiveFrom <= endDate dan (effectiveTo IS NULL atau effectiveTo >= startDate)
-  const activeFilter = (effectiveFromCol: any, effectiveToCol: any, isActiveCol: any) =>
+  const activeFilter = (
+    effectiveFromCol: any,
+    effectiveToCol: any,
+    isActiveCol: any,
+  ) =>
     and(
       eq(isActiveCol, true),
       sql`${effectiveFromCol} <= ${endStr}`,
@@ -102,7 +122,11 @@ export const calculateNetProfit = async (
   // ── Biaya Operasional ─────────────────────────────────────────────────────
   const costBreakdown = activeCosts.map((cost) => {
     const originalAmount = Number(cost.amount);
-    const normalizedAmount = normalizeToRange(originalAmount, cost.period, rangeDays);
+    const normalizedAmount = normalizeToRange(
+      originalAmount,
+      cost.period,
+      rangeDays,
+    );
     return {
       id: cost.id,
       name: cost.name,
@@ -119,19 +143,27 @@ export const calculateNetProfit = async (
   );
 
   // ── Pajak ─────────────────────────────────────────────────────────────────
-  const taxBreakdown = activeTaxes.map((tax) => {
+  let totalNonNetProfitTax = 0;
+  const tempTaxBreakdown = activeTaxes.map((tax) => {
     let amount = 0;
+    let isNetProfitTax = false;
 
     if (tax.type === "percentage" && tax.rate != null) {
-      const rate = Number(tax.rate);
-      const basis = tax.appliesTo === "revenue" ? revenue : grossProfit;
-      amount = rate * basis;
+      if (tax.appliesTo === "net_profit") {
+        isNetProfitTax = true;
+      } else {
+        amount = Number(tax.rate) * revenue;
+      }
     } else if (tax.type === "fixed" && tax.fixedAmount != null) {
       amount = normalizeToRange(
         Number(tax.fixedAmount),
         tax.period ?? "monthly",
         rangeDays,
       );
+    }
+
+    if (!isNetProfitTax) {
+      totalNonNetProfitTax += amount;
     }
 
     return {
@@ -141,6 +173,25 @@ export const calculateNetProfit = async (
       appliesTo: tax.appliesTo ?? null,
       rate: tax.rate != null ? Number(tax.rate) : null,
       fixedAmount: tax.fixedAmount != null ? Number(tax.fixedAmount) : null,
+      amount,
+      isNetProfitTax,
+    };
+  });
+
+  const ebt = grossProfit - totalOperationalCost - totalNonNetProfitTax;
+
+  const taxBreakdown = tempTaxBreakdown.map((t) => {
+    let amount = t.amount;
+    if (t.isNetProfitTax && t.rate != null) {
+      amount = t.rate * Math.max(0, ebt);
+    }
+    return {
+      id: t.id,
+      name: t.name,
+      type: t.type,
+      appliesTo: t.appliesTo,
+      rate: t.rate,
+      fixedAmount: t.fixedAmount,
       amount,
     };
   });

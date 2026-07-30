@@ -180,14 +180,14 @@ async function getRestockNotifications(): Promise<NotificationItem[]> {
         .limit(MAX_RESTOCK_ITEMS_PER_PERIOD);
 
       return rows.map((row): RestockSignal | null => {
-        const qtySold = Number(row.qtySold || 0);
-        const remainingStock = Number(row.remainingStock || 0);
-        const minStock = Number(row.minStock || 0);
+        const qtySold = Number(row.qtySold || 0); //kuantitas terjual per priode
+        const remainingStock = Number(row.remainingStock || 0); //sisa stok
+        const minStock = Number(row.minStock || 0); //stok minimum
         if (qtySold <= 0) return null;
-        const avgDailySales = qtySold / periodDays;
-        const estimatedDaysLeft = avgDailySales > 0 ? Number((remainingStock / avgDailySales).toFixed(1)) : null;
-        const targetStock = Math.max(Math.ceil(avgDailySales * RESTOCK_TARGET_DAYS), minStock);
-        const recommendedRestockQty = Math.max(targetStock - remainingStock, 0);
+        const avgDailySales = qtySold / periodDays; //rata-rata penjualan per hari
+        const estimatedDaysLeft = avgDailySales > 0 ? Number((remainingStock / avgDailySales).toFixed(1)) : null; //estimasi hari tersisa
+        const targetStock = Math.max(Math.ceil(avgDailySales * RESTOCK_TARGET_DAYS), minStock); //stok target
+        const recommendedRestockQty = Math.max(targetStock - remainingStock, 0); //kuantitas yang direkomendasikan untuk restock
         const urgencyScore = estimatedDaysLeft === null ? 0 : Number((1000 / Math.max(estimatedDaysLeft, 0.5)).toFixed(2));
         return { productId: row.productId, productName: row.productName, sku: row.sku || "", remainingStock, minStock, periodDays, qtySold, avgDailySales, estimatedDaysLeft, recommendedRestockQty, lastSaleAt: toIsoDate(row.lastSaleAt), urgencyScore };
       }).filter((item): item is RestockSignal => item !== null);

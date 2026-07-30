@@ -1,4 +1,4 @@
-import { taxConfigs } from "@/drizzle/schema";
+import { taxConfigs, operationalCosts } from "@/drizzle/schema";
 import { handleApiError } from "@/lib/api-utils";
 import { db } from "@/lib/db";
 import { parsePagination, formatMeta } from "@/lib/query-helper";
@@ -13,12 +13,18 @@ export const normalizeTaxToRange = (
   rangeDays: number,
 ): number => {
   switch (period) {
-    case "daily": return fixedAmount * rangeDays;
-    case "weekly": return fixedAmount * (rangeDays / 7);
-    case "monthly": return fixedAmount * (rangeDays / 30);
-    case "yearly": return fixedAmount * (rangeDays / 365);
-    case "one_time": return fixedAmount;
-    default: return fixedAmount;
+    case "daily":
+      return fixedAmount * rangeDays;
+    case "weekly":
+      return fixedAmount * (rangeDays / 7);
+    case "monthly":
+      return fixedAmount * (rangeDays / 30);
+    case "yearly":
+      return fixedAmount * (rangeDays / 365);
+    case "one_time":
+      return fixedAmount;
+    default:
+      return fixedAmount;
   }
 };
 
@@ -40,26 +46,62 @@ export const calculateTotalTax = async (
   totalTax: number;
   breakdown: Array<{ name: string; type: string; amount: number }>;
 }> => {
-  const activeTaxes = await db.query.taxConfigs.findMany({
-    where: and(
-      eq(taxConfigs.isActive, true),
-      // effectiveFrom <= endDate laporan
-      sql`${taxConfigs.effectiveFrom} <= ${endDate.toISOString().slice(0, 10)}`,
-      // effectiveTo IS NULL atau effectiveTo >= startDate laporan
-      sql`(${taxConfigs.effectiveTo} IS NULL OR ${taxConfigs.effectiveTo} >= ${startDate.toISOString().slice(0, 10)})`,
-    ),
-  });
+  const startStr = startDate.toISOString().slice(0, 10);
+  const endStr = endDate.toISOString().slice(0, 10);
 
-  const breakdown: Array<{ name: string; type: string; amount: number }> = [];
-  let totalTax = 0;
+  const [activeTaxes, activeCosts] = await Promise.all([
+    db.query.taxConfigs.findMany({
+      where: and(
+        eq(taxConfigs.isActive, true),
+        // effectiveFrom <= endDate laporan
+        sql`${taxConfigs.effectiveFrom} <= ${endStr}`,
+        // effectiveTo IS NULL atau effectiveTo >= startDate laporan
+        sql`(${taxConfigs.effectiveTo} IS NULL OR ${taxConfigs.effectiveTo} >= ${startStr})`,
+      ),
+    }),
+    db.query.operationalCosts.findMany({
+      where: and(
+        eq(operationalCosts.isActive, true),
+        // effectiveFrom <= endDate laporan
+        sql`${operationalCosts.effectiveFrom} <= ${endStr}`,
+        // effectiveTo IS NULL atau effectiveTo >= startDate laporan
+        sql`(${operationalCosts.effectiveTo} IS NULL OR ${operationalCosts.effectiveTo} >= ${startStr})`,
+      ),
+    }),
+  ]);
+
+  // 1. Calculate operational costs
+  let totalOperationalCost = 0;
+  for (const cost of activeCosts) {
+    totalOperationalCost += normalizeTaxToRange(
+      Number(cost.amount),
+      cost.period,
+      rangeDays,
+    );
+  }
+
+  // 2. Separate net-profit taxes from others
+  const breakdownTemp: Array<{
+    name: string;
+    type: string;
+    rate: number | null;
+    appliesTo: string | null;
+    amount: number;
+    isNetProfit: boolean;
+  }> = [];
+
+  let totalNonNetProfitTax = 0;
 
   for (const tax of activeTaxes) {
     let taxAmount = 0;
+    let isNetProfit = false;
 
     if (tax.type === "percentage" && tax.rate != null) {
-      const rate = Number(tax.rate);
-      const basis = tax.appliesTo === "revenue" ? revenue : grossProfit;
-      taxAmount = rate * basis;
+      if (tax.appliesTo === "net_profit") {
+        isNetProfit = true;
+      } else {
+        taxAmount = Number(tax.rate) * revenue;
+      }
     } else if (tax.type === "fixed" && tax.fixedAmount != null) {
       taxAmount = normalizeTaxToRange(
         Number(tax.fixedAmount),
@@ -68,8 +110,34 @@ export const calculateTotalTax = async (
       );
     }
 
-    breakdown.push({ name: tax.name, type: tax.type, amount: taxAmount });
-    totalTax += taxAmount;
+    if (!isNetProfit) {
+      totalNonNetProfitTax += taxAmount;
+    }
+
+    breakdownTemp.push({
+      name: tax.name,
+      type: tax.type,
+      rate: tax.rate != null ? Number(tax.rate) : null,
+      appliesTo: tax.appliesTo ?? null,
+      amount: taxAmount,
+      isNetProfit,
+    });
+  }
+
+  // 3. Compute Earnings Before Net Profit Tax
+  const ebt = grossProfit - totalOperationalCost - totalNonNetProfitTax;
+
+  // 4. Calculate actual net-profit tax amounts and finalize breakdown
+  const breakdown: Array<{ name: string; type: string; amount: number }> = [];
+  let totalTax = 0;
+
+  for (const item of breakdownTemp) {
+    let finalAmount = item.amount;
+    if (item.isNetProfit && item.rate != null) {
+      finalAmount = item.rate * Math.max(0, ebt);
+    }
+    breakdown.push({ name: item.name, type: item.type, amount: finalAmount });
+    totalTax += finalAmount;
   }
 
   return { totalTax, breakdown };
@@ -90,10 +158,16 @@ export async function GET(request: NextRequest) {
     const filter = and(
       search ? ilike(taxConfigs.name, `%${search}%`) : undefined,
       type
-        ? eq(taxConfigs.type, type as typeof taxConfigs.type.enumValues[number])
+        ? eq(
+            taxConfigs.type,
+            type as (typeof taxConfigs.type.enumValues)[number],
+          )
         : undefined,
       appliesTo
-        ? eq(taxConfigs.appliesTo, appliesTo as typeof taxConfigs.appliesTo.enumValues[number])
+        ? eq(
+            taxConfigs.appliesTo,
+            appliesTo as (typeof taxConfigs.appliesTo.enumValues)[number],
+          )
         : undefined,
       isActive !== null && isActive !== undefined
         ? eq(taxConfigs.isActive, isActive === "true")
@@ -103,7 +177,10 @@ export async function GET(request: NextRequest) {
     const [data, totalRes] = await Promise.all([
       db.query.taxConfigs.findMany({
         where: filter,
-        orderBy: [sql`${taxConfigs.isActive} desc`, sql`${taxConfigs.createdAt} desc`],
+        orderBy: [
+          sql`${taxConfigs.isActive} desc`,
+          sql`${taxConfigs.createdAt} desc`,
+        ],
         limit: params.limit,
         offset: params.offset,
         with: {
@@ -142,7 +219,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { rate, fixedAmount, appliesTo, effectiveTo, notes, ...rest } = parsed.data;
+    const { rate, fixedAmount, appliesTo, effectiveTo, notes, ...rest } =
+      parsed.data;
 
     const [newTax] = await db
       .insert(taxConfigs)

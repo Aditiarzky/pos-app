@@ -28,7 +28,7 @@ enum tax_type {
 
 enum tax_applies_to {
   revenue
-  gross_profit
+  net_profit
 }
 
 Table operational_costs {
@@ -64,4 +64,7 @@ Table tax_configs {
 }
 
 // External reference
-Table users { id serial [pk] }
+Table users { 
+  id serial [pk] 
+  name text
+}
