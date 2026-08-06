@@ -11,7 +11,6 @@ skinparam titleFontSize 20
 
 title Pembayaran Piutang
 
-package "Domain Model: Utang" {
     class Debt {
         - id: Integer
         - saleId: Integer
@@ -48,25 +47,15 @@ package "Domain Model: Utang" {
     Debt "1" *-- "0..*" DebtPayment : has history >
     Debt ..> DebtStatus : has status >
     Debt "0..*" -- "1" Customer : liability of >
-}
+    Debt "1" -- "1" Sale : originates from >
 
-package "External Reference" {
-    class Sale <<external>>
-    class Customer <<external>>
-    class User <<external>>
-}
-
-' Catatan Fungsional
-note top of Debt
-  Mencatat kewajiban pembayaran Customer dari transaksi kredit (Sale).
-  Status berubah secara otomatis berdasarkan sisa saldo (remainingAmount).
-  makePayment() = bayar manual dari daftar hutang.
-  autoPayFromSurplus() = bayar otomatis dari kembalian penjualan tunai.
-end note
-
-note bottom of DebtPayment
-  Merekam setiap nominal yang dibayarkan oleh Customer.
-  Dapat terjadi berkali-kali untuk satu objek Debt (cicilan).
-end note
+    class Sale <<external>> {
+        - id: Integer
+        - invoiceNumber: String
+    }
+    class Customer <<external>> {
+        - id: Integer
+        - name: String
+    }
 
 @enduml

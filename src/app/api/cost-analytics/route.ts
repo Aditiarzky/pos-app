@@ -13,7 +13,7 @@ type CostCategory =
   | "other";
 
 type CostPeriod = "daily" | "weekly" | "monthly" | "yearly" | "one_time";
-type TaxAppliesTo = "revenue" | "gross_profit";
+type TaxAppliesTo = "revenue" | "net_profit";
 type TaxType = "percentage" | "fixed";
 
 const toYmd = (value: unknown): string | null => {
@@ -35,7 +35,10 @@ const parseAmount = (value: unknown): number => {
 
 // Normalize recurring amounts to a monthly estimate (30-day month).
 // `one_time` is excluded from monthly estimate and tracked separately.
-const normalizeToMonthly = (amount: number, period: CostPeriod | null): number => {
+const normalizeToMonthly = (
+  amount: number,
+  period: CostPeriod | null,
+): number => {
   switch (period) {
     case "daily":
       return amount * 30;
@@ -52,7 +55,11 @@ const normalizeToMonthly = (amount: number, period: CostPeriod | null): number =
   }
 };
 
-const isCurrentlyEffective = (effectiveFrom: string | null, effectiveTo: string | null, today: string) => {
+const isCurrentlyEffective = (
+  effectiveFrom: string | null,
+  effectiveTo: string | null,
+  today: string,
+) => {
   if (!effectiveFrom) return false;
   // Lexicographic compare works for YYYY-MM-DD
   if (effectiveFrom > today) return false;
@@ -60,7 +67,11 @@ const isCurrentlyEffective = (effectiveFrom: string | null, effectiveTo: string 
   return true;
 };
 
-const isExpiringWithinDays = (effectiveTo: string | null, today: string, future: string) => {
+const isExpiringWithinDays = (
+  effectiveTo: string | null,
+  today: string,
+  future: string,
+) => {
   if (!effectiveTo) return false;
   return effectiveTo >= today && effectiveTo <= future;
 };
@@ -126,11 +137,13 @@ export async function GET() {
       const category = row.category as CostCategory;
 
       const activeNow =
-        row.isActive === true && isCurrentlyEffective(effectiveFrom, effectiveTo, today);
+        row.isActive === true &&
+        isCurrentlyEffective(effectiveFrom, effectiveTo, today);
 
       if (activeNow) {
         operationalActiveCount += 1;
-        if (isExpiringWithinDays(effectiveTo, today, next30)) operationalExpiringNext30 += 1;
+        if (isExpiringWithinDays(effectiveTo, today, next30))
+          operationalExpiringNext30 += 1;
 
         const amount = parseAmount(row.amount);
         if (period === "one_time") {
@@ -146,7 +159,9 @@ export async function GET() {
       }
     }
 
-    const topCategories = (Object.entries(categoryMonthly) as Array<[CostCategory, number]>)
+    const topCategories = (
+      Object.entries(categoryMonthly) as Array<[CostCategory, number]>
+    )
       .filter(([, v]) => v > 0)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
@@ -160,18 +175,20 @@ export async function GET() {
     let taxExpiringNext30 = 0;
     const taxPercentageAppliesTo: Record<TaxAppliesTo, number> = {
       revenue: 0,
-      gross_profit: 0,
+      net_profit: 0,
     };
 
     for (const row of taxRows) {
       const effectiveFrom = toYmd(row.effectiveFrom);
       const effectiveTo = toYmd(row.effectiveTo);
       const activeNow =
-        row.isActive === true && isCurrentlyEffective(effectiveFrom, effectiveTo, today);
+        row.isActive === true &&
+        isCurrentlyEffective(effectiveFrom, effectiveTo, today);
 
       if (activeNow) {
         taxActiveCount += 1;
-        if (isExpiringWithinDays(effectiveTo, today, next30)) taxExpiringNext30 += 1;
+        if (isExpiringWithinDays(effectiveTo, today, next30))
+          taxExpiringNext30 += 1;
 
         const type = row.type as TaxType;
         if (type === "fixed") {
@@ -182,7 +199,7 @@ export async function GET() {
         } else if (type === "percentage") {
           taxActivePercentageCount += 1;
           const applies = row.appliesTo as TaxAppliesTo | null;
-          if (applies === "revenue" || applies === "gross_profit") {
+          if (applies === "revenue" || applies === "net_profit") {
             taxPercentageAppliesTo[applies] += 1;
           }
         }

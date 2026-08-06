@@ -31,6 +31,17 @@ Table stock_mutations {
 }
 
 // External references
-Table products { id serial [pk] }
-Table product_variants { id serial [pk] }
-Table users { id serial [pk] }
+Table products { 
+  id serial [pk] 
+  name varchar(150)
+  sku varchar(50)
+}
+Table product_variants { 
+  id serial [pk] 
+  name varchar(100)
+  sku varchar(60)
+}
+Table users { 
+  id serial [pk] 
+  name text
+}

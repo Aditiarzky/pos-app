@@ -59,9 +59,18 @@ const formSchema = z
     name: z.string().min(1, "Nama pajak wajib diisi").max(150),
     type: z.enum(["percentage", "fixed"] as const),
     ratePercent: z.number().min(0).max(100).nullable().optional(),
-    fixedAmount: z.number().positive("Nominal harus lebih dari 0").nullable().optional(),
-    appliesTo: z.enum(["revenue", "gross_profit"] as const).nullable().optional(),
-    period: z.enum(["daily", "weekly", "monthly", "yearly", "one_time"] as const).default("monthly"),
+    fixedAmount: z
+      .number()
+      .positive("Nominal harus lebih dari 0")
+      .nullable()
+      .optional(),
+    appliesTo: z
+      .enum(["revenue", "net_profit"] as const)
+      .nullable()
+      .optional(),
+    period: z
+      .enum(["daily", "weekly", "monthly", "yearly", "one_time"] as const)
+      .default("monthly"),
     effectiveFrom: z.string().min(1, "Tanggal mulai wajib diisi"),
     effectiveTo: z.string().nullable().optional(),
     isActive: z.boolean().default(true),
@@ -70,14 +79,26 @@ const formSchema = z
   .superRefine((data, ctx) => {
     if (data.type === "percentage") {
       if (data.ratePercent == null) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Persentase pajak wajib diisi", path: ["ratePercent"] });
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Persentase pajak wajib diisi",
+          path: ["ratePercent"],
+        });
       }
       if (!data.appliesTo) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Basis perhitungan wajib dipilih", path: ["appliesTo"] });
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Basis perhitungan wajib dipilih",
+          path: ["appliesTo"],
+        });
       }
     }
     if (data.type === "fixed" && data.fixedAmount == null) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Nominal tetap wajib diisi", path: ["fixedAmount"] });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Nominal tetap wajib diisi",
+        path: ["fixedAmount"],
+      });
     }
   });
 
@@ -132,21 +153,29 @@ function TypePill({
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-1 flex-col gap-1 rounded-lg border-2 p-3 text-left transition-all ${selected
-        ? "border-primary bg-primary/5 text-primary"
-        : "border-border bg-transparent text-foreground hover:border-muted-foreground/40 hover:bg-muted/40"
-        }`}
+      className={`flex flex-1 flex-col gap-1 rounded-lg border-2 p-3 text-left transition-all ${
+        selected
+          ? "border-primary bg-primary/5 text-primary"
+          : "border-border bg-transparent text-foreground hover:border-muted-foreground/40 hover:bg-muted/40"
+      }`}
     >
       <div className="flex items-center gap-1.5">
-        <Icon className={`h-4 w-4 ${selected ? "text-primary" : "text-muted-foreground"}`} />
+        <Icon
+          className={`h-4 w-4 ${selected ? "text-primary" : "text-muted-foreground"}`}
+        />
         <span className="text-sm font-semibold">{label}</span>
         {selected && (
-          <Badge variant="default" className="ml-auto text-[10px] px-1.5 py-0 h-4">
+          <Badge
+            variant="default"
+            className="ml-auto text-[10px] px-1.5 py-0 h-4"
+          >
             Dipilih
           </Badge>
         )}
       </div>
-      <p className="text-xs text-muted-foreground leading-tight">{description}</p>
+      <p className="text-xs text-muted-foreground leading-tight">
+        {description}
+      </p>
     </button>
   );
 }
@@ -181,8 +210,12 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
       form.reset({
         name: editingTax.name,
         type: editingTax.type,
-        ratePercent: editingTax.rate != null ? Number(editingTax.rate) * 100 : null,
-        fixedAmount: editingTax.fixedAmount != null ? Number(editingTax.fixedAmount) : null,
+        ratePercent:
+          editingTax.rate != null ? Number(editingTax.rate) * 100 : null,
+        fixedAmount:
+          editingTax.fixedAmount != null
+            ? Number(editingTax.fixedAmount)
+            : null,
         appliesTo: editingTax.appliesTo ?? "revenue",
         period: editingTax.period ?? "monthly",
         effectiveFrom: editingTax.effectiveFrom,
@@ -207,12 +240,18 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
   }, [editingTax, form, open]);
 
   const createMutation = useCreateTaxConfig({
-    onSuccess: () => { toast.success("Pajak berhasil ditambahkan"); onClose(); },
+    onSuccess: () => {
+      toast.success("Pajak berhasil ditambahkan");
+      onClose();
+    },
     onError: (e) => toast.error(e.message ?? "Gagal menyimpan"),
   });
 
   const updateMutation = useUpdateTaxConfig({
-    onSuccess: () => { toast.success("Pajak berhasil diperbarui"); onClose(); },
+    onSuccess: () => {
+      toast.success("Pajak berhasil diperbarui");
+      onClose();
+    },
     onError: (e) => toast.error(e.message ?? "Gagal memperbarui"),
   });
 
@@ -222,9 +261,14 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
     const payload = {
       name: values.name,
       type: values.type,
-      rate: values.type === "percentage" && values.ratePercent != null ? values.ratePercent / 100 : null,
-      fixedAmount: values.type === "fixed" ? (values.fixedAmount ?? null) : null,
-      appliesTo: values.type === "percentage" ? (values.appliesTo ?? null) : null,
+      rate:
+        values.type === "percentage" && values.ratePercent != null
+          ? values.ratePercent / 100
+          : null,
+      fixedAmount:
+        values.type === "fixed" ? (values.fixedAmount ?? null) : null,
+      appliesTo:
+        values.type === "percentage" ? (values.appliesTo ?? null) : null,
       period: values.period,
       effectiveFrom: values.effectiveFrom,
       effectiveTo: values.effectiveTo ?? null,
@@ -252,7 +296,9 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
                 {isEdit ? "Edit Pajak" : "Tambah Pajak"}
               </DialogTitle>
               <DialogDescription className="text-xs">
-                {isEdit ? "Perbarui konfigurasi pajak." : "Konfigurasi pajak yang dipotong dari laba bersih."}
+                {isEdit
+                  ? "Perbarui konfigurasi pajak."
+                  : "Konfigurasi pajak yang dipotong dari laba bersih."}
               </DialogDescription>
             </div>
           </div>
@@ -263,7 +309,6 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
             onSubmit={form.handleSubmit(onSubmit as (data: FormValues) => void)}
             className="space-y-3"
           >
-
             {/* ── 1. Informasi Dasar ── */}
             <SectionCard icon={FileText} title="Informasi Dasar">
               <FormField
@@ -273,7 +318,10 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
                   <FormItem>
                     <FormLabel>Nama Pajak</FormLabel>
                     <FormControl>
-                      <Input placeholder="Contoh: PPh Final UMKM 0,5%" {...field} />
+                      <Input
+                        placeholder="Contoh: PPh Final UMKM 0,5%"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -283,7 +331,6 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
 
             {/* ── 2. Jenis & Perhitungan ── */}
             <SectionCard icon={Settings2} title="Jenis & Perhitungan">
-
               {/* Pill selector */}
               <FormField
                 control={form.control}
@@ -297,7 +344,7 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
                         selected={field.value === "percentage"}
                         icon={Percent}
                         label="Persentase"
-                        description="Dihitung dari omset atau laba kotor"
+                        description="Dihitung dari omset atau laba bersih"
                         onClick={() => {
                           field.onChange("percentage");
                           form.setValue("fixedAmount", null);
@@ -343,7 +390,11 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
                                 placeholder="0.5"
                                 value={field.value ?? ""}
                                 onChange={(e) =>
-                                  field.onChange(e.target.value ? Number(e.target.value) : null)
+                                  field.onChange(
+                                    e.target.value
+                                      ? Number(e.target.value)
+                                      : null,
+                                  )
                                 }
                                 className="pr-8"
                               />
@@ -364,9 +415,14 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
                       control={form.control}
                       name="appliesTo"
                       render={({ field }) => (
-                        <FormItem className="w-full max-w-xs"> {/* 1. Batasi lebar FormItem jika perlu */}
+                        <FormItem className="w-full max-w-xs">
+                          {" "}
+                          {/* 1. Batasi lebar FormItem jika perlu */}
                           <FormLabel>Dihitung dari</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value ?? ""}
+                          >
                             <FormControl>
                               {/* 2. Tambahkan w-full dan overflow-hidden pada Trigger */}
                               <SelectTrigger className="w-full overflow-hidden">
@@ -377,12 +433,14 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {Object.entries(TAX_APPLIES_TO_LABELS).map(([value, label]) => (
-                                <SelectItem key={value} value={value}>
-                                  {/* 4. (Opsional) Truncate juga di dalam list agar tetap rapi */}
-                                  <span className="truncate">{label}</span>
-                                </SelectItem>
-                              ))}
+                              {Object.entries(TAX_APPLIES_TO_LABELS).map(
+                                ([value, label]) => (
+                                  <SelectItem key={value} value={value}>
+                                    {/* 4. (Opsional) Truncate juga di dalam list agar tetap rapi */}
+                                    <span className="truncate">{label}</span>
+                                  </SelectItem>
+                                ),
+                              )}
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -398,7 +456,12 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
                       <Info className="h-3.5 w-3.5 text-blue-600" />
                       <AlertDescription className="text-xs text-blue-800">
                         <strong>
-                          {TAX_APPLIES_TO_LABELS[appliesTo as keyof typeof TAX_APPLIES_TO_LABELS]}:
+                          {
+                            TAX_APPLIES_TO_LABELS[
+                              appliesTo as keyof typeof TAX_APPLIES_TO_LABELS
+                            ]
+                          }
+                          :
                         </strong>{" "}
                         {TAX_APPLIES_TO_DESCRIPTIONS[appliesTo]}
                       </AlertDescription>
@@ -420,7 +483,9 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
                             placeholder="50000"
                             value={field.value ?? ""}
                             onChange={(e) =>
-                              field.onChange(e.target.value ? Number(e.target.value) : null)
+                              field.onChange(
+                                e.target.value ? Number(e.target.value) : null,
+                              )
                             }
                           />
                         </FormControl>
@@ -435,18 +500,23 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Frekuensi</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {Object.entries(PERIOD_LABELS).map(([value, label]) => (
-                              <SelectItem key={value} value={value}>
-                                {label}
-                              </SelectItem>
-                            ))}
+                            {Object.entries(PERIOD_LABELS).map(
+                              ([value, label]) => (
+                                <SelectItem key={value} value={value}>
+                                  {label}
+                                </SelectItem>
+                              ),
+                            )}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -481,16 +551,22 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
                     <FormItem>
                       <FormLabel>
                         Berakhir{" "}
-                        <span className="font-normal text-muted-foreground">(opsional)</span>
+                        <span className="font-normal text-muted-foreground">
+                          (opsional)
+                        </span>
                       </FormLabel>
                       <FormControl>
                         <Input
                           type="date"
                           value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value || null)}
+                          onChange={(e) =>
+                            field.onChange(e.target.value || null)
+                          }
                         />
                       </FormControl>
-                      <FormDescription className="text-xs">Kosongkan jika masih berlaku</FormDescription>
+                      <FormDescription className="text-xs">
+                        Kosongkan jika masih berlaku
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -507,7 +583,9 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
                   <FormItem>
                     <FormLabel>
                       Catatan{" "}
-                      <span className="font-normal text-muted-foreground">(opsional)</span>
+                      <span className="font-normal text-muted-foreground">
+                        (opsional)
+                      </span>
                     </FormLabel>
                     <FormControl>
                       <Textarea
@@ -528,13 +606,19 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
                     <div className="space-y-0.5">
-                      <FormLabel className="text-sm font-medium">Pajak Aktif</FormLabel>
+                      <FormLabel className="text-sm font-medium">
+                        Pajak Aktif
+                      </FormLabel>
                       <FormDescription className="text-xs">
-                        Nonaktifkan agar pajak ini tidak dipotong dari laba bersih
+                        Nonaktifkan agar pajak ini tidak dipotong dari laba
+                        bersih
                       </FormDescription>
                     </div>
                     <FormControl>
-                      <Switch checked={field.value ?? true} onCheckedChange={field.onChange} />
+                      <Switch
+                        checked={field.value ?? true}
+                        onCheckedChange={field.onChange}
+                      />
                     </FormControl>
                   </FormItem>
                 )}
@@ -542,10 +626,20 @@ export function TaxConfigForm({ open, onClose, editingTax }: Props) {
             </SectionCard>
 
             <DialogFooter className="gap-2 pt-1">
-              <Button type="button" variant="outline" onClick={onClose} disabled={isPending} className="flex-1 sm:flex-none">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isPending}
+                className="flex-1 sm:flex-none"
+              >
                 Batal
               </Button>
-              <Button type="submit" disabled={isPending} className="flex-1 sm:flex-none">
+              <Button
+                type="submit"
+                disabled={isPending}
+                className="flex-1 sm:flex-none"
+              >
                 {isPending ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (

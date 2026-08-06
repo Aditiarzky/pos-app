@@ -14,7 +14,7 @@ enum user_role { "admin toko"; "admin sistem" }
 enum cost_category { utilities; salary; rent; logistics; marketing; maintenance; other }
 enum cost_period { daily; weekly; monthly; yearly; one_time }
 enum tax_type { percentage; fixed }
-enum tax_applies_to { revenue; gross_profit }
+enum tax_applies_to { revenue; net_profit }
 
 // ── Master Data ──
 Table users { id serial [pk]; email text [unique]; name text; password text; is_active boolean; deleted_at timestamp }

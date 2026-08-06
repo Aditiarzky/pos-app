@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Poster Skripsi</title>
+    <style>
+      @font-face {
+        font-family: "Archivo";
+        src: url("fonts/Archivo.ttf") format("truetype-variations");
+        font-weight: 100 900;
+        font-stretch: 62% 125%;
+      }
+      @font-face {
+        font-family: "Inter";
+        src: url("fonts/Inter.ttf") format("truetype-variations");
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: "JetBrains Mono";
+        src: url("fonts/JetBrainsMono.ttf") format("truetype-variations");
+        font-weight: 100 800;
+      }
+
+      :root {
+        --forest: #365899;
+        --forest-deep: #253f6e;
+        --paper: #f5efdd;
+        --paper-deep: #ece1c2;
+        --ink: #1c1309;
+        --ink-soft: #2d1f12;
+        --amber: #f2b33d;
+        --amber-deep: #b97a1c;
+        --rust: #c1452c;
+        --line: #cdbd8e;
+        --cream-on-forest: #f8f2e4;
+        --white: #ffffff;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        width: 2000px;
+        height: 2000px;
+        background: var(--paper);
+        font-family: "Inter", sans-serif;
+        color: var(--ink);
+        overflow: hidden;
+      }
+
+      .poster {
+        width: 2000px;
+        height: 2000px;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+      }
+
+      /* ============ DECORATIVE BARCODE MOTIF ============ */
+      .barcode {
+        display: flex;
+        align-items: flex-end;
+        gap: 3px;
+        height: 48px;
+      }
+      .barcode span {
+        display: block;
+        width: 3px;
+        background: var(--cream-on-forest);
+        opacity: 0.9;
+      }
+      .barcode.dark span {
+        background: var(--forest);
+        opacity: 0.8;
+      }
+
+      /* ============ HEADER ============ */
+      .header {
+        background: #4472c4;
+        color: var(--cream-on-forest);
+        padding: 32px 64px 22px 64px;
+        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+      .header::after {
+        content: "";
+        position: absolute;
+        right: -120px;
+        top: -160px;
+        width: 520px;
+        height: 520px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(226, 162, 48, 0.2),
+          rgba(226, 162, 48, 0) 70%
+        );
+      }
+      .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        position: relative;
+        z-index: 2;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+      .brand img {
+        width: 90px;
+        height: auto;
+        display: block;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        background: white;
+        border-radius: 8px;
+        padding: 4px;
+      }
+      .brand-text {
+        font-family: "JetBrains Mono", monospace;
+        line-height: 1.5;
+      }
+      .brand-text .l1 {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        color: #ffffff;
+      }
+      .brand-text .l2 {
+        font-size: 24px;
+        color: #f0e6d0;
+      }
+      .kicker-tag {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 18px;
+        letter-spacing: 0.12em;
+        background: rgba(226, 162, 48, 0.2);
+        border: 1px solid rgba(226, 162, 48, 0.6);
+        color: #fadf7f;
+        padding: 8px 16px;
+        border-radius: 3px;
+      }
+      .title-block {
+        margin-top: 22px;
+        position: relative;
+        z-index: 2;
+      }
+      .eyebrow {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 18px;
+        letter-spacing: 0.1em;
+        color: #fadf7f;
+        margin-bottom: 10px;
+      }
+      h1 {
+        font-family: "Archivo", sans-serif;
+        font-weight: 850;
+        font-stretch: 108%;
+        font-size: 52px;
+        line-height: 1.08;
+        max-width: 1550px;
+        letter-spacing: -0.01em;
+        color: #ffffff;
+      }
+      .subtitle {
+        font-family: "Archivo", sans-serif;
+        font-weight: 500;
+        font-size: 28px;
+        color: #fadf7f;
+        margin-top: 12px;
+      }
+      .meta-row {
+        margin-top: 18px;
+        display: flex;
+        gap: 30px;
+        align-items: stretch;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 2;
+      }
+      .meta-item {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(6px);
+        border-radius: 10px;
+        padding: 14px 22px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+      }
+      .meta-item .k {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 24px;
+        color: #fadf7f;
+        letter-spacing: 0.08em;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+      }
+      .meta-item .v {
+        font-size: 26px;
+        font-weight: 600;
+        color: #ffffff;
+      }
+      .meta-item .v.small {
+        font-size: 26px;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #ffffff;
+      }
+
+      /* ============ MAIN CONTENT ============ */
+      .content {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        padding: 26px 64px 20px 64px;
+        gap: 0;
+        position: relative;
+      }
+      .col {
+        position: relative;
+        padding: 0 30px;
+      }
+      .col:first-child {
+        padding-left: 0;
+      }
+      .col:last-child {
+        padding-right: 0;
+      }
+      .col-divider {
+        width: 0;
+        border-left: 2.5px dashed var(--line);
+        margin: 8px 0;
+        position: relative;
+        flex-shrink: 0;
+      }
+      .col-divider::before,
+      .col-divider::after {
+        content: "";
+        position: absolute;
+        left: -6px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--paper);
+        border: 2.5px solid var(--line);
+      }
+      .col-divider::before {
+        top: -6px;
+      }
+      .col-divider::after {
+        bottom: -6px;
+      }
+      .col-left {
+        width: 548px;
+        flex-shrink: 0;
+      }
+      .col-center {
+        width: 772px;
+        flex-shrink: 0;
+      }
+      .col-right {
+        width: 508px;
+        flex-shrink: 0;
+      }
+      .section {
+        margin-bottom: 28px;
+      }
+      .section:last-child {
+        margin-bottom: 0;
+      }
+      .sec-head {
+        display: flex;
+        align-items: baseline;
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+      .sec-num {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--paper);
+        background: var(--rust);
+        padding: 4px 10px;
+        border-radius: 3px;
+        letter-spacing: 0.05em;
+      }
+      .sec-title {
+        font-family: "Archivo", sans-serif;
+        font-weight: 750;
+        font-stretch: 105%;
+        font-size: 36px;
+        color: var(--forest);
+      }
+      p {
+        font-size: 24px;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+      p + p {
+        margin-top: 12px;
+      }
+      .lede {
+        font-size: 26px;
+        line-height: 1.55;
+        color: var(--ink);
+      }
+
+      /* sprint timeline */
+      .sprint-strip {
+        display: flex;
+        margin: 18px 0 8px 0;
+        border: 1.5px solid var(--line);
+        border-radius: 6px;
+        overflow: hidden;
+      }
+      .sprint-cell {
+        flex: 1;
+        text-align: center;
+        padding: 10px 2px;
+        background: var(--paper-deep);
+        border-right: 1.5px dashed var(--line);
+        font-family: "JetBrains Mono", monospace;
+      }
+      .sprint-cell:last-child {
+        border-right: none;
+        background: var(--forest);
+      }
+      .sprint-cell:last-child .sn,
+      .sprint-cell:last-child .sl {
+        color: #ffffff;
+      }
+      .sprint-cell .sn {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--forest);
+      }
+      .sprint-cell .sl {
+        font-size: 13px;
+        color: #2d1f12;
+        margin-top: 2px;
+      }
+      .sprint-caption {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 16px;
+        color: #2d1f12;
+        margin-top: 8px;
+      }
+      .tech-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .tech-chips span {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 16px;
+        padding: 7px 14px;
+        background: var(--paper-deep);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        color: #2d1f12;
+      }
+
+      /* ---- center column: hasil utama ---- */
+      .module-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+      .module-chips span {
+        font-size: 17px;
+        font-weight: 600;
+        padding: 8px 16px;
+        background: var(--forest);
+        color: #ffffff;
+        border-radius: 20px;
+      }
+      .shot {
+        background: var(--forest-deep);
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 12px;
+        box-shadow: 0 8px 22px rgba(21, 48, 41, 0.22);
+      }
+      .shot img {
+        width: 100%;
+        height: 480px;
+        display: block;
+        border-radius: 5px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        object-fit: cover;
+      }
+      .shot-cap {
+        font-size: 19px;
+        color: #f8f2e4;
+        margin-top: 12px;
+        line-height: 1.5;
+        padding: 0 2px 2px 2px;
+        font-weight: 450;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      }
+      .shot-cap b {
+        color: #ffe08a;
+        font-weight: 700;
+      }
+      .stat-band {
+        display: flex;
+        gap: 14px;
+        margin-top: 22px;
+      }
+      .stat-hero {
+        background: var(--rust);
+        color: #ffffff;
+        border-radius: 8px;
+        padding: 20px 22px;
+        width: 220px;
+        flex-shrink: 0;
+      }
+      .stat-hero .num {
+        font-family: "Archivo", sans-serif;
+        font-weight: 850;
+        font-size: 50px;
+        line-height: 1;
+      }
+      .stat-hero .lbl {
+        font-size: 16px;
+        margin-top: 10px;
+        line-height: 1.4;
+        color: #fef3e0;
+      }
+      .stat-grid {
+        flex: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .stat-mini {
+        background: var(--paper-deep);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px 16px;
+      }
+      .stat-mini .num {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 26px;
+        color: var(--forest);
+      }
+      .stat-mini .lbl {
+        font-size: 15px;
+        color: #2d1f12;
+        margin-top: 4px;
+      }
+      .bb-note {
+        margin-top: 16px;
+        font-size: 17px;
+        color: #2d1f12;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--paper-deep);
+        border-left: 5px solid var(--amber);
+        padding: 14px 18px;
+        border-radius: 4px;
+      }
+
+      /* ---- right column ---- */
+      .conclusion-list {
+        list-style: none;
+      }
+      .conclusion-list li {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 18px;
+        font-size: 22px;
+        line-height: 1.5;
+        color: #2d1f12;
+      }
+      .conclusion-list .cn {
+        font-family: "Archivo", sans-serif;
+        font-weight: 800;
+        font-size: 26px;
+        color: var(--amber-deep);
+        flex-shrink: 0;
+        width: 34px;
+      }
+      .ref-list {
+        list-style: none;
+        margin-top: 6px;
+      }
+      .ref-list li {
+        font-size: 17px;
+        line-height: 1.5;
+        color: #2d1f12;
+        padding: 10px 0;
+        border-top: 1px solid var(--line);
+      }
+      .ref-list li:first-child {
+        border-top: none;
+      }
+      .ref-list .ry {
+        font-family: "JetBrains Mono", monospace;
+        color: var(--rust);
+        font-weight: 700;
+      }
+
+      /* ============ FOOTER ============ */
+      .footer {
+        background: #4472c4;
+        color: var(--cream-on-forest);
+        padding: 26px 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .footer-left {
+        display: flex;
+        gap: 52px;
+        align-items: center;
+      }
+      .footer-item .k {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 24px;
+        color: #fadf7f;
+        letter-spacing: 0.08em;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+      }
+      .footer-item .v {
+        font-size: 26px;
+        font-weight: 600;
+        color: #ffffff;
+      }
+      .footer-item .v.mono {
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 500;
+        font-size: 26px;
+        color: #ffffff;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="poster">
+      <!-- HEADER -->
+      <div class="header">
+        <div class="header-top">
+          <div class="brand">
+            <img
+              src="https://teknik.umk.ac.id/images/Lambang_UMK_Wordmark_Full_-_Potrait.png"
+              alt="Logo UMK"
+            />
+            <div class="brand-text">
+              <div class="l1">Universitas Muria Kudus</div>
+              <div class="l2">
+                Program Studi Teknik Informatika &middot; Fakultas Teknik
+              </div>
+            </div>
+          </div>
+          <div class="barcode" aria-hidden="true">
+            <span style="height: 56%"></span><span style="height: 88%"></span>
+            <span style="height: 40%"></span><span style="height: 70%"></span>
+            <span style="height: 100%"></span><span style="height: 55%"></span>
+            <span style="height: 80%"></span><span style="height: 30%"></span>
+            <span style="height: 66%"></span><span style="height: 92%"></span>
+            <span style="height: 46%"></span><span style="height: 74%"></span>
+            <span style="height: 60%"></span><span style="height: 100%"></span>
+            <span style="height: 38%"></span>
+          </div>
+        </div>
+        <div class="title-block">
+          <h1>
+            Rancang bangun sistem informasi manajemen Point of Sale (POS) dengan
+            metode Agile Development Scrum
+          </h1>
+          <div class="subtitle">
+            Studi kasus: Toko Gunung Muria Grosir Snack, Kudus
+          </div>
+        </div>
+        <div class="meta-row">
+          <div class="meta-item">
+            <div class="k">Disusun oleh</div>
+            <div class="v">
+              Aditia Rizky Utama &nbsp;&middot;&nbsp; NIM 202251156
+            </div>
+          </div>
+          <div class="meta-item">
+            <div class="k">Dosen pembimbing</div>
+            <div class="v small">
+              Ir. Indra Lina Putra, S.Kom., M.Kom &nbsp;&middot;&nbsp; Tutik
+              Khotimah, S.Kom., M.Kom
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTENT -->
+      <div class="content">
+        <!-- COLUMN 1 -->
+        <div class="col col-left">
+          <div class="section">
+            <div class="sec-head">
+              <span class="sec-num">01</span>
+              <span class="sec-title">Latar belakang</span>
+            </div>
+            <p class="lede">
+              Proses operasional Toko Gunung Muria Grosir Snack masih berjalan
+              manual, sehingga data stok kurang akurat, pencatatan transaksi
+              tidak konsisten, dan penyusunan laporan keuangan menjadi sulit
+              dilakukan.
+            </p>
+            <p>
+              Penelitian ini merancang sistem Point of Sale berbasis web untuk
+              mendukung manajemen operasional toko, sekaligus menerapkan metode
+              Agile Development dengan kerangka kerja Scrum agar pengembangan
+              sistem berjalan cepat dan selaras dengan kebutuhan pengguna.
+            </p>
+          </div>
+
+          <div class="section">
+            <div class="sec-head">
+              <span class="sec-num">02</span>
+              <span class="sec-title">Metode</span>
+            </div>
+            <p>
+              Data dikumpulkan melalui observasi, wawancara, dan studi pustaka.
+              Pengembangan sistem mengikuti kerangka kerja Scrum yang mencakup
+              penyusunan product backlog, sprint planning, dan perancangan
+              Unified Modeling Language.
+            </p>
+            <div class="sprint-strip">
+              <div class="sprint-cell">
+                <div class="sn">S1</div>
+                <div class="sl">&nbsp;</div>
+              </div>
+              <div class="sprint-cell">
+                <div class="sn">S2</div>
+                <div class="sl">&nbsp;</div>
+              </div>
+              <div class="sprint-cell">
+                <div class="sn">S3</div>
+                <div class="sl">&nbsp;</div>
+              </div>
+              <div class="sprint-cell">
+                <div class="sn">S4</div>
+                <div class="sl">&nbsp;</div>
+              </div>
+              <div class="sprint-cell">
+                <div class="sn">S5</div>
+                <div class="sl">&nbsp;</div>
+              </div>
+              <div class="sprint-cell">
+                <div class="sn">S6</div>
+                <div class="sl">&nbsp;</div>
+              </div>
+              <div class="sprint-cell">
+                <div class="sn">S7</div>
+                <div class="sl">Rilis</div>
+              </div>
+            </div>
+            <div class="sprint-caption">
+              Tujuh sprint &middot; 70 hari kerja
+            </div>
+            <p style="margin-top: 14px">
+              Implementasi teknis menggunakan framework Next.js dengan basis
+              data PostgreSQL. Sistem diuji melalui Black Box Testing untuk
+              validasi fungsional dan User Acceptance Test bersama pengguna
+              langsung di toko.
+            </p>
+            <div class="tech-chips">
+              <span>Next.js</span><span>TypeScript</span><span>PostgreSQL</span>
+              <span>Scrum</span><span>UML</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-divider"></div>
+
+        <!-- COLUMN 2 -->
+        <div class="col col-center">
+          <div class="section" style="margin-bottom: 22px">
+            <div class="sec-head">
+              <span class="sec-num">03</span>
+              <span class="sec-title">Hasil utama</span>
+            </div>
+            <p class="lede" style="margin-bottom: 18px">
+              Sistem POS berbasis web yang komprehensif, mengintegrasikan
+              seluruh proses operasional toko dalam satu alur kerja.
+            </p>
+            <div class="module-chips">
+              <span>Produk</span><span>Pembelian</span>
+              <span>Transaksi penjualan</span>
+              <span>Pelanggan &amp; piutang</span><span>Retur</span>
+              <span>Pelaporan otomatis</span>
+            </div>
+          </div>
+
+          <!-- Hanya tampilkan halaman laporan -->
+          <div class="shot">
+            <img
+              src="https://res.cloudinary.com/dwswkz2sk/image/upload/v1785294143/uploads/egvrqsg1waw5pz2wt4t4.webp"
+              alt="Halaman laporan"
+            />
+            <div class="shot-cap">
+              <b>Halaman laporan</b> &mdash; ikhtisar performa toko secara
+              real-time, mencakup tren pendapatan dan pembelian.
+            </div>
+          </div>
+
+          <div class="stat-band">
+            <div class="stat-hero">
+              <div class="num">83,75%</div>
+              <div class="lbl">
+                Rata-rata User Acceptance Test &middot; kategori sangat baik
+              </div>
+            </div>
+            <div class="stat-grid">
+              <div class="stat-mini">
+                <div class="num">80,0%</div>
+                <div class="lbl">Fungsionalitas</div>
+              </div>
+              <div class="stat-mini">
+                <div class="num">90,0%</div>
+                <div class="lbl">Usability</div>
+              </div>
+              <div class="stat-mini">
+                <div class="num">70,0%</div>
+                <div class="lbl">Kinerja</div>
+              </div>
+              <div class="stat-mini">
+                <div class="num">95,0%</div>
+                <div class="lbl">Reliability</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bb-note">
+            Pengujian Black Box pada 36 skenario di 8 modul &mdash; seluruh
+            fungsi dinyatakan sesuai.
+          </div>
+        </div>
+
+        <div class="col-divider"></div>
+
+        <!-- COLUMN 3 -->
+        <div class="col col-right">
+          <div class="section">
+            <div class="sec-head">
+              <span class="sec-num">04</span>
+              <span class="sec-title">Simpulan</span>
+            </div>
+            <ul class="conclusion-list">
+              <li>
+                <span class="cn">01</span>
+                <span>
+                  Sistem POS berbasis web berhasil dirancang dan
+                  diimplementasikan untuk mendukung operasional toko, dengan
+                  seluruh fungsi dinyatakan sesuai pada pengujian Black Box dan
+                  penerimaan pengguna sangat baik pada UAT.
+                </span>
+              </li>
+              <li>
+                <span class="cn">02</span>
+                <span>
+                  Penerapan Agile Development dengan kerangka kerja Scrum
+                  melalui tujuh sprint mempercepat proses pengembangan sekaligus
+                  menjaga kesesuaian sistem dengan kebutuhan pengguna lewat
+                  evaluasi berkelanjutan.
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="section">
+            <div class="sec-head">
+              <span class="sec-num">&#43;</span>
+              <span class="sec-title" style="font-size: 30px">
+                Referensi tambahan
+              </span>
+            </div>
+            <ul class="ref-list">
+              <li>
+                <span class="ry">2025</span> &middot; Halawa &amp; Kurniawan
+                &mdash; Perancangan sistem informasi penjualan (POS) berbasis
+                website dengan metode Agile, JSAI 8(2).
+              </li>
+              <li>
+                <span class="ry">2025</span> &middot; Ariansyah, Nisa &amp;
+                Pratama &mdash; Implementasi Point of Sale berbasis web pada
+                toko UD. Tani Sejahtera, JATI 9(5).
+              </li>
+              <li>
+                <span class="ry">2025</span> &middot; Diharja, Rosmiati &amp;
+                Rahmayu &mdash; Penerapan model Scrum pada perancangan aplikasi
+                penerimaan siswa baru, Co-Science 5(2).
+              </li>
+              <li>
+                <span class="ry">2025</span> &middot; Aliyah, Hartono &amp; Muin
+                &mdash; Penggunaan User Acceptance Testing pada pengujian sistem
+                informasi, Switch 3(1).
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="footer">
+        <div class="footer-left">
+          <div class="footer-item">
+            <div class="k">Kontak</div>
+            <div class="v mono">202251156@std.umk.ac.id</div>
+          </div>
+          <div class="footer-item">
+            <div class="k">Program studi</div>
+            <div class="v">
+              Teknik Informatika &middot; Fakultas Teknik &middot; UMK
+            </div>
+          </div>
+          <div class="footer-item">
+            <div class="k">Sidang skripsi</div>
+            <div class="v">Kudus, 20 Juli 2026</div>
+          </div>
+        </div>
+        <div class="barcode dark" aria-hidden="true">
+          <span style="height: 60%"></span><span style="height: 100%"></span>
+          <span style="height: 44%"></span><span style="height: 76%"></span>
+          <span style="height: 34%"></span><span style="height: 90%"></span>
+          <span style="height: 52%"></span><span style="height: 100%"></span>
+          <span style="height: 66%"></span><span style="height: 40%"></span>
+          <span style="height: 82%"></span><span style="height: 58%"></span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -72,7 +72,7 @@ export const costCategory = p.pgEnum("cost_category", [
 
 export const taxAppliesTo = p.pgEnum("tax_applies_to", [
   "revenue", // Dihitung dari omset (contoh: PPh Final 0.5% dari omset)
-  "gross_profit", // Dihitung dari laba kotor (contoh: PPh Badan)
+  "net_profit", // Dihitung dari laba bersih (contoh: Pajak Laba Bersih)
 ]);
 
 export const taxType = p.pgEnum("tax_type", [
@@ -160,16 +160,16 @@ export const operationalCosts = p.pgTable("operational_costs", {
  *
  * Mendukung dua jenis pajak:
  * 1. percentage + applies_to=revenue     → PPh Final (0.5% dari omset)
- * 2. percentage + applies_to=gross_profit → PPh Badan (22% dari laba kotor)
+ * 2. percentage + applies_to=net_profit   → Pajak Laba Bersih (misal 10% dari laba bersih)
  * 3. fixed (nominal tetap per periode)   → Pajak retribusi daerah, dll.
  *
  * Urutan kalkulasi laba bersih:
  *   Laba Kotor          = Pendapatan − HPP
  *   Total Biaya Ops     = sum(operationalCosts yang dinormalisasi)
  *   Pajak dari Omset    = sum(tax where applies_to=revenue, type=percentage) × Pendapatan
- *   Pajak dari Laba     = sum(tax where applies_to=gross_profit, type=percentage) × Laba Kotor
+ *   Pajak dari Laba     = sum(tax where applies_to=net_profit, type=percentage) × Laba Bersih
  *   Pajak Tetap         = sum(tax where type=fixed, dinormalisasi seperti biaya ops)
- *   Laba Bersih         = Laba Kotor − Total Biaya Ops − Semua Pajak
+ *   Laba Bersih         = Laba Kotor − Total Biaya Ops − Semua Pajak (termasuk pajak laba bersih yang dihitung dari laba sebelum pajak tersebut)
  */
 export const taxConfigs = p.pgTable("tax_configs", {
   id: p.serial("id").primaryKey(),
@@ -188,7 +188,7 @@ export const taxConfigs = p.pgTable("tax_configs", {
   // Untuk type=percentage: null
 
   appliesTo: taxAppliesTo("applies_to"),
-  // Untuk type=percentage: wajib diisi (revenue atau gross_profit)
+  // Untuk type=percentage: wajib diisi (revenue atau net_profit)
   // Untuk type=fixed: null (langsung dipotong dari laba kotor)
 
   period: costPeriod("period").default("monthly"),

@@ -11,7 +11,6 @@ skinparam titleFontSize 20
 
 title Pengelolaan Retur
 
-package "Domain Model: Return" {
     class CustomerReturn {
         - id: Integer
         - returnNumber: String
@@ -64,22 +63,43 @@ package "Domain Model: Return" {
         CREDIT_BALANCE
     }
 
-    class Sale <<external>>
-    class Customer <<external>> {
-        + updateSaldo(nominal: Decimal): void
-    }
-    class ProductVariant <<external>> {
-        + updateStock(amount: Decimal): void
-    }
-    class User <<external>>
-
     ' Relationships
     CustomerReturn "1" *-- "0..*" CustomerReturnItem : records return >
     CustomerReturn "1" *-- "0..*" CustomerExchangeItem : includes exchange >
     CustomerReturn ..> CompensationType : compensation type >
     CustomerReturn ..> SurplusStrategy : surplus strategy >
     CustomerReturn "0..*" -- "1" Customer : performed by >
-}
+    CustomerReturn "0..*" -- "1" Sale : return of >
+    CustomerReturn "0..*" -- "1" User : processed by >
+    CustomerReturnItem "0..*" -- "1" ProductVariant : refers to >
+    CustomerReturnItem "0..*" -- "1" Product : refers to >
+    CustomerExchangeItem "0..*" -- "1" ProductVariant : refers to >
+    CustomerExchangeItem "0..*" -- "1" Product : refers to >
+
+    class Sale <<external>> {
+        - id: Integer
+        - invoiceNumber: String
+    }
+    class Customer <<external>> {
+        - id: Integer
+        - name: String
+        + updateSaldo(nominal: Decimal): void
+    }
+    class ProductVariant <<external>> {
+        - id: Integer
+        - name: String
+        - sku: String
+        + updateStock(amount: Decimal): void
+    }
+    class Product <<external>> {
+        - id: Integer
+        - name: String
+        - sku: String
+    }
+    class User <<external>> {
+        - id: Integer
+        - name: String
+    }
 
 
 

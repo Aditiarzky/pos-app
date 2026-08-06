@@ -7,7 +7,7 @@ export const taxConfigSchema = z
     rate: z.number().min(0).max(1).nullable().optional(),
     // rate dalam desimal: 0.005 = 0.5%, 0.11 = 11%
     fixedAmount: z.number().positive().nullable().optional(),
-    appliesTo: z.enum(["revenue", "gross_profit"]).nullable().optional(),
+    appliesTo: z.enum(["revenue", "net_profit"]).nullable().optional(),
     period: z
       .enum(["daily", "weekly", "monthly", "yearly", "one_time"])
       .optional()
@@ -36,7 +36,8 @@ export const taxConfigSchema = z
       if (data.appliesTo == null) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Basis perhitungan (appliesTo) wajib diisi untuk pajak persentase",
+          message:
+            "Basis perhitungan (appliesTo) wajib diisi untuk pajak persentase",
           path: ["appliesTo"],
         });
       }
@@ -58,7 +59,7 @@ export const updateTaxConfigSchema = z
     type: z.enum(["percentage", "fixed"]).optional(),
     rate: z.number().min(0).max(1).nullable().optional(),
     fixedAmount: z.number().positive().nullable().optional(),
-    appliesTo: z.enum(["revenue", "gross_profit"]).nullable().optional(),
+    appliesTo: z.enum(["revenue", "net_profit"]).nullable().optional(),
     period: z
       .enum(["daily", "weekly", "monthly", "yearly", "one_time"])
       .optional(),
