@@ -23,6 +23,8 @@ import {
   Check,
   X,
   Loader2,
+  Share2,
+  RotateCcw,
 } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { Badge } from "@/components/ui/badge";
@@ -36,8 +38,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePrintReceipt } from "../../_hooks/use-print-receipt";
 import { ReturnReceipt } from "../_ui/return-receipt";
 import {
@@ -93,7 +95,8 @@ export function ReturnListSection() {
     useState<CustomerReturnResponse | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const { receiptRef, handlePrint } = usePrintReceipt();
+  const { receiptRef, handlePrint, isPrinting, handleShareAsImage, isSharing } =
+    usePrintReceipt();
 
   const openReceipt = (ret: CustomerReturnResponse) => {
     setSelectedReturn(ret);
@@ -673,29 +676,82 @@ export function ReturnListSection() {
       )}
 
       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
-        <DialogContent className="max-w-[340px] p-0 overflow-hidden flex flex-col max-h-[90vh]">
-          <DialogHeader className="px-6 pt-6 pb-2">
-            <DialogTitle>Nota Retur</DialogTitle>
-          </DialogHeader>
-
-          <div className="px-4 pb-4 bg-white overflow-y-auto flex-grow custom-scrollbar">
-            {returnDataResult && (
-              <ReturnReceipt ref={receiptRef} result={returnDataResult} />
-            )}
+        <DialogContent className="max-w-md sm:max-w-lg h-[92vh] flex flex-col overflow-hidden p-0 gap-0 border-border/50 shadow-2xl sm:rounded-3xl">
+          {/* Header */}
+          <div className="bg-gradient-to-b from-primary/10 via-primary/5 to-transparent pt-6 pb-4 px-6 text-center space-y-2 relative shrink-0 border-b border-border/40">
+            <DialogHeader className="items-center text-center space-y-1">
+              <DialogTitle className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+                Pratinjau Nota Retur
+              </DialogTitle>
+              {returnDataResult && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-background border text-xs font-mono font-bold text-muted-foreground shadow-sm">
+                  <RotateCcw className="h-3.5 w-3.5 text-primary" />
+                  {returnDataResult.returnNumber}
+                </div>
+              )}
+            </DialogHeader>
           </div>
 
-          <DialogFooter className="px-4 pb-4 flex justify-end gap-2">
+          {/* Scrollable Receipt Area */}
+          <ScrollArea className="flex-1 min-h-0 bg-muted/20 px-4 sm:px-6 py-4">
+            <div className="relative mx-auto w-full">
+              <div className="bg-white text-slate-900 p-3 sm:p-4 rounded-2xl shadow-lg border border-slate-200/80 relative overflow-hidden w-full">
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-teal-500 to-primary" />
+                {returnDataResult && (
+                  <ReturnReceipt ref={receiptRef} result={returnDataResult} />
+                )}
+              </div>
+            </div>
+          </ScrollArea>
+
+          {/* Footer Actions */}
+          <div className="shrink-0 p-4 sm:p-5 border-t bg-background/95 backdrop-blur flex items-center justify-between gap-2 sm:gap-3">
             <Button
               variant="outline"
-              size="sm"
+              className="h-11 rounded-xl font-bold border-2"
               onClick={() => setIsReceiptOpen(false)}
             >
               Tutup
             </Button>
-            <Button size="sm" onClick={handlePrint}>
-              <PrinterIcon className="w-4 h-auto" /> Cetak Nota
-            </Button>
-          </DialogFooter>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="h-11 border-2 border-emerald-500/40 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 gap-1.5 font-bold rounded-xl"
+                onClick={() => {
+                  if (!returnDataResult) return;
+                  handleShareAsImage({
+                    invoiceNumber: returnDataResult.returnNumber,
+                    transactionDate: new Date(),
+                    totalAmount: Math.abs(returnDataResult.netRefundAmount),
+                  });
+                }}
+                disabled={isSharing}
+              >
+                {isSharing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Share2 className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {isSharing ? "Menyiapkan..." : "Share WA"}
+                </span>
+              </Button>
+
+              <Button
+                className="h-11 gap-1.5 font-bold rounded-xl shadow-md shadow-primary/20"
+                onClick={handlePrint}
+                disabled={isPrinting}
+              >
+                {isPrinting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <PrinterIcon className="h-4 w-4" />
+                )}
+                {isPrinting ? "Mencetak..." : "Cetak Nota"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

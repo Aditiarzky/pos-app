@@ -62,16 +62,26 @@ export function usePrintReceipt() {
   const [isPrinting, setIsPrinting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
 
-  const receiptWidthMm = 80;
-  const receiptPaddingMm = 2;
+  const receiptWidthMm = 58;
+  const receiptPaddingMm = 1;
 
   const captureReceiptAsBlob = useCallback(async (): Promise<Blob | null> => {
     const content = receiptRef.current;
     if (!content) return null;
 
+    const width = content.scrollWidth || content.clientWidth;
+    const height = content.scrollHeight || content.clientHeight;
+
     const dataUrl = await toPng(content, {
       backgroundColor: "#ffffff",
       pixelRatio: 2,
+      width,
+      height,
+      style: {
+        width: `${width}px`,
+        height: `${height}px`,
+        margin: "0",
+      },
     });
 
     // Convert dataURL ke Blob
@@ -126,7 +136,7 @@ export function usePrintReceipt() {
         setIsSharing(false);
       }
     },
-    [captureReceiptAsBlob]
+    [captureReceiptAsBlob],
   );
 
   const handlePrint = useCallback(() => {
