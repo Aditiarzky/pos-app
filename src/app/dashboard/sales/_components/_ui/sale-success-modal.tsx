@@ -1,4 +1,5 @@
 "use client";
+
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ import {
   PlusCircle,
   Loader2,
   XCircle,
+  Receipt,
 } from "lucide-react";
 import { SaleReceipt } from "./sale-receipt";
 import { SaleResponse } from "../../_types/sale-type";
@@ -119,48 +121,53 @@ export function SaleSuccessModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleModalClose}>
-      <DialogContent className="max-w-xl max-h-[90vh] flex flex-col overflow-hidden p-0 gap-0 border-none sm:rounded-3xl">
-        {/* Scrollable area — header + receipt + print/share buttons */}
-        <ScrollArea className="flex-1 h-[90vh] min-h-0 overflow-y-scroll">
-          <div className="p-6 md:p-8 space-y-6 max-w-[100vw]">
-            <DialogHeader className="items-center text-center space-y-4">
-              <div className="h-16 w-16 bg-emerald-100 rounded-full flex items-center justify-center animate-in zoom-in duration-500">
-                <CheckCircle2 className="h-10 w-10 text-emerald-600" />
-              </div>
-              <div className="space-y-1">
-                <DialogTitle className="text-2xl font-black">
-                  Nota Pembayaran
-                </DialogTitle>
-                <p className="text-muted-foreground text-sm">
-                  Periksa nota, lalu konfirmasi atau batalkan transaksi.
-                </p>
-              </div>
-            </DialogHeader>
+      <DialogContent className="max-w-md sm:max-w-lg h-[92vh] flex flex-col overflow-hidden p-0 gap-0 border-border/50 shadow-2xl sm:rounded-3xl">
+        {/* Header gradient banner */}
+        <div className="bg-gradient-to-b from-emerald-500/15 via-emerald-500/5 to-transparent pt-7 pb-4 px-6 text-center space-y-3 relative shrink-0">
+          <div className="h-16 w-16 bg-emerald-500/15 text-emerald-600 ring-8 ring-emerald-500/10 shadow-inner rounded-full flex items-center justify-center mx-auto animate-in zoom-in duration-300">
+            <CheckCircle2 className="h-9 w-9 stroke-[2.5]" />
+          </div>
+          <DialogHeader className="items-center text-center space-y-1">
+            <DialogTitle className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+              Transaksi Berhasil
+            </DialogTitle>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/80 border text-xs font-mono font-bold text-muted-foreground">
+              <Receipt className="h-3.5 w-3.5 text-primary" />
+              {sale.invoiceNumber}
+            </div>
+          </DialogHeader>
+        </div>
 
-            {/* Receipt Preview */}
-            <div className=" bg-white p-2 md:p-4 rounded-2xl border border-dashed border-muted-foreground/20">
-              <SaleReceipt ref={receiptRef} sale={sale} />
+        {/* Scrollable area — receipt paper + print & share */}
+        <ScrollArea className="flex-1 min-h-0 bg-muted/20 px-4 sm:px-6 py-4">
+          <div className="space-y-5 max-w-full">
+            {/* Receipt Preview Card */}
+            <div className="relative mx-auto w-full">
+              <div className="bg-white text-slate-900 p-3 sm:p-4 rounded-2xl shadow-lg border border-slate-200/80 relative overflow-hidden transition-all w-full">
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500" />
+                <SaleReceipt ref={receiptRef} sale={sale} />
+              </div>
             </div>
 
-            {/* Print / Share */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Quick Action Buttons: Cetak & Share */}
+            <div className="grid grid-cols-2 gap-3 w-full mx-auto">
               <Button
                 variant="outline"
-                className="h-11 border-2 gap-2 font-bold"
+                className="h-11 border-2 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 gap-2 font-bold rounded-xl transition-all"
                 onClick={handlePrint}
                 disabled={isPrinting}
               >
                 {isPrinting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 ) : (
-                  <Printer className="h-4 w-4" />
+                  <Printer className="h-4 w-4 text-primary" />
                 )}
                 {isPrinting ? "Mencetak..." : "Cetak Nota"}
               </Button>
 
               <Button
                 variant="outline"
-                className="h-11 border-2 border-emerald-500 text-emerald-600 hover:bg-emerald-50 gap-2 font-bold"
+                className="h-11 border-2 border-emerald-500/40 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 gap-2 font-bold rounded-xl transition-all"
                 onClick={() => {
                   const shareInfo: ReceiptShareInfo = {
                     invoiceNumber: sale.invoiceNumber,
@@ -187,7 +194,7 @@ export function SaleSuccessModal({
         </ScrollArea>
 
         {/* Sticky action buttons — selalu terlihat di bawah */}
-        <div className="shrink-0 p-4 md:p-6 border-t bg-background">
+        <div className="shrink-0 p-4 sm:p-5 border-t bg-background/95 backdrop-blur">
           {isPendingQris && (
             <div
               className={cn(
@@ -198,7 +205,7 @@ export function SaleSuccessModal({
               {!isQris && (
                 <Button
                   variant="outline"
-                  className="h-12 border-2 border-destructive text-destructive hover:bg-destructive/10 gap-2 font-bold"
+                  className="h-12 border-2 border-destructive/80 text-destructive hover:bg-destructive/10 gap-2 font-bold rounded-xl"
                   onClick={handleCancel}
                   disabled={updateStatus.isPending}
                 >
@@ -212,7 +219,7 @@ export function SaleSuccessModal({
               )}
 
               <Button
-                className="h-12 gap-2 font-black uppercase tracking-widest bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20"
+                className="h-12 gap-2 font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/25 rounded-xl"
                 onClick={handleComplete}
                 disabled={updateStatus.isPending}
               >
@@ -238,7 +245,7 @@ export function SaleSuccessModal({
                   <AlertDialogTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-12 border-2 border-destructive text-destructive hover:bg-destructive/10 gap-2 font-bold"
+                      className="h-12 border-2 border-destructive/80 text-destructive hover:bg-destructive/10 gap-2 font-bold rounded-xl"
                       disabled={updateStatus.isPending}
                     >
                       {updateStatus.isPending ? (
@@ -249,7 +256,7 @@ export function SaleSuccessModal({
                       Batalkan Transaksi
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="rounded-2xl">
                     <AlertDialogHeader>
                       <AlertDialogTitle>
                         Batalkan transaksi ini?
@@ -260,10 +267,12 @@ export function SaleSuccessModal({
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Tidak</AlertDialogCancel>
+                      <AlertDialogCancel className="rounded-xl">
+                        Tidak
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleCancel}
-                        className="bg-destructive hover:bg-destructive/90"
+                        className="bg-destructive hover:bg-destructive/90 rounded-xl"
                       >
                         Ya, Batalkan
                       </AlertDialogAction>
@@ -273,7 +282,7 @@ export function SaleSuccessModal({
               )}
 
               <Button
-                className="h-12 gap-2 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+                className="h-12 gap-2 font-black uppercase tracking-wider bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 rounded-xl"
                 onClick={onNewTransaction}
               >
                 <PlusCircle className="h-5 w-5" /> Transaksi Baru

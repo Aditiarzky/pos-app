@@ -20,6 +20,8 @@ import {
   Loader2,
   X,
   Check,
+  Share2,
+  Receipt,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
@@ -27,6 +29,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { toast } from "sonner";
 import { usePrintReceipt } from "../../_hooks/use-print-receipt";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 import {
   AlertDialog,
@@ -94,7 +97,8 @@ export function SalesListSection({
     null,
   );
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
-  const { receiptRef, handlePrint } = usePrintReceipt();
+  const { receiptRef, handlePrint, isPrinting, handleShareAsImage, isSharing } =
+    usePrintReceipt();
 
   const [qrisData, setQrisData] = useState<QrisPaymentData | null>(null);
   const [isLoadingQris, setIsLoadingQris] = useState<number | null>(null);
@@ -488,7 +492,8 @@ export function SalesListSection({
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
             {sales?.map((sale) => {
               const isPendingQris =
-                sale.status === "pending_payment" && sale.paymentMethod === "qris";
+                sale.status === "pending_payment" &&
+                sale.paymentMethod === "qris";
 
               return (
                 <Card
@@ -506,7 +511,9 @@ export function SalesListSection({
                           {formatDate(sale.createdAt || new Date())}
                         </div>
                       </div>
-                      <div className="shrink-0">{getStatusBadge(sale.status)}</div>
+                      <div className="shrink-0">
+                        {getStatusBadge(sale.status)}
+                      </div>
                     </div>
                   </div>
 
@@ -575,7 +582,9 @@ export function SalesListSection({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleStatusUpdate(sale.id, "complete")}
+                            onClick={() =>
+                              handleStatusUpdate(sale.id, "complete")
+                            }
                             disabled={isUpdatingStatusId === sale.id}
                             className="h-7 sm:h-8 px-1.5 sm:px-3 text-[10px] sm:text-xs border-emerald-400 text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/30 min-w-0"
                           >
@@ -629,7 +638,8 @@ export function SalesListSection({
                             size="sm"
                             onClick={() => handleReopenQris(sale.id)}
                             disabled={
-                              isLoadingQris === sale.id || isCancellingId === sale.id
+                              isLoadingQris === sale.id ||
+                              isCancellingId === sale.id
                             }
                             className="h-7 sm:h-8 w-full text-[10px] sm:text-xs text-amber-600 hover:bg-amber-50"
                           >
@@ -668,30 +678,88 @@ export function SalesListSection({
       )}
 
       <Dialog open={isReceiptOpen} onOpenChange={setIsReceiptOpen}>
-        <DialogContent className="max-w-[340px] p-0 overflow-hidden flex flex-col max-h-[90vh]">
-          <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0">
-            <DialogTitle>Nota Penjualan</DialogTitle>
-          </DialogHeader>
-          <div className="px-4 bg-white pb-4 overflow-y-auto flex-grow custom-scrollbar">
-            {selectedSale && (
-              <SaleReceipt
-                ref={receiptRef}
-                sale={selectedSale as unknown as SaleUiResponse}
-              />
-            )}
+        <DialogContent className="max-w-md sm:max-w-lg h-[92vh] flex flex-col overflow-hidden p-0 gap-0 border-border/50 shadow-2xl sm:rounded-3xl">
+          {/* Header */}
+          <div className="bg-gradient-to-b from-primary/10 via-primary/5 to-transparent pt-6 pb-4 px-6 text-center space-y-2 relative shrink-0 border-b border-border/40">
+            <DialogHeader className="items-center text-center space-y-1">
+              <DialogTitle className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+                Pratinjau Nota Penjualan
+              </DialogTitle>
+              {selectedSale && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-background border text-xs font-mono font-bold text-muted-foreground shadow-sm">
+                  <Receipt className="h-3.5 w-3.5 text-primary" />
+                  {selectedSale.invoiceNumber}
+                </div>
+              )}
+            </DialogHeader>
           </div>
-          <DialogFooter className="px-4 pb-4 pt-2 flex justify-end gap-2 flex-shrink-0 border-t">
+
+          {/* Scrollable Receipt Area */}
+          <ScrollArea className="flex-1 min-h-0 bg-muted/20 px-4 sm:px-6 py-4">
+            <div className="relative mx-auto w-full">
+              <div className="bg-white text-slate-900 p-3 sm:p-4 rounded-2xl shadow-lg border border-slate-200/80 relative overflow-hidden w-full">
+                <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-emerald-500 to-primary" />
+                {selectedSale && (
+                  <SaleReceipt
+                    ref={receiptRef}
+                    sale={selectedSale as unknown as SaleUiResponse}
+                  />
+                )}
+              </div>
+            </div>
+          </ScrollArea>
+
+          {/* Footer Actions */}
+          <div className="shrink-0 p-4 sm:p-5 border-t bg-background/95 backdrop-blur flex items-center justify-between gap-2 sm:gap-3">
             <Button
               variant="outline"
-              size="sm"
+              className="h-11 rounded-xl font-bold border-2"
               onClick={() => setIsReceiptOpen(false)}
             >
               Tutup
             </Button>
-            <Button size="sm" onClick={handlePrint}>
-              <PrinterIcon className="w-4 h-auto" /> Cetak Nota
-            </Button>
-          </DialogFooter>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="h-11 border-2 border-emerald-500/40 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 gap-1.5 font-bold rounded-xl"
+                onClick={() => {
+                  if (!selectedSale) return;
+                  handleShareAsImage({
+                    invoiceNumber: selectedSale.invoiceNumber,
+                    transactionDate: selectedSale.createdAt ?? new Date(),
+                    cashierName: selectedSale.user?.name,
+                    totalAmount:
+                      Number(selectedSale.totalPrice) -
+                      Number(selectedSale.totalBalanceUsed ?? 0),
+                  });
+                }}
+                disabled={isSharing}
+              >
+                {isSharing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Share2 className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {isSharing ? "Menyiapkan..." : "Share WA"}
+                </span>
+              </Button>
+
+              <Button
+                className="h-11 gap-1.5 font-bold rounded-xl shadow-md shadow-primary/20"
+                onClick={handlePrint}
+                disabled={isPrinting}
+              >
+                {isPrinting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <PrinterIcon className="h-4 w-4" />
+                )}
+                {isPrinting ? "Mencetak..." : "Cetak Nota"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
