@@ -44,7 +44,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
     };
 
     const labelStyle: React.CSSProperties = {
-      fontSize: "8px",
+      fontSize: "10px",
       fontWeight: 800,
       textTransform: "uppercase",
       letterSpacing: "0.5px",
@@ -73,7 +73,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
           color: "#000",
           fontFamily: fontSans,
           fontWeight: 600,
-          fontSize: "11px",
+          fontSize: "24px",
           lineHeight: "1.4",
           boxSizing: "border-box",
           WebkitFontSmoothing: "none",
@@ -95,9 +95,9 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
             .print-content {
               width: 48mm !important;
               max-width: 48mm !important;
-              padding: 2mm 2.5mm !important;
+              padding: 0 !important;
               margin: 0 auto !important;
-              font-size: 11px !important;
+              font-size: 24px !important;
             }
           }
           .gm-barcode svg {
@@ -142,10 +142,10 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
             {storeName}
           </h2>
 
-          <p style={{ fontSize: "9.5px", fontWeight: 700, margin: "1px 0" }}>
+          <p style={{ fontSize: "12px", fontWeight: 700, margin: "1px 0" }}>
             {storeAddress}
           </p>
-          <p style={{ fontSize: "9.5px", fontWeight: 700, margin: "1px 0" }}>
+          <p style={{ fontSize: "12px", fontWeight: 700, margin: "1px 0" }}>
             Telp: {storePhone}
           </p>
         </div>
@@ -169,7 +169,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
             </div>
             <div style={{ textAlign: "right" }}>
               <p style={labelStyle}>Tanggal</p>
-              <p style={{ fontSize: "9.5px", fontWeight: 700, margin: 0 }}>
+              <p style={{ fontSize: "12px", fontWeight: 700, margin: 0 }}>
                 {formatDate(sale.createdAt || new Date())}
               </p>
             </div>
@@ -184,13 +184,13 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
           >
             <div>
               <p style={labelStyle}>Kasir</p>
-              <p style={{ fontSize: "9.5px", fontWeight: 700, margin: 0 }}>
+              <p style={{ fontSize: "12px", fontWeight: 700, margin: 0 }}>
                 {sale.user?.name?.split(" ")[0] || "Admin"}
               </p>
             </div>
             <div style={{ textAlign: "right" }}>
               <p style={labelStyle}>Customer</p>
-              <p style={{ fontSize: "9.5px", fontWeight: 700, margin: 0 }}>
+              <p style={{ fontSize: "12px", fontWeight: 700, margin: 0 }}>
                 {sale.customer?.name || "Guest"}
               </p>
             </div>
@@ -230,14 +230,14 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
         <div style={{ paddingBottom: "4px" }}>
           <p
             style={{
-              fontSize: "8.5px",
+              fontSize: "12px",
               fontWeight: 800,
               textTransform: "uppercase",
               letterSpacing: "0.5px",
               margin: "0 0 6px 0",
             }}
           >
-            Item Pembelian
+            Barang yang dibeli
           </p>
 
           {sale.items?.map((item, idx) => (
@@ -245,18 +245,22 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
               key={item.id}
               style={{
                 marginBottom: idx < (sale.items?.length || 0) - 1 ? "6px" : "0",
+                borderBottom:
+                  idx < (sale.items?.length || 0) - 1
+                    ? "0.5px dashed #000"
+                    : "none",
               }}
             >
               <div style={flexBetween}>
-                <span style={{ fontWeight: 800, fontSize: "11px" }}>
+                <span style={{ fontWeight: 800, fontSize: "14px" }}>
                   {item.product?.name}
                 </span>
-                <span style={{ fontWeight: 800, fontSize: "11px" }}>
+                <span style={{ fontWeight: 800, fontSize: "14px" }}>
                   {formatCurrency(Number(item.subtotal))}
                 </span>
               </div>
               <div
-                style={{ fontSize: "9.5px", fontWeight: 600, marginTop: "1px" }}
+                style={{ fontSize: "12px", fontWeight: 600, marginTop: "1px" }}
               >
                 {Number(item.qty).toFixed(0)} pcs &times;{" "}
                 {formatCurrency(Number(item.priceAtSale))}
@@ -274,14 +278,14 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
         {/* ── Subtotal & Diskon ── */}
         <div
           style={{
-            borderTop: "1.5px dashed #000",
+            borderTop: "1.5px solid #000",
             padding: "6px 0",
           }}
         >
           <div
             style={{
               ...flexBetween,
-              fontSize: "10px",
+              fontSize: "12px",
               fontWeight: 700,
               marginBottom: "3px",
             }}
@@ -291,7 +295,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
           </div>
 
           {Number(sale.totalBalanceUsed) > 0 && (
-            <div style={{ ...flexBetween, fontSize: "10px", fontWeight: 700 }}>
+            <div style={{ ...flexBetween, fontSize: "12px", fontWeight: 700 }}>
               <span>Voucher / Saldo</span>
               <span>- {formatCurrency(Number(sale.totalBalanceUsed))}</span>
             </div>
@@ -311,7 +315,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
           >
             <span
               style={{
-                fontSize: "9px",
+                fontSize: "12px",
                 letterSpacing: "0.5px",
                 textTransform: "uppercase",
                 fontWeight: 800,
@@ -336,7 +340,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
           <div
             style={{
               ...flexBetween,
-              fontSize: "10px",
+              fontSize: "12px",
               fontWeight: 700,
               marginBottom: "3px",
             }}
@@ -349,7 +353,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
             <div
               style={{
                 ...flexBetween,
-                fontSize: "11px",
+                fontSize: "14px",
                 fontWeight: 800,
                 borderLeft: "3px solid #000",
                 paddingLeft: "6px",
@@ -364,7 +368,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
             <div
               style={{
                 ...flexBetween,
-                fontSize: "11px",
+                fontSize: "14px",
                 fontWeight: 800,
               }}
             >
@@ -386,7 +390,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
           <p
             style={{
               fontWeight: 900,
-              fontSize: "11px",
+              fontSize: "14px",
               letterSpacing: "0.3px",
               margin: "0 0 3px 0",
             }}
@@ -395,7 +399,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
           </p>
           <p
             style={{
-              fontSize: "8.5px",
+              fontSize: "12px",
               fontWeight: 600,
               lineHeight: "1.5",
               margin: "0 0 6px 0",
@@ -405,7 +409,7 @@ export const SaleReceipt = forwardRef<HTMLDivElement, SaleReceiptProps>(
           </p>
           <p
             style={{
-              fontSize: "8px",
+              fontSize: "12px",
               fontWeight: 700,
               letterSpacing: "0.3px",
               margin: 0,
