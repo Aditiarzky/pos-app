@@ -55,7 +55,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
     };
 
     const labelStyle: React.CSSProperties = {
-      fontSize: "8px",
+      fontSize: "10px",
       fontWeight: 800,
       textTransform: "uppercase",
       letterSpacing: "0.5px",
@@ -81,7 +81,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           color: "#000",
           fontFamily: fontSans,
           fontWeight: 600,
-          fontSize: "11px",
+          fontSize: "24px",
           lineHeight: "1.4",
           boxSizing: "border-box",
           WebkitFontSmoothing: "none",
@@ -103,9 +103,9 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
             .print-content {
               width: 48mm !important;
               max-width: 48mm !important;
-              padding: 2mm 2.5mm !important;
+              padding: 0 !important;
               margin: 0 auto !important;
-              font-size: 11px !important;
+              font-size: 24px !important;
             }
           }
           .gm-barcode svg {
@@ -150,10 +150,10 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
             {storeName}
           </h2>
 
-          <p style={{ fontSize: "9.5px", fontWeight: 700, margin: "1px 0" }}>
+          <p style={{ fontSize: "12px", fontWeight: 700, margin: "1px 0" }}>
             {storeAddress}
           </p>
-          <p style={{ fontSize: "9.5px", fontWeight: 700, margin: "1px 0" }}>
+          <p style={{ fontSize: "12px", fontWeight: 700, margin: "1px 0" }}>
             Telp: {storePhone}
           </p>
         </div>
@@ -177,7 +177,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
             </div>
             <div style={{ textAlign: "right" }}>
               <p style={labelStyle}>Tanggal</p>
-              <p style={{ fontSize: "9.5px", fontWeight: 700, margin: 0 }}>
+              <p style={{ fontSize: "12px", fontWeight: 700, margin: 0 }}>
                 {formatDate(new Date())}
               </p>
             </div>
@@ -192,13 +192,13 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           >
             <div>
               <p style={labelStyle}>Invoice</p>
-              <p style={{ fontSize: "9.5px", fontWeight: 700, margin: 0 }}>
+              <p style={{ fontSize: "12px", fontWeight: 700, margin: 0 }}>
                 {result.saleData.invoiceNumber || "-"}
               </p>
             </div>
             <div style={{ textAlign: "right" }}>
               <p style={labelStyle}>Customer</p>
-              <p style={{ fontSize: "9.5px", fontWeight: 700, margin: 0 }}>
+              <p style={{ fontSize: "12px", fontWeight: 700, margin: 0 }}>
                 {result.customerName || "Guest"}
               </p>
             </div>
@@ -206,7 +206,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
 
           <div style={{ marginTop: "6px" }}>
             <p style={labelStyle}>Kompensasi</p>
-            <p style={{ fontSize: "9.5px", fontWeight: 700, margin: 0 }}>
+            <p style={{ fontSize: "12px", fontWeight: 700, margin: 0 }}>
               {compensationLabel}
             </p>
           </div>
@@ -245,7 +245,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
         <div style={{ paddingBottom: "4px" }}>
           <p
             style={{
-              fontSize: "8.5px",
+              fontSize: "12px",
               fontWeight: 800,
               textTransform: "uppercase",
               letterSpacing: "0.5px",
@@ -261,20 +261,26 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
               style={{
                 marginBottom:
                   idx < (result.returnItems?.length || 0) - 1 ? "6px" : "0",
+                borderBottom:
+                  idx < (result.returnItems?.length || 0) - 1
+                    ? "0.5px dashed #000"
+                    : "none",
+                paddingBottom:
+                  idx < (result.returnItems?.length || 0) - 1 ? "4px" : "0",
               }}
             >
               <div style={flexBetween}>
-                <span style={{ fontWeight: 800, fontSize: "11px" }}>
+                <span style={{ fontWeight: 800, fontSize: "14px" }}>
                   {item.productName}
                 </span>
-                <span style={{ fontWeight: 800, fontSize: "11px" }}>
+                <span style={{ fontWeight: 800, fontSize: "14px" }}>
                   {formatCurrency(
                     item.qty * (item.priceAtSale || item.priceAtReturn || 0),
                   )}
                 </span>
               </div>
               <div
-                style={{ fontSize: "9.5px", fontWeight: 600, marginTop: "1px" }}
+                style={{ fontSize: "12px", fontWeight: 600, marginTop: "1px" }}
               >
                 {Number(item.qty).toFixed(0)} pcs &times;{" "}
                 {formatCurrency(item.priceAtSale || item.priceAtReturn || 0)}
@@ -287,7 +293,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
               </div>
               <div
                 style={{
-                  fontSize: "9px",
+                  fontSize: "12px",
                   fontWeight: 600,
                   marginTop: "1px",
                   fontStyle: "italic",
@@ -304,7 +310,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
             <>
               <p
                 style={{
-                  fontSize: "8.5px",
+                  fontSize: "12px",
                   fontWeight: 800,
                   textTransform: "uppercase",
                   letterSpacing: "0.5px",
@@ -322,19 +328,27 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
                       idx < (result.exchangeItems?.length || 0) - 1
                         ? "6px"
                         : "0",
+                    borderBottom:
+                      idx < (result.exchangeItems?.length || 0) - 1
+                        ? "0.5px dashed #000"
+                        : "none",
+                    paddingBottom:
+                      idx < (result.exchangeItems?.length || 0) - 1
+                        ? "4px"
+                        : "0",
                   }}
                 >
                   <div style={flexBetween}>
-                    <span style={{ fontWeight: 800, fontSize: "11px" }}>
+                    <span style={{ fontWeight: 800, fontSize: "14px" }}>
                       {item.productName}
                     </span>
-                    <span style={{ fontWeight: 800, fontSize: "11px" }}>
+                    <span style={{ fontWeight: 800, fontSize: "14px" }}>
                       -{formatCurrency(item.qty * item.sellPrice)}
                     </span>
                   </div>
                   <div
                     style={{
-                      fontSize: "9.5px",
+                      fontSize: "12px",
                       fontWeight: 600,
                       marginTop: "1px",
                     }}
@@ -364,7 +378,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           <div
             style={{
               ...flexBetween,
-              fontSize: "10px",
+              fontSize: "12px",
               fontWeight: 700,
               marginBottom: "3px",
             }}
@@ -374,7 +388,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           </div>
 
           {result.exchangeItems.length > 0 && (
-            <div style={{ ...flexBetween, fontSize: "10px", fontWeight: 700 }}>
+            <div style={{ ...flexBetween, fontSize: "12px", fontWeight: 700 }}>
               <span>Potongan Tukar Barang</span>
               <span>- {formatCurrency(result.totalValueExchange)}</span>
             </div>
@@ -394,7 +408,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           >
             <span
               style={{
-                fontSize: "9px",
+                fontSize: "12px",
                 letterSpacing: "0.5px",
                 textTransform: "uppercase",
                 fontWeight: 800,
@@ -419,7 +433,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           <div
             style={{
               ...flexBetween,
-              fontSize: "10px",
+              fontSize: "12px",
               fontWeight: 700,
               marginBottom: "3px",
             }}
@@ -441,7 +455,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           <p
             style={{
               fontWeight: 900,
-              fontSize: "11px",
+              fontSize: "14px",
               letterSpacing: "0.3px",
               margin: "0 0 3px 0",
             }}
@@ -450,7 +464,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           </p>
           <p
             style={{
-              fontSize: "8.5px",
+              fontSize: "12px",
               fontWeight: 600,
               lineHeight: "1.5",
               margin: "0 0 6px 0",
@@ -460,7 +474,7 @@ export const ReturnReceipt = forwardRef<HTMLDivElement, ReturnReceiptProps>(
           </p>
           <p
             style={{
-              fontSize: "8px",
+              fontSize: "12px",
               fontWeight: 700,
               letterSpacing: "0.3px",
               margin: 0,
