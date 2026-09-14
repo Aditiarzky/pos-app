@@ -190,14 +190,56 @@ export function useSaleForm({
   const deficiency = Math.max(0, grandTotal - totalPaid);
   const isInsufficient = paymentMethod === "cash" && totalPaid < grandTotal;
 
-  const problematicStockItems = items.filter((item) => {
-    const requestedQty = Number(item.qty);
-    const conversionFactor = Number(item.conversionToBase || 1);
-    const requestedTotalBase = requestedQty * conversionFactor;
-    const currentStock = Number(item.currentStock || 0);
+  const getProductStockDeficiencies = (): InsufficientStockItem[] => {
+    const productMap = new Map<number, SaleFormItem[]>();
+    items.forEach((item) => {
+      if (!item.productId) return;
+      const existing = productMap.get(item.productId) || [];
+      existing.push(item);
+      productMap.set(item.productId, existing);
+    });
 
-    return requestedTotalBase > currentStock;
-  });
+    const deficiencies: InsufficientStockItem[] = [];
+
+    productMap.forEach((productItems, productId) => {
+      if (productItems.length === 0) return;
+
+      const firstItem = productItems[0];
+      const productName = firstItem.productName || "Unknown";
+      const currentStock = Number(firstItem.currentStock || 0);
+
+      const totalRequestedBase = productItems.reduce((acc, item) => {
+        const qty = Number(item.qty) || 0;
+        const conv = Number(item.conversionToBase) || 1;
+        return acc + qty * conv;
+      }, 0);
+
+      if (totalRequestedBase > currentStock) {
+        const variantSummary = productItems
+          .map((i) => `${i.qty} ${i.variantName || "Unit"}`)
+          .join(", ");
+
+        const conversionFactor = Number(firstItem.conversionToBase) || 1;
+
+        deficiencies.push({
+          productId,
+          variantId: firstItem.variantId,
+          productName,
+          variantName:
+            productItems.length > 1
+              ? `Gabungan (${variantSummary})`
+              : firstItem.variantName || "Default",
+          qty: (totalRequestedBase - currentStock) / conversionFactor,
+          requestedQty: totalRequestedBase,
+          currentStock,
+          difference: totalRequestedBase - currentStock,
+          conversionToBase: conversionFactor,
+        });
+      }
+    });
+
+    return deficiencies;
+  };
 
   const submitBlockedReason = (() => {
     if (createMutation.isPending) return "Transaksi sedang diproses";
@@ -235,26 +277,7 @@ export function useSaleForm({
   const canSubmit = submitBlockedReason === null;
 
   const validateStock = () => {
-    const problematicItems: InsufficientStockItem[] = problematicStockItems.map(
-      (item) => {
-        const requestedQty = Number(item.qty);
-        const conversionFactor = Number(item.conversionToBase || 1);
-        const requestedTotalBase = requestedQty * conversionFactor;
-        const currentStock = Number(item.currentStock || 0);
-
-        return {
-          variantId: item.variantId,
-          productId: item.productId,
-          productName: item.productName || "Unknown",
-          variantName: item.variantName || "Default",
-          qty: item.qty,
-          requestedQty: requestedTotalBase,
-          currentStock,
-          difference: requestedTotalBase - currentStock,
-          conversionToBase: conversionFactor,
-        };
-      },
-    );
+    const problematicItems = getProductStockDeficiencies();
 
     if (problematicItems.length > 0) {
       setInsufficientItems(problematicItems);
@@ -271,10 +294,12 @@ export function useSaleForm({
 
     try {
       for (const item of insufficientItems) {
+        const targetVariantQty =
+          item.requestedQty / (item.conversionToBase || 1);
         await adjustStockMutation.mutateAsync({
           id: item.productId,
           userId: user?.id || 0,
-          variants: [{ variantId: item.variantId || 0, qty: item.qty }],
+          variants: [{ variantId: item.variantId || 0, qty: targetVariantQty }],
         });
       }
 
