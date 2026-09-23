@@ -82,8 +82,8 @@ describe("calculateNetProfit", () => {
     // Input parameters for 30 days (1 month)
     const revenue = 10000000; // 10,000,000
     const grossProfit = 8000000; // 8,000,000
-    const startDate = new Date("2026-07-01T00:00:00.000Z");
-    const endDate = new Date("2026-07-30T23:59:59.000Z");
+    const startDate = "2026-07-01";
+    const endDate = "2026-07-30";
 
     const result = await calculateNetProfit(
       revenue,
@@ -151,8 +151,8 @@ describe("calculateNetProfit", () => {
 
     const revenue = 10000000;
     const grossProfit = 8000000; // 8,000,000
-    const startDate = new Date("2026-07-01T00:00:00.000Z");
-    const endDate = new Date("2026-07-30T23:59:59.000Z");
+    const startDate = "2026-07-01";
+    const endDate = "2026-07-30";
 
     const result = await calculateNetProfit(
       revenue,

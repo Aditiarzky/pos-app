@@ -22,8 +22,6 @@ export interface CleanExpiredResult {
 export async function cleanExpiredData(): Promise<CleanExpiredResult> {
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-  const oneMonthAgo = new Date();
-  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
   try {
     const salesResult = await db.delete(sales).where(
@@ -35,7 +33,7 @@ export async function cleanExpiredData(): Promise<CleanExpiredResult> {
     ).returning({ id: purchaseOrders.id });
 
     const stockMutationsResult = await db.delete(stockMutations).where(
-      sql`${stockMutations.createdAt} < ${oneMonthAgo}`
+      sql`${stockMutations.createdAt} < ${oneYearAgo}`
     ).returning({ id: stockMutations.id });
 
     const customerReturnResult = await db.delete(customerReturns).where(

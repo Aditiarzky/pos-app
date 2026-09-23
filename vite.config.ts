@@ -9,6 +9,7 @@ export default defineConfig(({ command }) => ({
      serwist({
       swSrc: "src/sw.ts",
       swDest: "sw.js",
+      globDirectory: "dist/client",
       injectionPoint: "self.__SW_MANIFEST",
       rollupFormat: "iife",
       globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest}"],
