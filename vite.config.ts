@@ -1,10 +1,18 @@
 import vinext from "vinext";
 import { defineConfig } from "vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
+import { serwist } from "@serwist/vite";
 
 export default defineConfig(({ command }) => ({
   plugins: [
     vinext(),
+     serwist({
+      swSrc: "src/sw.ts",
+      swDest: "sw.js",
+      injectionPoint: "self.__SW_MANIFEST",
+      rollupFormat: "iife",
+      globPatterns: ["**/*.{js,css,html,png,svg,ico,webmanifest}"],
+    }),
     command === "build" &&
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
