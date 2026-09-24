@@ -23,6 +23,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { useProductSearch } from "@/hooks/use-product-search";
+import { useOfflineSales } from "@/hooks/use-offline-sales";
 import { useSaleForm } from "../../_hooks/use-sale-form";
 import { TransactionCartItems } from "../transaction-cart-items";
 import { ProductResponse } from "@/services/productService";
@@ -99,7 +100,10 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     setLastScannedBarcode,
   } = useProductSearch({ isOpen: true, autoFocusOnMount: false });
 
-  const [isMobileCheckoutOpen, setIsMobileCheckoutOpen] = useState(false);
+    const { createOfflineSale } = useOfflineSales();
+    const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+
+    const [isMobileCheckoutOpen, setIsMobileCheckoutOpen] = useState(false);
   const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -122,6 +126,17 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
     return () => scrollContainer.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     if (lastScannedBarcode && searchResults.length > 0) {
@@ -172,10 +187,39 @@ export function TransactionForm({ onSuccess }: TransactionFormProps) {
     searchInputRef.current?.focus();
   };
 
-  const handleClickSubmit = () => {
+  const handleClickSubmit = async () => {
     if (!canSubmit) return;
 
     const currentData = form.getValues();
+    
+    // Offline: queue transaksi cash only
+    if (!isOnline && paymentMethod === "cash") {
+      const result = await createOfflineSale({
+        userId: currentData.userId || 0,
+        customerId: currentData.customerId,
+        customerName: currentData.customerName,
+        items: currentData.items,
+        totalPrice: currentData.total || 0,
+        totalPaid: currentData.totalPaid || currentData.total || 0,
+        totalReturn: currentData.totalReturn || 0,
+        paymentMethod: "cash",
+        invoiceNumber: "",
+      });
+      
+      if (result.success) {
+        form.reset();
+        setIsMobileCheckoutOpen(false);
+      }
+      return;
+    }
+
+    // Offline + QRIS: blokir
+    if (!isOnline && paymentMethod === "qris") {
+      toast.error("QRIS membutuhkan koneksi internet.");
+      return;
+    }
+
+    // Online: submit normal
     onSubmit(currentData).then(() => {
       setIsMobileCheckoutOpen(false);
     });
