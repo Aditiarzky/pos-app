@@ -73,14 +73,7 @@ export function PurchaseSection({
       </div>
 
       {/* Layer 2: Breakdown (Daily trend) */}
-      {/*<ChartAreaInteractive
-        title="Tren Pengeluaran Pembelian"
-        description="Statistik pembelian stok harian"
-        data={dailyData}
-        config={{
-          totalPurchases: { label: "Pembelian", color: "var(--destructive)" },
-        }}
-      />*/}
+
       <ChartAreaSingle
         title="Tren Pengeluaran Pembelian"
         description="Statistik pembelian stok harian"
