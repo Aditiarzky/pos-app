@@ -47,5 +47,6 @@ export const formatDate = (date: string | Date) => {
   return new Intl.DateTimeFormat("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "UTC",
   }).format(new Date(date));
 };

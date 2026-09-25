@@ -1,6 +1,6 @@
 {
   "id": "/",
-  "name": "POS App",
+  "name": "POS - Gunung Muria Grosir Snack",
   "short_name": "POS",
   "description": "Aplikasi kasir dan manajemen toko",
   "start_url": "/dashboard/sales?source=pwa",

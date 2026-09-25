@@ -36,6 +36,7 @@ import { DebtFilterForm } from "./_components/_ui/debt-filter-form";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import BarcodeScannerCamera from "@/components/barcode-scanner-camera";
+import { OfflineCatalogStatus } from "@/components/offline-catalog-status";
 import { toast } from "sonner";
 import { BUSINESS_TERMS } from "@/lib/business-terms";
 
@@ -145,7 +146,7 @@ function SalesContent() {
   return (
     <>
       {/* Header Section */}
-      <header className="sticky top-6 mx-auto container z-10 flex flex-row px-6 justify-between w-full items-center gap-4 pb-16">
+      <header className="sticky md:flex-row top-6 mx-auto container z-10 flex flex-col px-6 justify-between w-full md:items-center items-start gap-4 pb-16">
         <div className="flex items-center gap-4">
           <div className="h-12 w-1.5 bg-primary rounded-app-pill shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
           <div className="flex flex-col">
@@ -157,6 +158,7 @@ function SalesContent() {
             </p>
           </div>
         </div>
+        
       </header>
 
       {/* Main Content */}
